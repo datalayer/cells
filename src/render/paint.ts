@@ -10,10 +10,9 @@
  * canvas (the selection). Works on any 2D context: the browser's, or
  * `@napi-rs/canvas`'s in the snapshot tests.
  *
- * Paint order per pane, after x-spreadsheet's: fills and grid lines, then
- * merges over them, then text, then borders. Hairlines sit on device pixels
- * (x-spreadsheet's half-pixel arithmetic), so they stay one device pixel wide
- * at any DPR and zoom.
+ * Paint order per pane: fills and grid lines, then merges over them, then
+ * text, then borders. Hairlines sit on device pixels (half-pixel
+ * arithmetic), so they stay one device pixel wide at any DPR and zoom.
  *
  * @module render/paint
  */

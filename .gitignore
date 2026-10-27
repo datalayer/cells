@@ -3,7 +3,6 @@ lib/
 dist/
 dist-npm/
 bench/results/*.json
-!bench/results/baselines.json
 test-results/
 playwright-report/
 *-lock.json
