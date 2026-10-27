@@ -154,6 +154,7 @@ export const MODEL_MEMBERS: Readonly<Record<string, Surface>> = {
   toJSON: hook('useExport'),
   toRows: hook('useExport'),
   loadColumns: hook('useLoad'),
+  replaceData: hook('useLoad'),
   clipboardMark: hook('useClipboard'),
   copy: hook('useClipboard'),
   paste: hook('useClipboard'),

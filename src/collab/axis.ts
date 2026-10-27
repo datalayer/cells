@@ -15,7 +15,7 @@
  * peers would merge as two runs, and every row after them would shift).
  *
  * Only what an edit changes is stored, in one `LoroMap` per axis, id to
- * entry: a row inserted gets an id of its peer and an order key between its
+ * entry: a row inserted gets an id of its peer (`p<peer>-<counter>`) and an order key between its
  * neighbours' keys; a row moved gets a new key; a row deleted is marked
  * deleted. Order is by key, ties by id, so concurrent inserts at one place
  * keep both rows, in the same order on every peer.
@@ -99,10 +99,70 @@ export class AxisOrder {
     return out;
   }
 
+  /** How many live ids there are. */
+  get length(): number {
+    return this.#count - this.#touched.length + this.#explicit.length;
+  }
+
+  /** Untouched implicit indexes sorting before an explicit entry. */
+  #untouchedBefore(e: { id: string; key: number }): number {
+    // Indexes i in [0, count) with i < key, or i === key and its id sorting first.
+    let n = Math.max(0, Math.min(this.#count, Math.ceil(e.key)));
+    if (Number.isInteger(e.key) && e.key >= 0 && e.key < this.#count && implicitId(e.key) < e.id)
+      n += 1;
+    let t = 0;
+    for (const i of this.#touched) {
+      if (i < e.key || (i === e.key && implicitId(i) < e.id)) t += 1;
+      else break;
+    }
+    return n - t;
+  }
+
+  /** The untouched implicit index of a rank among the untouched ones. */
+  #untouchedAt(rank: number): number {
+    let i = rank;
+    for (const x of this.#touched) {
+      if (x <= i) i += 1;
+      else break;
+    }
+    return i;
+  }
+
+  /** The id at a live position, or `undefined` past the end. */
+  idAt(position: number): string | undefined {
+    if (position < 0 || position >= this.length) return undefined;
+    for (let k = 0; k < this.#explicit.length; k += 1) {
+      const e = this.#explicit[k];
+      const before = this.#untouchedBefore(e) + k;
+      if (position < before) return implicitId(this.#untouchedAt(position - k));
+      if (position === before) return e.id;
+    }
+    return implicitId(this.#untouchedAt(position - this.#explicit.length));
+  }
+
+  /** The live position of an id, or `undefined` when it is deleted (or never was). */
+  positionOf(id: string): number | undefined {
+    const k = this.#explicit.findIndex((e) => e.id === id);
+    if (k >= 0) return this.#untouchedBefore(this.#explicit[k]) + k;
+    const i = implicitIndex(id);
+    if (i === undefined || i >= this.#count || this.#touched.includes(i)) return undefined;
+    let t = 0;
+    for (const x of this.#touched) {
+      if (x < i) t += 1;
+      else break;
+    }
+    let e = 0;
+    while (
+      e < this.#explicit.length &&
+      (this.#explicit[e].key < i || (this.#explicit[e].key === i && this.#explicit[e].id < id))
+    )
+      e += 1;
+    return i - t + e;
+  }
+
   /** The order key at a live position, for inserting next to it. */
   keyAt(position: number): number {
-    const ids = this.ids();
-    const id = ids[position];
+    const id = this.idAt(position);
     if (id === undefined) throw new Error(`No row at ${position}.`);
     return this.#explicit.find((x) => x.id === id)?.key ?? implicitIndex(id)!;
   }
@@ -118,26 +178,41 @@ export function insert(
   counter: { next: number },
 ): string[] {
   const order = AxisOrder.of(map, count);
-  const ids = order.ids();
   const before = at === 0 ? -1 : order.keyAt(at - 1);
-  const after = at >= ids.length ? before + 1 + n : order.keyAt(at);
+  const after = at >= order.length ? before + 1 + n : order.keyAt(at);
   const step = (after - before) / (n + 1);
   if (!(step > 0) || before + step === before || before + step * n >= after)
     throw new Error('No order key is left between these rows.');
   const out: string[] = [];
   for (let k = 1; k <= n; k += 1) {
-    const id = `p${peer}.${(counter.next++).toString(36)}`;
+    const id = `p${peer}-${(counter.next++).toString(36)}`;
     map.set(id, { key: before + step * k });
     out.push(id);
   }
   return out;
 }
 
+/**
+ * Move the ids at live positions `at` … `at + n - 1` before the live
+ * position `to` (counted before the move): they get keys between the
+ * neighbours of the place they go to.
+ */
+export function move(map: LoroMap, count: number, at: number, n: number, to: number): string[] {
+  const order = AxisOrder.of(map, count);
+  const ids = Array.from({ length: n }, (_, k) => order.idAt(at + k)!);
+  const before = to === 0 ? -1 : order.keyAt(to - 1);
+  const after = to >= order.length ? before + 1 + n : order.keyAt(to);
+  const step = (after - before) / (n + 1);
+  if (!(step > 0) || before + step === before || before + step * n >= after)
+    throw new Error('No order key is left between these rows.');
+  ids.forEach((id, k) => map.set(id, { key: before + step * (k + 1) }));
+  return ids;
+}
+
 /** Delete the ids at live positions `at` … `at + n - 1`. */
 export function remove(map: LoroMap, count: number, at: number, n: number): string[] {
-  const ids = AxisOrder.of(map, count)
-    .ids()
-    .slice(at, at + n);
+  const order = AxisOrder.of(map, count);
+  const ids = Array.from({ length: n }, (_, k) => order.idAt(at + k)!);
   for (const id of ids) {
     if (implicitIndex(id) !== undefined) map.set(id, { deleted: true });
     else map.set(id, { ...(map.get(id) as AxisEntry), deleted: true });

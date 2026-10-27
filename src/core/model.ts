@@ -41,7 +41,7 @@ import type { Patch, PatchOp } from './patches.js';
 import { buildCellsReactor, CELLS_CORE_PLUGIN } from './reactor.js';
 import { type SelectionState, initialSelection } from './selection.js';
 import type { Style } from './styles.js';
-import { type CellsWorkbook, loadInto, toJSON } from './format.js';
+import { type CellsWorkbook, loadInto, toJSON, validateWorkbook } from './format.js';
 import type { CellValue } from './values.js';
 import { DEFAULT_LIMITS, type Limits, type Sheet, Workbook } from './workbook.js';
 import type { Position, Zone } from './zone.js';
@@ -276,6 +276,27 @@ export class CellsModel {
   /** The labels of the steps undo and redo would take. */
   get historyLabels(): { undo?: string; redo?: string } {
     return { undo: this.#history.undoLabel, redo: this.#history.redoLabel };
+  }
+
+  /**
+   * Replace the whole workbook with a `CellsWorkbook` (validated whole first):
+   * no patches and no undo step, the history cleared, the selection kept
+   * where it still exists. A collaboration binding projects its shared
+   * document this way (`origin: 'remote'`); opening a file in place is a load.
+   */
+  replaceData(data: unknown, origin: 'remote' | 'load' = 'load'): void {
+    if (this.#open) throw new Error('Cannot replace the workbook inside a transaction.');
+    // Validated before anything is dropped: a bad document leaves the workbook as it was.
+    validateWorkbook(data, this.workbook.limits);
+    for (const sheet of this.workbook.sheets)
+      for (const [row, col] of [...sheet.cells.entries()]) sheet.cells.set(row, col, null);
+    this.workbook.sheets.length = 0;
+    loadInto(this.workbook, data);
+    this.#engine.reset();
+    this.#history.clear();
+    if (this.#edit !== null && !this.workbook.hasSheet(this.#edit.sheet)) this.#setEdit(null);
+    this.#setSelection(this.#validSelection(this.#selection));
+    this.#emit({ label: origin, commands: [], patches: [], origin });
   }
 
   /**

@@ -6,7 +6,7 @@
 
 import { LoroDoc } from 'loro-crdt';
 import { describe, expect, it } from 'vitest';
-import { AxisOrder, implicitId, insert, remove } from '../axis.js';
+import { AxisOrder, implicitId, insert, move, remove } from '../axis.js';
 
 const COUNT = 1_048_576;
 
@@ -81,5 +81,24 @@ describe('the axis encoding, two peers', () => {
     expect(() => {
       for (let k = 0; k < 40; k += 1) insert(a.rows, 12, 2, 1, '1', a.counter);
     }).toThrow(/No order key is left/);
+  });
+});
+
+describe('positions and ids', () => {
+  it('idAt and positionOf agree with the full order, across inserts, deletes and moves', () => {
+    const a = peer(1);
+    insert(a.rows, 20, 3, 2, '1', a.counter);
+    remove(a.rows, 20, 7, 3);
+    move(a.rows, 20, 10, 2, 1);
+    insert(a.rows, 20, 0, 1, '1', a.counter);
+    const order = AxisOrder.of(a.rows, 20);
+    const ids = order.ids();
+    expect(order.length).toBe(ids.length);
+    ids.forEach((id, p) => {
+      expect([p, order.idAt(p)]).toEqual([p, id]);
+      expect([id, order.positionOf(id)]).toEqual([id, p]);
+    });
+    expect(order.idAt(ids.length)).toBeUndefined();
+    expect(order.positionOf(implicitId(7))).toBeUndefined();
   });
 });

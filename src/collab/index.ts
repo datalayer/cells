@@ -10,4 +10,13 @@
  * @module collab
  */
 
-export { AxisOrder, type AxisEntry, implicitId, implicitIndex, insert, remove } from './axis.js';
+export {
+  AxisOrder,
+  type AxisEntry,
+  implicitId,
+  implicitIndex,
+  insert,
+  move,
+  remove,
+} from './axis.js';
+export { type BindingOptions, LoroBinding } from './binding.js';
