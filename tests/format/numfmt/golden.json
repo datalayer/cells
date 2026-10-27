@@ -1,0 +1,330 @@
+{
+  "note": "What LibreOffice shows for each case of cases.json, en-US.",
+  "cases": [
+    {
+      "format": "General",
+      "value": 1234.5,
+      "shows": "1234.5"
+    },
+    {
+      "format": "General",
+      "value": -0.25,
+      "shows": "-0.25"
+    },
+    {
+      "format": "General",
+      "value": 0.3333333333333333,
+      "shows": "0.333333333333333"
+    },
+    {
+      "format": "General",
+      "value": 123456789012,
+      "shows": "123456789012"
+    },
+    {
+      "format": "General",
+      "value": 1.234e-09,
+      "shows": "0.000000001234"
+    },
+    {
+      "format": "0",
+      "value": 1234.5,
+      "shows": "1235"
+    },
+    {
+      "format": "0",
+      "value": -1234.5,
+      "shows": "-1235"
+    },
+    {
+      "format": "0.00",
+      "value": 3.14159,
+      "shows": "3.14"
+    },
+    {
+      "format": "0.00",
+      "value": -0.005,
+      "shows": "-0.01"
+    },
+    {
+      "format": "0.000",
+      "value": 2.5,
+      "shows": "2.500"
+    },
+    {
+      "format": "#,##0",
+      "value": 1234567.891,
+      "shows": "1,234,568"
+    },
+    {
+      "format": "#,##0",
+      "value": -1234567.891,
+      "shows": "-1,234,568"
+    },
+    {
+      "format": "#,##0.00",
+      "value": 1234.5,
+      "shows": "1,234.50"
+    },
+    {
+      "format": "#,##0.00",
+      "value": 0,
+      "shows": "0.00"
+    },
+    {
+      "format": "#,##0.00",
+      "value": 999999.999,
+      "shows": "1,000,000.00"
+    },
+    {
+      "format": "#.##",
+      "value": 3.1,
+      "shows": "3.1"
+    },
+    {
+      "format": "#.##",
+      "value": 3,
+      "shows": "3"
+    },
+    {
+      "format": "0.0#",
+      "value": 2.5,
+      "shows": "2.5"
+    },
+    {
+      "format": "0.0#",
+      "value": 2.567,
+      "shows": "2.57"
+    },
+    {
+      "format": "00000",
+      "value": 42,
+      "shows": "00042"
+    },
+    {
+      "format": "#,##0,",
+      "value": 1234567,
+      "shows": "1,235"
+    },
+    {
+      "format": "#,##0,,",
+      "value": 1234567890,
+      "shows": "1,235"
+    },
+    {
+      "format": "0.0,,\"M\"",
+      "value": 1234567,
+      "shows": "1.2M"
+    },
+    {
+      "format": "0%",
+      "value": 0.256,
+      "shows": "26%"
+    },
+    {
+      "format": "0.00%",
+      "value": 0.25678,
+      "shows": "25.68%"
+    },
+    {
+      "format": "0.00%",
+      "value": -0.5,
+      "shows": "-50.00%"
+    },
+    {
+      "format": "0.00E+00",
+      "value": 12345.678,
+      "shows": "1.23E+04"
+    },
+    {
+      "format": "0.00E+00",
+      "value": 0.000123,
+      "shows": "1.23E-04"
+    },
+    {
+      "format": "##0.0E+0",
+      "value": 12345.678,
+      "shows": "12.3E+3"
+    },
+    {
+      "format": "0E+00",
+      "value": 5,
+      "shows": "5E+00"
+    },
+    {
+      "format": "$#,##0.00",
+      "value": 1234.5,
+      "shows": "$1,234.50"
+    },
+    {
+      "format": "$#,##0.00;($#,##0.00)",
+      "value": -1234.5,
+      "shows": "($1,234.50)"
+    },
+    {
+      "format": "$#,##0.00;[Red]($#,##0.00)",
+      "value": -1234.5,
+      "shows": "($1,234.50)"
+    },
+    {
+      "format": "0.00;-0.00;\"zero\"",
+      "value": 0,
+      "shows": "zero"
+    },
+    {
+      "format": "0.00;-0.00;\"zero\"",
+      "value": -2,
+      "shows": "-2.00"
+    },
+    {
+      "format": "\"Total: \"0.00",
+      "value": 12.5,
+      "shows": "Total: 12.50"
+    },
+    {
+      "format": "0.00\" kg\"",
+      "value": 3.25,
+      "shows": "3.25 kg"
+    },
+    {
+      "format": "#,##0_);(#,##0)",
+      "value": 1234,
+      "shows": "1,234 "
+    },
+    {
+      "format": "#,##0_);(#,##0)",
+      "value": -1234,
+      "shows": "(1,234)"
+    },
+    {
+      "format": "@",
+      "value": 12,
+      "shows": "12"
+    },
+    {
+      "format": "[>=100]\"big\";[<0]\"neg\";\"small\"",
+      "value": 150,
+      "shows": "big"
+    },
+    {
+      "format": "[>=100]\"big\";[<0]\"neg\";\"small\"",
+      "value": -3,
+      "shows": "neg"
+    },
+    {
+      "format": "[>=100]\"big\";[<0]\"neg\";\"small\"",
+      "value": 7,
+      "shows": "small"
+    },
+    {
+      "format": "[Blue]0.00",
+      "value": 1.5,
+      "shows": "1.50"
+    },
+    {
+      "format": "0.00;[Red]-0.00",
+      "value": -1.5,
+      "shows": "-1.50"
+    },
+    {
+      "format": "yyyy-mm-dd",
+      "value": 45000,
+      "shows": "2023-03-15"
+    },
+    {
+      "format": "dd/mm/yyyy",
+      "value": 45000,
+      "shows": "15/03/2023"
+    },
+    {
+      "format": "mm/dd/yy",
+      "value": 45000,
+      "shows": "03/15/23"
+    },
+    {
+      "format": "d mmm yyyy",
+      "value": 45000,
+      "shows": "15 Mar 2023"
+    },
+    {
+      "format": "dddd, mmmm d, yyyy",
+      "value": 45000,
+      "shows": "Wednesday, March 15, 2023"
+    },
+    {
+      "format": "mmm-yy",
+      "value": 45000,
+      "shows": "Mar-23"
+    },
+    {
+      "format": "ddd",
+      "value": 45001,
+      "shows": "Thu"
+    },
+    {
+      "format": "h:mm",
+      "value": 0.75,
+      "shows": "18:00"
+    },
+    {
+      "format": "hh:mm:ss",
+      "value": 0.5123,
+      "shows": "12:17:42"
+    },
+    {
+      "format": "h:mm AM/PM",
+      "value": 0.75,
+      "shows": "6:00 PM"
+    },
+    {
+      "format": "h:mm:ss AM/PM",
+      "value": 0.25,
+      "shows": "6:00:00 AM"
+    },
+    {
+      "format": "[h]:mm",
+      "value": 1.5,
+      "shows": "36:00"
+    },
+    {
+      "format": "[mm]:ss",
+      "value": 0.0423,
+      "shows": "60:55"
+    },
+    {
+      "format": "mm:ss.00",
+      "value": 0.000123,
+      "shows": "00:10.63"
+    },
+    {
+      "format": "yyyy-mm-dd hh:mm",
+      "value": 45000.6,
+      "shows": "2023-03-15 14:24"
+    },
+    {
+      "format": "0.00",
+      "value": 1000000000000000.0,
+      "shows": "1000000000000000.00"
+    },
+    {
+      "format": "#,##0.00",
+      "value": -0.001,
+      "shows": "0.00"
+    },
+    {
+      "format": "#,##0.0",
+      "value": 1234.56,
+      "shows": "1,234.6"
+    },
+    {
+      "format": "mmmm",
+      "value": 45000,
+      "shows": "March"
+    },
+    {
+      "format": "0.0%;-0.0%",
+      "value": -0.1234,
+      "shows": "-12.3%"
+    }
+  ]
+}

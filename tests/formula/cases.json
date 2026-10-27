@@ -1,0 +1,771 @@
+{
+  "note": "Formulas over a data block, and what LibreOffice computes for each (scripts/formula-golden.py). Volatile functions are checked by type only.",
+  "data": {
+    "A": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "B": [
+      3.5,
+      -2,
+      0,
+      8,
+      "apple",
+      true,
+      null,
+      12.25,
+      -7.5,
+      100
+    ],
+    "C": [
+      "apple",
+      "Banana",
+      "cherry",
+      "date",
+      "Elderberry",
+      "fig",
+      "grape",
+      "Honeydew",
+      "kiwi",
+      "lemon"
+    ],
+    "D": [
+      45000,
+      45001,
+      45002,
+      45010,
+      45030,
+      45061,
+      45100,
+      45200,
+      45292,
+      45366
+    ],
+    "E": [
+      "a",
+      "b",
+      "a",
+      "c",
+      "b",
+      "a",
+      "c",
+      "a",
+      "b",
+      "c"
+    ],
+    "F": [
+      10,
+      20,
+      30,
+      40,
+      50,
+      60,
+      70,
+      80,
+      90,
+      100
+    ]
+  },
+  "other": {
+    "A1": 42,
+    "A2": 8
+  },
+  "cases": [
+    {
+      "fn": "ops",
+      "formula": "1+2*3"
+    },
+    {
+      "fn": "ops",
+      "formula": "(1+2)*3"
+    },
+    {
+      "fn": "ops",
+      "formula": "-2^2"
+    },
+    {
+      "fn": "ops",
+      "formula": "2^3^2"
+    },
+    {
+      "fn": "ops",
+      "formula": "10/4"
+    },
+    {
+      "fn": "ops",
+      "formula": "5%"
+    },
+    {
+      "fn": "ops",
+      "formula": "\"a\"&\"b\"&1"
+    },
+    {
+      "fn": "ops",
+      "formula": "1=1"
+    },
+    {
+      "fn": "ops",
+      "formula": "\"A\"=\"a\""
+    },
+    {
+      "fn": "ops",
+      "formula": "2<>3"
+    },
+    {
+      "fn": "ops",
+      "formula": "\"b\">\"a\""
+    },
+    {
+      "fn": "ops",
+      "formula": "1/0"
+    },
+    {
+      "fn": "ops",
+      "formula": "A1+B4"
+    },
+    {
+      "fn": "ops",
+      "formula": "SUM(A1:A3 A2:A4)"
+    },
+    {
+      "fn": "ops",
+      "formula": "SUM((A1:A2,A9:A10))"
+    },
+    {
+      "fn": "ops",
+      "formula": "SUM(A:A)"
+    },
+    {
+      "fn": "ops",
+      "formula": "SUM(1:2)"
+    },
+    {
+      "fn": "ops",
+      "formula": "Other!A1*2"
+    },
+    {
+      "fn": "ops",
+      "formula": "'Other'!A1:A2"
+    },
+    {
+      "fn": "ops",
+      "formula": "SUM({1,2;3,4})"
+    },
+    {
+      "fn": "ops",
+      "formula": "TRUE+1"
+    },
+    {
+      "fn": "ops",
+      "formula": "\"3\"+1"
+    },
+    {
+      "fn": "ops",
+      "formula": "\"x\"+1"
+    },
+    {
+      "fn": "ops",
+      "formula": "-A1"
+    },
+    {
+      "fn": "ops",
+      "formula": "+A2"
+    },
+    {
+      "fn": "ops",
+      "formula": "A1:A3"
+    },
+    {
+      "fn": "SUM",
+      "formula": "SUM(A1:A10)"
+    },
+    {
+      "fn": "SUM",
+      "formula": "SUM(B1:B10)"
+    },
+    {
+      "fn": "SUM",
+      "formula": "SUM(A1,B1,5)"
+    },
+    {
+      "fn": "SUMIF",
+      "formula": "SUMIF(E1:E10,\"a\",F1:F10)"
+    },
+    {
+      "fn": "SUMIF",
+      "formula": "SUMIF(A1:A10,\">5\")"
+    },
+    {
+      "fn": "SUMIFS",
+      "formula": "SUMIFS(F1:F10,E1:E10,\"a\",A1:A10,\">2\")"
+    },
+    {
+      "fn": "SUMPRODUCT",
+      "formula": "SUMPRODUCT(A1:A3,F1:F3)"
+    },
+    {
+      "fn": "PRODUCT",
+      "formula": "PRODUCT(A1:A5)"
+    },
+    {
+      "fn": "ROUND",
+      "formula": "ROUND(2.567,2)"
+    },
+    {
+      "fn": "ROUND",
+      "formula": "ROUND(-2.5,0)"
+    },
+    {
+      "fn": "ROUND",
+      "formula": "ROUND(1234.5,-2)"
+    },
+    {
+      "fn": "ROUNDUP",
+      "formula": "ROUNDUP(2.121,2)"
+    },
+    {
+      "fn": "ROUNDDOWN",
+      "formula": "ROUNDDOWN(-2.129,2)"
+    },
+    {
+      "fn": "ABS",
+      "formula": "ABS(-3.5)"
+    },
+    {
+      "fn": "MOD",
+      "formula": "MOD(10,3)"
+    },
+    {
+      "fn": "MOD",
+      "formula": "MOD(-10,3)"
+    },
+    {
+      "fn": "POWER",
+      "formula": "POWER(2,10)"
+    },
+    {
+      "fn": "SQRT",
+      "formula": "SQRT(16)"
+    },
+    {
+      "fn": "SQRT",
+      "formula": "SQRT(-1)"
+    },
+    {
+      "fn": "INT",
+      "formula": "INT(-2.5)"
+    },
+    {
+      "fn": "TRUNC",
+      "formula": "TRUNC(-2.5)"
+    },
+    {
+      "fn": "CEILING",
+      "formula": "CEILING(2.3,1)"
+    },
+    {
+      "fn": "FLOOR",
+      "formula": "FLOOR(2.7,0.5)"
+    },
+    {
+      "fn": "EXP",
+      "formula": "EXP(1)"
+    },
+    {
+      "fn": "LN",
+      "formula": "LN(10)"
+    },
+    {
+      "fn": "LOG",
+      "formula": "LOG(100)"
+    },
+    {
+      "fn": "LOG",
+      "formula": "LOG(8,2)"
+    },
+    {
+      "fn": "LOG10",
+      "formula": "LOG10(1000)"
+    },
+    {
+      "fn": "PI",
+      "formula": "PI()"
+    },
+    {
+      "fn": "SIGN",
+      "formula": "SIGN(-4)"
+    },
+    {
+      "fn": "MIN",
+      "formula": "MIN(B1:B10)"
+    },
+    {
+      "fn": "MAX",
+      "formula": "MAX(B1:B10)"
+    },
+    {
+      "fn": "MIN",
+      "formula": "MIN(A1:A10,-3)"
+    },
+    {
+      "fn": "AVERAGE",
+      "formula": "AVERAGE(A1:A10)"
+    },
+    {
+      "fn": "AVERAGE",
+      "formula": "AVERAGE(B1:B10)"
+    },
+    {
+      "fn": "AVERAGEIF",
+      "formula": "AVERAGEIF(E1:E10,\"b\",F1:F10)"
+    },
+    {
+      "fn": "AVERAGEIFS",
+      "formula": "AVERAGEIFS(F1:F10,E1:E10,\"<>c\",A1:A10,\"<=8\")"
+    },
+    {
+      "fn": "COUNT",
+      "formula": "COUNT(B1:B10)"
+    },
+    {
+      "fn": "COUNTA",
+      "formula": "COUNTA(B1:B10)"
+    },
+    {
+      "fn": "COUNTBLANK",
+      "formula": "COUNTBLANK(B1:B10)"
+    },
+    {
+      "fn": "COUNTIF",
+      "formula": "COUNTIF(C1:C10,\"*e*\")"
+    },
+    {
+      "fn": "COUNTIF",
+      "formula": "COUNTIF(A1:A10,\">=5\")"
+    },
+    {
+      "fn": "COUNTIFS",
+      "formula": "COUNTIFS(E1:E10,\"a\",F1:F10,\">20\")"
+    },
+    {
+      "fn": "MEDIAN",
+      "formula": "MEDIAN(A1:A10)"
+    },
+    {
+      "fn": "STDEV",
+      "formula": "STDEV(A1:A10)"
+    },
+    {
+      "fn": "STDEVP",
+      "formula": "STDEVP(A1:A10)"
+    },
+    {
+      "fn": "VAR",
+      "formula": "VAR(A1:A10)"
+    },
+    {
+      "fn": "VARP",
+      "formula": "VARP(A1:A10)"
+    },
+    {
+      "fn": "LARGE",
+      "formula": "LARGE(F1:F10,2)"
+    },
+    {
+      "fn": "SMALL",
+      "formula": "SMALL(B1:B10,1)"
+    },
+    {
+      "fn": "RANK",
+      "formula": "RANK(30,F1:F10)"
+    },
+    {
+      "fn": "RANK",
+      "formula": "RANK(30,F1:F10,1)"
+    },
+    {
+      "fn": "MODE",
+      "formula": "MODE(1,2,2,3)"
+    },
+    {
+      "fn": "MAXIFS",
+      "formula": "MAXIFS(F1:F10,E1:E10,\"b\")"
+    },
+    {
+      "fn": "MINIFS",
+      "formula": "MINIFS(F1:F10,E1:E10,\"c\")"
+    },
+    {
+      "fn": "IF",
+      "formula": "IF(A1>0,\"pos\",\"neg\")"
+    },
+    {
+      "fn": "IF",
+      "formula": "IF(FALSE,1)"
+    },
+    {
+      "fn": "IF",
+      "formula": "IF(1,1/0,2)"
+    },
+    {
+      "fn": "IF",
+      "formula": "IF(0,1/0,2)"
+    },
+    {
+      "fn": "IFS",
+      "formula": "IFS(A3=1,\"one\",A3=3,\"three\")"
+    },
+    {
+      "fn": "IFERROR",
+      "formula": "IFERROR(1/0,\"div\")"
+    },
+    {
+      "fn": "IFNA",
+      "formula": "IFNA(NA(),\"na\")"
+    },
+    {
+      "fn": "AND",
+      "formula": "AND(TRUE,A1>0)"
+    },
+    {
+      "fn": "OR",
+      "formula": "OR(FALSE,A1>5)"
+    },
+    {
+      "fn": "NOT",
+      "formula": "NOT(TRUE)"
+    },
+    {
+      "fn": "XOR",
+      "formula": "XOR(TRUE,TRUE,TRUE)"
+    },
+    {
+      "fn": "SWITCH",
+      "formula": "SWITCH(E2,\"a\",1,\"b\",2,0)"
+    },
+    {
+      "fn": "TRUE",
+      "formula": "TRUE()"
+    },
+    {
+      "fn": "FALSE",
+      "formula": "FALSE()"
+    },
+    {
+      "fn": "CONCAT",
+      "formula": "CONCAT(C1:C3)"
+    },
+    {
+      "fn": "CONCATENATE",
+      "formula": "CONCATENATE(\"a\",1,TRUE)"
+    },
+    {
+      "fn": "TEXTJOIN",
+      "formula": "TEXTJOIN(\"-\",TRUE,C1:C3,\"\",\"z\")"
+    },
+    {
+      "fn": "LEFT",
+      "formula": "LEFT(C2,3)"
+    },
+    {
+      "fn": "RIGHT",
+      "formula": "RIGHT(C2)"
+    },
+    {
+      "fn": "MID",
+      "formula": "MID(C5,2,4)"
+    },
+    {
+      "fn": "LEN",
+      "formula": "LEN(C5)"
+    },
+    {
+      "fn": "FIND",
+      "formula": "FIND(\"r\",C3)"
+    },
+    {
+      "fn": "FIND",
+      "formula": "FIND(\"R\",C3)"
+    },
+    {
+      "fn": "SEARCH",
+      "formula": "SEARCH(\"R\",C3)"
+    },
+    {
+      "fn": "SEARCH",
+      "formula": "SEARCH(\"e?r\",C5)"
+    },
+    {
+      "fn": "SUBSTITUTE",
+      "formula": "SUBSTITUTE(\"a-b-c\",\"-\",\"+\")"
+    },
+    {
+      "fn": "SUBSTITUTE",
+      "formula": "SUBSTITUTE(\"a-b-c\",\"-\",\"+\",2)"
+    },
+    {
+      "fn": "REPLACE",
+      "formula": "REPLACE(\"abcdef\",2,3,\"X\")"
+    },
+    {
+      "fn": "TRIM",
+      "formula": "TRIM(\"  a   b  \")"
+    },
+    {
+      "fn": "UPPER",
+      "formula": "UPPER(C1)"
+    },
+    {
+      "fn": "LOWER",
+      "formula": "LOWER(C2)"
+    },
+    {
+      "fn": "PROPER",
+      "formula": "PROPER(\"hello wORLD\")"
+    },
+    {
+      "fn": "TEXT",
+      "formula": "TEXT(1234.5,\"#,##0.00\")"
+    },
+    {
+      "fn": "TEXT",
+      "formula": "TEXT(D1,\"yyyy-mm-dd\")"
+    },
+    {
+      "fn": "VALUE",
+      "formula": "VALUE(\"12.5\")"
+    },
+    {
+      "fn": "REPT",
+      "formula": "REPT(\"ab\",3)"
+    },
+    {
+      "fn": "EXACT",
+      "formula": "EXACT(\"a\",\"A\")"
+    },
+    {
+      "fn": "CHAR",
+      "formula": "CHAR(65)"
+    },
+    {
+      "fn": "CODE",
+      "formula": "CODE(\"A\")"
+    },
+    {
+      "fn": "VLOOKUP",
+      "formula": "VLOOKUP(3,A1:F10,3,FALSE)"
+    },
+    {
+      "fn": "VLOOKUP",
+      "formula": "VLOOKUP(4.5,A1:F10,6,TRUE)"
+    },
+    {
+      "fn": "VLOOKUP",
+      "formula": "VLOOKUP(99,A1:F10,2,FALSE)"
+    },
+    {
+      "fn": "HLOOKUP",
+      "formula": "HLOOKUP(2,A1:F3,3,FALSE)"
+    },
+    {
+      "fn": "XLOOKUP",
+      "formula": "XLOOKUP(\"fig\",C1:C10,F1:F10)"
+    },
+    {
+      "fn": "XLOOKUP",
+      "formula": "XLOOKUP(\"zz\",C1:C10,F1:F10,\"none\")"
+    },
+    {
+      "fn": "INDEX",
+      "formula": "INDEX(A1:F10,4,3)"
+    },
+    {
+      "fn": "INDEX",
+      "formula": "SUM(INDEX(A1:F10,0,6))"
+    },
+    {
+      "fn": "MATCH",
+      "formula": "MATCH(\"cherry\",C1:C10,0)"
+    },
+    {
+      "fn": "MATCH",
+      "formula": "MATCH(55,F1:F10,1)"
+    },
+    {
+      "fn": "XMATCH",
+      "formula": "XMATCH(70,F1:F10)"
+    },
+    {
+      "fn": "CHOOSE",
+      "formula": "CHOOSE(2,\"x\",\"y\",\"z\")"
+    },
+    {
+      "fn": "OFFSET",
+      "formula": "SUM(OFFSET(A1,1,0,3,1))"
+    },
+    {
+      "fn": "INDIRECT",
+      "formula": "INDIRECT(\"F\"&3)"
+    },
+    {
+      "fn": "ROW",
+      "formula": "ROW(C7)"
+    },
+    {
+      "fn": "COLUMN",
+      "formula": "COLUMN(C7)"
+    },
+    {
+      "fn": "ROWS",
+      "formula": "ROWS(A1:F10)"
+    },
+    {
+      "fn": "COLUMNS",
+      "formula": "COLUMNS(A1:F10)"
+    },
+    {
+      "fn": "DATE",
+      "formula": "DATE(2024,2,29)"
+    },
+    {
+      "fn": "DATE",
+      "formula": "DATE(2023,13,1)"
+    },
+    {
+      "fn": "TIME",
+      "formula": "TIME(13,30,0)"
+    },
+    {
+      "fn": "YEAR",
+      "formula": "YEAR(D1)"
+    },
+    {
+      "fn": "MONTH",
+      "formula": "MONTH(D5)"
+    },
+    {
+      "fn": "DAY",
+      "formula": "DAY(D4)"
+    },
+    {
+      "fn": "HOUR",
+      "formula": "HOUR(0.75)"
+    },
+    {
+      "fn": "MINUTE",
+      "formula": "MINUTE(0.7604166667)"
+    },
+    {
+      "fn": "SECOND",
+      "formula": "SECOND(0.5000115741)"
+    },
+    {
+      "fn": "EDATE",
+      "formula": "EDATE(D1,1)"
+    },
+    {
+      "fn": "EOMONTH",
+      "formula": "EOMONTH(D1,0)"
+    },
+    {
+      "fn": "EOMONTH",
+      "formula": "EOMONTH(D1,-1)"
+    },
+    {
+      "fn": "NETWORKDAYS",
+      "formula": "NETWORKDAYS(D1,D5)"
+    },
+    {
+      "fn": "WEEKDAY",
+      "formula": "WEEKDAY(D1)"
+    },
+    {
+      "fn": "WEEKDAY",
+      "formula": "WEEKDAY(D1,2)"
+    },
+    {
+      "fn": "WEEKNUM",
+      "formula": "WEEKNUM(D1)"
+    },
+    {
+      "fn": "DATEDIF",
+      "formula": "DATEDIF(D1,D10,\"m\")"
+    },
+    {
+      "fn": "DATEDIF",
+      "formula": "DATEDIF(D1,D10,\"d\")"
+    },
+    {
+      "fn": "DAYS",
+      "formula": "DAYS(D10,D1)"
+    },
+    {
+      "fn": "DATEVALUE",
+      "formula": "DATEVALUE(\"2023-03-15\")"
+    },
+    {
+      "fn": "ISBLANK",
+      "formula": "ISBLANK(B7)"
+    },
+    {
+      "fn": "ISNUMBER",
+      "formula": "ISNUMBER(B1)"
+    },
+    {
+      "fn": "ISTEXT",
+      "formula": "ISTEXT(B5)"
+    },
+    {
+      "fn": "ISERROR",
+      "formula": "ISERROR(1/0)"
+    },
+    {
+      "fn": "ISERR",
+      "formula": "ISERR(NA())"
+    },
+    {
+      "fn": "ISNA",
+      "formula": "ISNA(NA())"
+    },
+    {
+      "fn": "ISLOGICAL",
+      "formula": "ISLOGICAL(B6)"
+    },
+    {
+      "fn": "NA",
+      "formula": "NA()"
+    },
+    {
+      "fn": "N",
+      "formula": "N(TRUE)"
+    },
+    {
+      "fn": "N",
+      "formula": "N(\"x\")"
+    },
+    {
+      "fn": "TODAY",
+      "formula": "TODAY()"
+    },
+    {
+      "fn": "NOW",
+      "formula": "NOW()"
+    },
+    {
+      "fn": "RAND",
+      "formula": "RAND()"
+    },
+    {
+      "fn": "RANDBETWEEN",
+      "formula": "RANDBETWEEN(1,6)"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+node_modules/
+lib/
+dist/
+dist-npm/
+bench/results/*.json
+!bench/results/baselines.json
+test-results/
+playwright-report/
+*-lock.json
+__pycache__/
+*.egg-info/
+.pytest_cache/
+build/
+dist-py/

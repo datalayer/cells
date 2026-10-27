@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "note": "Every budget of the performance table, lower is better. A figure is checked only once a bench measures it. Browser figures are the reference machine's, in a headed Chrome with its GPU (make bench-reference); headless runs composite in software and only smoke-test.",
+  "budgets": {
+    "harness.noop.ms": {
+      "max": 1,
+      "unit": "ms",
+      "where": "node"
+    },
+    "harness.browserNoopTask.ms": {
+      "max": 16.7,
+      "unit": "ms",
+      "where": "browser"
+    },
+    "axis.resize1m.ms": {
+      "max": 0.1,
+      "unit": "ms",
+      "where": "node"
+    },
+    "firstPaint.ms": {
+      "max": 100,
+      "unit": "ms",
+      "where": "browser"
+    },
+    "scrollFrame.jsMs": {
+      "max": 8,
+      "unit": "ms",
+      "where": "browser"
+    },
+    "scrollFling.maxFrameMs": {
+      "max": 16.7,
+      "unit": "ms",
+      "where": "browser"
+    },
+    "jumpScroll.frames": {
+      "max": 1,
+      "unit": "frames",
+      "where": "browser"
+    },
+    "selectionMove.ms": {
+      "max": 2,
+      "unit": "ms",
+      "where": "browser"
+    },
+    "input.keystrokeMs": {
+      "max": 16,
+      "unit": "ms",
+      "where": "browser"
+    },
+    "input.commitMs": {
+      "max": 16,
+      "unit": "ms",
+      "where": "browser"
+    },
+    "recalc.local.ms": {
+      "max": 16,
+      "unit": "ms",
+      "where": "node"
+    },
+    "recalc.wide.ms": {
+      "max": 30,
+      "unit": "ms",
+      "where": "node"
+    },
+    "recalc.deep.ms": {
+      "max": 300,
+      "unit": "ms",
+      "where": "node"
+    },
+    "recalc.deep.maxTaskMs": {
+      "max": 50,
+      "unit": "ms",
+      "where": "browser"
+    },
+    "recalc.full.ms": {
+      "max": 1000,
+      "unit": "ms",
+      "where": "node"
+    },
+    "aggregate.sumColumn1m.ms": {
+      "max": 10,
+      "unit": "ms",
+      "where": "node"
+    },
+    "memory.numeric.bytesPerCell": {
+      "max": 24,
+      "unit": "B",
+      "where": "node"
+    },
+    "memory.formula.bytesPerCell": {
+      "max": 200,
+      "unit": "B",
+      "where": "node"
+    },
+    "textCache.mb": {
+      "max": 8,
+      "unit": "MB",
+      "where": "browser"
+    },
+    "csv.import1m.ms": {
+      "max": 3000,
+      "unit": "ms",
+      "where": "browser"
+    },
+    "csv.import1m.maxBlockMs": {
+      "max": 50,
+      "unit": "ms",
+      "where": "browser"
+    },
+    "xlsx.import100k.ms": {
+      "max": 4000,
+      "unit": "ms",
+      "where": "browser"
+    },
+    "collab.remotePaintMs": {
+      "max": 50,
+      "unit": "ms",
+      "where": "browser"
+    },
+    "collab.join100k.ms": {
+      "max": 1500,
+      "unit": "ms",
+      "where": "browser"
+    },
+    "bundle.grid.kB": {
+      "max": 120,
+      "unit": "kB",
+      "where": "size"
+    },
+    "bundle.xlsx.kB": {
+      "max": 60,
+      "unit": "kB",
+      "where": "size"
+    },
+    "bundle.chrome.kB": {
+      "max": 40,
+      "unit": "kB",
+      "where": "size"
+    }
+  }
+}

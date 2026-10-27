@@ -1,0 +1,105 @@
+# Copyright (c) 2022-2026 Datalayer, Inc.
+#
+# MIT License
+
+# Lints, type-checks, builds and tests the package on every push and pull
+# request to main. `@datalayer/reactor` comes from npm here (a dev dependency
+# and a peer); in the Datalayer monorepo it is the workspace's checkout.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  typescript:
+    name: Lint, typecheck, build, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      # React 18 is installed beside React 19 (react-18, react-dom-18) to test
+      # the hooks against both; its peer on react 18 is what the flag accepts.
+      - name: Install
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+
+      - name: Lint (Prettier, headers)
+        run: npm run lint
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Build the package (lib/)
+        run: npm run build
+
+      - name: The built core loads in plain Node
+        run: npm run check:node
+
+      - name: Test
+        run: npm test
+
+      - name: The examples, opened in Chrome (the runner's /usr/bin/google-chrome)
+        run: npm run e2e
+
+      - name: Bundle sizes against their budgets
+        run: npm run size
+
+      - name: Bench, compared with the base
+        run: |
+          set -euo pipefail
+          npm run bench
+          current="$(ls -t bench/results/*.json | head -1)"
+          node scripts/bench-compare.mjs "$current"
+
+      - name: What npm would publish
+        run: |
+          set -euo pipefail
+          npm pack --dry-run --json > pack.json
+          node -e "
+            const files = JSON.parse(require('fs').readFileSync('pack.json'))[0].files.map(f => f.path);
+            const bad = files.filter(p => !/^(lib|style)\//.test(p) && !['package.json','README.md','LICENSE'].includes(p));
+            if (bad.length) { console.error('npm pack carries files outside lib/ and style/:', bad); process.exit(1); }
+            console.log(files.length + ' files, all under lib/, style/ or top-level');
+          "
+
+  python:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip build
+          python -m pip install ".[test]"
+      - name: Test
+        run: python -m pytest -q
+      - name: The command
+        run: |
+          datalayer-cells --help
+          datalayer-cells show tests/format/workbooks/mixed100k.json
+          python -c "from datalayer_cells import __version__; print(__version__)"
+      - name: Build the wheel and the sdist (not published here)
+        run: |
+          python -m build --sdist --wheel --outdir dist-py .
+          ls -la dist-py

@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "date": "2026-10-27",
+  "conditions": "system Chrome headless, 1920x1080 at DPR 2, page heap capped at 3072 MB; the 100k figures from one browser, recalc and the 1M attempts from a fresh browser each; scroll frame is the p95 main-thread task over 5 runs of 60 wheel steps; recalc on formulas100k (100,000 rows: numbers in A, a running sum in B, formulas in C to J), full = load and evaluate, deep = edit A1 and read the last running sum",
+  "references": {
+    "oSpreadsheet": "18.0.85",
+    "xSpreadsheet": "1.0.27"
+  },
+  "oSpreadsheet": {
+    "numeric100k.load.ms": {
+      "value": 16818,
+      "unit": "ms"
+    },
+    "numeric100k.memory.bytesPerCell": {
+      "value": 240,
+      "unit": "B"
+    },
+    "numeric100k.scrollFrame.jsMs": {
+      "value": 3.97,
+      "unit": "ms",
+      "runs": 5
+    },
+    "mixed100k.load.ms": {
+      "value": 12496,
+      "unit": "ms"
+    },
+    "mixed100k.memory.bytesPerCell": {
+      "value": 192,
+      "unit": "B"
+    },
+    "mixed100k.scrollFrame.jsMs": {
+      "value": 3.517,
+      "unit": "ms",
+      "runs": 5
+    },
+    "recalc.full.ms": {
+      "value": 13292,
+      "unit": "ms"
+    },
+    "recalc.deep.ms": {
+      "value": 2164,
+      "unit": "ms"
+    }
+  },
+  "xSpreadsheet": {
+    "numeric100k.load.ms": {
+      "value": 223,
+      "unit": "ms"
+    },
+    "numeric100k.memory.bytesPerCell": {
+      "value": 49,
+      "unit": "B"
+    },
+    "numeric100k.scrollFrame.jsMs": {
+      "value": 16.372,
+      "unit": "ms",
+      "runs": 5
+    },
+    "mixed100k.load.ms": {
+      "value": 223,
+      "unit": "ms"
+    },
+    "mixed100k.memory.bytesPerCell": {
+      "value": 43,
+      "unit": "B"
+    },
+    "mixed100k.scrollFrame.jsMs": {
+      "value": 15.725,
+      "unit": "ms",
+      "runs": 5
+    }
+  },
+  "notes": [
+    "oSpreadsheet could not be measured on numeric1m: its tab died loading 10 M cells under the 3072 MB heap cap (browserContext.close: Target page, context or browser has been closed); measured again with one browser per measurement, 27 October 2026, same result",
+    "xSpreadsheet could not be measured on numeric1m: its tab died loading 10 M cells under the 3072 MB heap cap (browserContext.close: Target page, context or browser has been closed); measured again with one browser per measurement, 27 October 2026, same result",
+    "x-spreadsheet has no recalculation to measure: it evaluates formulas while painting each visible cell."
+  ]
+}

@@ -1,0 +1,435 @@
+{
+  "note": "Files the CellsWorkbook loader must refuse, and the sentence it refuses each with (a regular expression). Read by the TypeScript and the Python tests alike.",
+  "cases": [
+    {
+      "name": "not an object",
+      "data": 42,
+      "message": "^workbook: a CellsWorkbook is a JSON object"
+    },
+    {
+      "name": "another version",
+      "data": {
+        "version": 2,
+        "sheets": []
+      },
+      "message": "^version: this is format version 2; Cells reads version 1"
+    },
+    {
+      "name": "no sheets",
+      "data": {
+        "version": 1,
+        "sheets": []
+      },
+      "message": "^sheets: a non-empty list"
+    },
+    {
+      "name": "a sheet without id",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "name": "A",
+            "rows": {}
+          }
+        ]
+      },
+      "message": "^sheets\\[0\\]\\.id: a non-empty string"
+    },
+    {
+      "name": "two sheets with one id",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {}
+          },
+          {
+            "id": "a",
+            "name": "B",
+            "rows": {}
+          }
+        ]
+      },
+      "message": "^sheets\\[1\\]\\.id: 'a' is used twice"
+    },
+    {
+      "name": "two sheets with one name",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {}
+          },
+          {
+            "id": "b",
+            "name": "a",
+            "rows": {}
+          }
+        ]
+      },
+      "message": "^sheets\\[1\\]\\.name: 'a' is used twice"
+    },
+    {
+      "name": "a row index that is not one",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {
+              "x": {
+                "cells": {}
+              }
+            }
+          }
+        ]
+      },
+      "message": "^sheets\\[0\\]\\.rows\\[\\\"x\\\"\\]: 'x' is not a row index"
+    },
+    {
+      "name": "a row past the sheet",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {
+              "2000000": {
+                "cells": {}
+              }
+            }
+          }
+        ]
+      },
+      "message": "is not a row index below 1048576"
+    },
+    {
+      "name": "a style that does not exist",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {
+              "12": {
+                "cells": {
+                  "3": {
+                    "v": 1,
+                    "s": 41
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "message": "^sheets\\[0\\]\\.rows\\[\\\"12\\\"\\]\\.cells\\[\\\"3\\\"\\]\\.s: no style 41"
+    },
+    {
+      "name": "a value that is not one",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {
+              "0": {
+                "cells": {
+                  "0": {
+                    "v": [
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "message": "\\.cells\\[\\\"0\\\"\\]\\.v: \\[1\\] is not a value"
+    },
+    {
+      "name": "an unknown error code",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {
+              "0": {
+                "cells": {
+                  "0": {
+                    "v": {
+                      "error": "#OOPS"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "message": "'#OOPS' is not an error code"
+    },
+    {
+      "name": "an unknown cell field",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {
+              "0": {
+                "cells": {
+                  "0": {
+                    "x": 1
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "message": "\\.cells\\[\\\"0\\\"\\]\\.x: a cell has v, f and s only"
+    },
+    {
+      "name": "an empty formula",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {
+              "0": {
+                "cells": {
+                  "0": {
+                    "f": ""
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "message": "\\.f: a formula without the ="
+    },
+    {
+      "name": "a bad style property",
+      "data": {
+        "version": 1,
+        "styles": [
+          {},
+          {
+            "blink": true
+          }
+        ],
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {}
+          }
+        ]
+      },
+      "message": "^styles\\[1\\]: 'blink' is not a style property"
+    },
+    {
+      "name": "a negative size",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {},
+            "sizes": {
+              "rows": {
+                "1": -3
+              }
+            }
+          }
+        ]
+      },
+      "message": "^sheets\\[0\\]\\.sizes\\.rows\\[\\\"1\\\"\\]: a positive size"
+    },
+    {
+      "name": "an upside-down merge",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {},
+            "merges": [
+              {
+                "top": 3,
+                "left": 0,
+                "bottom": 1,
+                "right": 1
+              }
+            ]
+          }
+        ]
+      },
+      "message": "^sheets\\[0\\]\\.merges\\[0\\]: top-left after bottom-right"
+    },
+    {
+      "name": "a frozen pane that is not one",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {},
+            "frozen": {
+              "rows": -1,
+              "cols": 0
+            }
+          }
+        ]
+      },
+      "message": "^sheets\\[0\\]\\.frozen: \\{ rows, cols \\}"
+    },
+    {
+      "name": "a boolean where a size is",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {},
+            "sizes": {
+              "cols": {
+                "0": true
+              }
+            }
+          }
+        ]
+      },
+      "message": "^sheets\\[0\\]\\.sizes\\.cols\\[\\\"0\\\"\\]: a positive size"
+    },
+    {
+      "name": "a non-integer style index",
+      "data": {
+        "version": 1,
+        "styles": [
+          {},
+          {
+            "bold": true
+          }
+        ],
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {
+              "0": {
+                "cells": {
+                  "0": {
+                    "v": 1,
+                    "s": 0.5
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "message": "\\.s: no style 0\\.5"
+    },
+    {
+      "name": "a number format with an unclosed quote",
+      "data": {
+        "version": 1,
+        "styles": [
+          {},
+          {
+            "format": "0.00\" kg"
+          }
+        ],
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {}
+          }
+        ]
+      },
+      "message": "^styles\\[1\\]\\.format: '0\\.00\\\" kg' opens a quote it never closes\\."
+    },
+    {
+      "name": "a number format with five sections",
+      "data": {
+        "version": 1,
+        "styles": [
+          {},
+          {
+            "format": "0;0;0;0;0"
+          }
+        ],
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {}
+          }
+        ]
+      },
+      "message": "^styles\\[1\\]\\.format: '0;0;0;0;0' has 5 sections; a format has at most four\\."
+    },
+    {
+      "name": "a number format with a fraction",
+      "data": {
+        "version": 1,
+        "styles": [
+          {},
+          {
+            "format": "# ?/?"
+          }
+        ],
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {}
+          }
+        ]
+      },
+      "message": "^styles\\[1\\]\\.format: '# \\?/\\?': fractions \\(# \\?/\\?\\) are not supported yet\\."
+    },
+    {
+      "name": "a number format with an unknown bracket",
+      "data": {
+        "version": 1,
+        "styles": [
+          {},
+          {
+            "format": "[Wobble]0"
+          }
+        ],
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {}
+          }
+        ]
+      },
+      "message": "^styles\\[1\\]\\.format: '\\[Wobble\\]0': \\[Wobble\\] is not a colour, a condition or an elapsed time\\."
+    }
+  ]
+}
