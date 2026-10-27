@@ -109,5 +109,69 @@ export async function variantTheme(
   }
   const dark = isDark(element, colorMode);
   const map = portable.exportPortableTheme(variant).modes[dark ? 'dark' : 'light'];
-  return themeFromVariables((name) => map[name], dark);
+  return themeFromVariables((name) => {
+    const value = map[name];
+    return value && needsTheBrowser(value)
+      ? resolvedInPage(value, element, name === PRIMER_VARIABLES.fontFamily)
+      : value;
+  }, dark);
+}
+
+/**
+ * Whether a token is a CSS expression rather than a value a canvas reads:
+ * a `var(…)` (the VS Code variant's every token, its editor's variable with
+ * Light or Dark Modern behind it) or a `color-mix(…)`. Given to a canvas as
+ * it is, it is no colour, and the canvas paints black.
+ */
+const needsTheBrowser = (value: string): boolean => /\b(?:var|color-mix|calc)\(/.test(value);
+
+/**
+ * A token as it applies where the grid is: every `var(--name, fallback)` in
+ * it replaced by the variable's value on the grid's ancestors (inside VS
+ * Code, the editor's own colour), else by its fallback (Light or Dark
+ * Modern elsewhere); then, when what is left is still an expression (a
+ * `color-mix(…)`), as the browser computes it on a probe in the grid.
+ */
+function resolvedInPage(value: string, element: Element, font: boolean): string | undefined {
+  const style = getComputedStyle(element);
+  const plain = withoutVariables(value, (name) => style.getPropertyValue(name).trim() || undefined);
+  if (!needsTheBrowser(plain)) return plain || undefined;
+  const probe = element.ownerDocument.createElement('span');
+  probe.style.display = 'none';
+  if (font) {
+    probe.style.fontFamily = plain;
+  } else {
+    probe.style.color = plain;
+  }
+  element.appendChild(probe);
+  try {
+    const computed = getComputedStyle(probe);
+    const resolved = (font ? computed.fontFamily : computed.color).trim();
+    return resolved && !needsTheBrowser(resolved) ? resolved : undefined;
+  } finally {
+    probe.remove();
+  }
+}
+
+/** A value with each `var(--name[, fallback])` replaced, innermost first; a variable unset and without fallback leaves nothing. */
+export function withoutVariables(value: string, read: (name: string) => string | undefined): string {
+  let out = value;
+  for (let guard = 0; guard < 32 && out.includes('var('); guard++) {
+    const start = out.lastIndexOf('var(');
+    let depth = 0;
+    let end = start + 4;
+    for (; end < out.length; end++) {
+      if (out[end] === '(') depth++;
+      else if (out[end] === ')') {
+        if (depth === 0) break;
+        depth--;
+      }
+    }
+    const inner = out.slice(start + 4, end);
+    const comma = inner.indexOf(',');
+    const name = (comma < 0 ? inner : inner.slice(0, comma)).trim();
+    const fallback = comma < 0 ? '' : inner.slice(comma + 1).trim();
+    out = out.slice(0, start) + (read(name) ?? fallback) + out.slice(end + 1);
+  }
+  return out;
 }
