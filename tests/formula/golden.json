@@ -1,0 +1,1209 @@
+{
+  "note": "What LibreOffice computes for each case of cases.json (scripts/formula-golden.py): the data block on Sheet1 A1:F10, the other cells on Other, case i in H(i + 1).",
+  "cases": [
+    {
+      "fn": "ops",
+      "formula": "1+2*3",
+      "row": 0,
+      "number": 7.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "(1+2)*3",
+      "row": 1,
+      "number": 9.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "-2^2",
+      "row": 2,
+      "number": 4.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "2^3^2",
+      "row": 3,
+      "number": 64.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "10/4",
+      "row": 4,
+      "number": 2.5,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "5%",
+      "row": 5,
+      "number": 0.05,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "\"a\"&\"b\"&1",
+      "row": 6,
+      "string": "ab1",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "1=1",
+      "row": 7,
+      "boolean": true,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "\"A\"=\"a\"",
+      "row": 8,
+      "boolean": true,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "2<>3",
+      "row": 9,
+      "boolean": true,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "\"b\">\"a\"",
+      "row": 10,
+      "boolean": true,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "1/0",
+      "row": 11,
+      "error": "#DIV/0!",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "A1+B4",
+      "row": 12,
+      "number": 9.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "SUM(A1:A3 A2:A4)",
+      "row": 13,
+      "number": 5.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "SUM((A1:A2,A9:A10))",
+      "row": 14,
+      "number": 22.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "SUM(A:A)",
+      "row": 15,
+      "number": 55.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "SUM(1:2)",
+      "row": 16,
+      "number": 90051.5,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "Other!A1*2",
+      "row": 17,
+      "number": 84.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "'Other'!A1:A2",
+      "row": 18,
+      "error": "#VALUE!",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "SUM({1,2;3,4})",
+      "row": 19,
+      "number": 10.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "TRUE+1",
+      "row": 20,
+      "number": 2.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "\"3\"+1",
+      "row": 21,
+      "number": 4.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "\"x\"+1",
+      "row": 22,
+      "error": "#VALUE!",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "-A1",
+      "row": 23,
+      "number": -1.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "+A2",
+      "row": 24,
+      "number": 2.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ops",
+      "formula": "A1:A3",
+      "row": 25,
+      "error": "#VALUE!",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "SUM",
+      "formula": "SUM(A1:A10)",
+      "row": 26,
+      "number": 55.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "SUM",
+      "formula": "SUM(B1:B10)",
+      "row": 27,
+      "number": 114.25,
+      "source": "excel, by hand"
+    },
+    {
+      "fn": "SUM",
+      "formula": "SUM(A1,B1,5)",
+      "row": 28,
+      "number": 9.5,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "SUMIF",
+      "formula": "SUMIF(E1:E10,\"a\",F1:F10)",
+      "row": 29,
+      "number": 180.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "SUMIF",
+      "formula": "SUMIF(A1:A10,\">5\")",
+      "row": 30,
+      "number": 40.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "SUMIFS",
+      "formula": "SUMIFS(F1:F10,E1:E10,\"a\",A1:A10,\">2\")",
+      "row": 31,
+      "number": 170.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "SUMPRODUCT",
+      "formula": "SUMPRODUCT(A1:A3,F1:F3)",
+      "row": 32,
+      "number": 140.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "PRODUCT",
+      "formula": "PRODUCT(A1:A5)",
+      "row": 33,
+      "number": 120.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ROUND",
+      "formula": "ROUND(2.567,2)",
+      "row": 34,
+      "number": 2.57,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ROUND",
+      "formula": "ROUND(-2.5,0)",
+      "row": 35,
+      "number": -3.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ROUND",
+      "formula": "ROUND(1234.5,-2)",
+      "row": 36,
+      "number": 1200.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ROUNDUP",
+      "formula": "ROUNDUP(2.121,2)",
+      "row": 37,
+      "number": 2.13,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ROUNDDOWN",
+      "formula": "ROUNDDOWN(-2.129,2)",
+      "row": 38,
+      "number": -2.12,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ABS",
+      "formula": "ABS(-3.5)",
+      "row": 39,
+      "number": 3.5,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "MOD",
+      "formula": "MOD(10,3)",
+      "row": 40,
+      "number": 1.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "MOD",
+      "formula": "MOD(-10,3)",
+      "row": 41,
+      "number": 2.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "POWER",
+      "formula": "POWER(2,10)",
+      "row": 42,
+      "number": 1024.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "SQRT",
+      "formula": "SQRT(16)",
+      "row": 43,
+      "number": 4.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "SQRT",
+      "formula": "SQRT(-1)",
+      "row": 44,
+      "error": "#NUM!",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "INT",
+      "formula": "INT(-2.5)",
+      "row": 45,
+      "number": -3.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "TRUNC",
+      "formula": "TRUNC(-2.5)",
+      "row": 46,
+      "number": -2.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "CEILING",
+      "formula": "CEILING(2.3,1)",
+      "row": 47,
+      "number": 3.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "FLOOR",
+      "formula": "FLOOR(2.7,0.5)",
+      "row": 48,
+      "number": 2.5,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "EXP",
+      "formula": "EXP(1)",
+      "row": 49,
+      "number": 2.718281828459045,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "LN",
+      "formula": "LN(10)",
+      "row": 50,
+      "number": 2.302585092994046,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "LOG",
+      "formula": "LOG(100)",
+      "row": 51,
+      "number": 2.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "LOG",
+      "formula": "LOG(8,2)",
+      "row": 52,
+      "number": 3.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "LOG10",
+      "formula": "LOG10(1000)",
+      "row": 53,
+      "number": 3.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "PI",
+      "formula": "PI()",
+      "row": 54,
+      "number": 3.141592653589793,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "SIGN",
+      "formula": "SIGN(-4)",
+      "row": 55,
+      "number": -1.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "MIN",
+      "formula": "MIN(B1:B10)",
+      "row": 56,
+      "number": -7.5,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "MAX",
+      "formula": "MAX(B1:B10)",
+      "row": 57,
+      "number": 100.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "MIN",
+      "formula": "MIN(A1:A10,-3)",
+      "row": 58,
+      "number": -3.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "AVERAGE",
+      "formula": "AVERAGE(A1:A10)",
+      "row": 59,
+      "number": 5.5,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "AVERAGE",
+      "formula": "AVERAGE(B1:B10)",
+      "row": 60,
+      "number": 16.321428571428573,
+      "source": "excel, by hand"
+    },
+    {
+      "fn": "AVERAGEIF",
+      "formula": "AVERAGEIF(E1:E10,\"b\",F1:F10)",
+      "row": 61,
+      "number": 53.333333333333336,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "AVERAGEIFS",
+      "formula": "AVERAGEIFS(F1:F10,E1:E10,\"<>c\",A1:A10,\"<=8\")",
+      "row": 62,
+      "number": 41.666666666666664,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "COUNT",
+      "formula": "COUNT(B1:B10)",
+      "row": 63,
+      "number": 7.0,
+      "source": "excel, by hand"
+    },
+    {
+      "fn": "COUNTA",
+      "formula": "COUNTA(B1:B10)",
+      "row": 64,
+      "number": 9.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "COUNTBLANK",
+      "formula": "COUNTBLANK(B1:B10)",
+      "row": 65,
+      "number": 1.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "COUNTIF",
+      "formula": "COUNTIF(C1:C10,\"*e*\")",
+      "row": 66,
+      "number": 7.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "COUNTIF",
+      "formula": "COUNTIF(A1:A10,\">=5\")",
+      "row": 67,
+      "number": 6.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "COUNTIFS",
+      "formula": "COUNTIFS(E1:E10,\"a\",F1:F10,\">20\")",
+      "row": 68,
+      "number": 3.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "MEDIAN",
+      "formula": "MEDIAN(A1:A10)",
+      "row": 69,
+      "number": 5.5,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "STDEV",
+      "formula": "STDEV(A1:A10)",
+      "row": 70,
+      "number": 3.0276503540974917,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "STDEVP",
+      "formula": "STDEVP(A1:A10)",
+      "row": 71,
+      "number": 2.8722813232690143,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "VAR",
+      "formula": "VAR(A1:A10)",
+      "row": 72,
+      "number": 9.166666666666666,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "VARP",
+      "formula": "VARP(A1:A10)",
+      "row": 73,
+      "number": 8.25,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "LARGE",
+      "formula": "LARGE(F1:F10,2)",
+      "row": 74,
+      "number": 90.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "SMALL",
+      "formula": "SMALL(B1:B10,1)",
+      "row": 75,
+      "number": -7.5,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "RANK",
+      "formula": "RANK(30,F1:F10)",
+      "row": 76,
+      "number": 8.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "RANK",
+      "formula": "RANK(30,F1:F10,1)",
+      "row": 77,
+      "number": 3.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "MODE",
+      "formula": "MODE(1,2,2,3)",
+      "row": 78,
+      "number": 2.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "MAXIFS",
+      "formula": "MAXIFS(F1:F10,E1:E10,\"b\")",
+      "row": 79,
+      "number": 90.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "MINIFS",
+      "formula": "MINIFS(F1:F10,E1:E10,\"c\")",
+      "row": 80,
+      "number": 40.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "IF",
+      "formula": "IF(A1>0,\"pos\",\"neg\")",
+      "row": 81,
+      "string": "pos",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "IF",
+      "formula": "IF(FALSE,1)",
+      "row": 82,
+      "boolean": false,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "IF",
+      "formula": "IF(1,1/0,2)",
+      "row": 83,
+      "error": "#DIV/0!",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "IF",
+      "formula": "IF(0,1/0,2)",
+      "row": 84,
+      "number": 2.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "IFS",
+      "formula": "IFS(A3=1,\"one\",A3=3,\"three\")",
+      "row": 85,
+      "string": "three",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "IFERROR",
+      "formula": "IFERROR(1/0,\"div\")",
+      "row": 86,
+      "string": "div",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "IFNA",
+      "formula": "IFNA(NA(),\"na\")",
+      "row": 87,
+      "string": "na",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "AND",
+      "formula": "AND(TRUE,A1>0)",
+      "row": 88,
+      "boolean": true,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "OR",
+      "formula": "OR(FALSE,A1>5)",
+      "row": 89,
+      "boolean": false,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "NOT",
+      "formula": "NOT(TRUE)",
+      "row": 90,
+      "boolean": false,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "XOR",
+      "formula": "XOR(TRUE,TRUE,TRUE)",
+      "row": 91,
+      "boolean": true,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "SWITCH",
+      "formula": "SWITCH(E2,\"a\",1,\"b\",2,0)",
+      "row": 92,
+      "number": 2.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "TRUE",
+      "formula": "TRUE()",
+      "row": 93,
+      "boolean": true,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "FALSE",
+      "formula": "FALSE()",
+      "row": 94,
+      "boolean": false,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "CONCAT",
+      "formula": "CONCAT(C1:C3)",
+      "row": 95,
+      "string": "appleBananacherry",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "CONCATENATE",
+      "formula": "CONCATENATE(\"a\",1,TRUE)",
+      "row": 96,
+      "string": "a1TRUE",
+      "source": "excel, by hand"
+    },
+    {
+      "fn": "TEXTJOIN",
+      "formula": "TEXTJOIN(\"-\",TRUE,C1:C3,\"\",\"z\")",
+      "row": 97,
+      "string": "apple-Banana-cherry-z",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "LEFT",
+      "formula": "LEFT(C2,3)",
+      "row": 98,
+      "string": "Ban",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "RIGHT",
+      "formula": "RIGHT(C2)",
+      "row": 99,
+      "string": "a",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "MID",
+      "formula": "MID(C5,2,4)",
+      "row": 100,
+      "string": "lder",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "LEN",
+      "formula": "LEN(C5)",
+      "row": 101,
+      "number": 10.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "FIND",
+      "formula": "FIND(\"r\",C3)",
+      "row": 102,
+      "number": 4.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "FIND",
+      "formula": "FIND(\"R\",C3)",
+      "row": 103,
+      "error": "#VALUE!",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "SEARCH",
+      "formula": "SEARCH(\"R\",C3)",
+      "row": 104,
+      "number": 4.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "SEARCH",
+      "formula": "SEARCH(\"e?r\",C5)",
+      "row": 105,
+      "number": 7.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "SUBSTITUTE",
+      "formula": "SUBSTITUTE(\"a-b-c\",\"-\",\"+\")",
+      "row": 106,
+      "string": "a+b+c",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "SUBSTITUTE",
+      "formula": "SUBSTITUTE(\"a-b-c\",\"-\",\"+\",2)",
+      "row": 107,
+      "string": "a-b+c",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "REPLACE",
+      "formula": "REPLACE(\"abcdef\",2,3,\"X\")",
+      "row": 108,
+      "string": "aXef",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "TRIM",
+      "formula": "TRIM(\"  a   b  \")",
+      "row": 109,
+      "string": "a b",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "UPPER",
+      "formula": "UPPER(C1)",
+      "row": 110,
+      "string": "APPLE",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "LOWER",
+      "formula": "LOWER(C2)",
+      "row": 111,
+      "string": "banana",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "PROPER",
+      "formula": "PROPER(\"hello wORLD\")",
+      "row": 112,
+      "string": "Hello World",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "TEXT",
+      "formula": "TEXT(1234.5,\"#,##0.00\")",
+      "row": 113,
+      "string": "1,234.50",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "TEXT",
+      "formula": "TEXT(D1,\"yyyy-mm-dd\")",
+      "row": 114,
+      "string": "2023-03-15",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "VALUE",
+      "formula": "VALUE(\"12.5\")",
+      "row": 115,
+      "number": 12.5,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "REPT",
+      "formula": "REPT(\"ab\",3)",
+      "row": 116,
+      "string": "ababab",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "EXACT",
+      "formula": "EXACT(\"a\",\"A\")",
+      "row": 117,
+      "boolean": false,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "CHAR",
+      "formula": "CHAR(65)",
+      "row": 118,
+      "string": "A",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "CODE",
+      "formula": "CODE(\"A\")",
+      "row": 119,
+      "number": 65.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "VLOOKUP",
+      "formula": "VLOOKUP(3,A1:F10,3,FALSE)",
+      "row": 120,
+      "string": "cherry",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "VLOOKUP",
+      "formula": "VLOOKUP(4.5,A1:F10,6,TRUE)",
+      "row": 121,
+      "number": 40.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "VLOOKUP",
+      "formula": "VLOOKUP(99,A1:F10,2,FALSE)",
+      "row": 122,
+      "error": "#N/A",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "HLOOKUP",
+      "formula": "HLOOKUP(2,A1:F3,3,FALSE)",
+      "row": 123,
+      "error": "#N/A",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "XLOOKUP",
+      "formula": "XLOOKUP(\"fig\",C1:C10,F1:F10)",
+      "row": 124,
+      "number": 60.0,
+      "source": "excel, by hand"
+    },
+    {
+      "fn": "XLOOKUP",
+      "formula": "XLOOKUP(\"zz\",C1:C10,F1:F10,\"none\")",
+      "row": 125,
+      "string": "none",
+      "source": "excel, by hand"
+    },
+    {
+      "fn": "INDEX",
+      "formula": "INDEX(A1:F10,4,3)",
+      "row": 126,
+      "string": "date",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "INDEX",
+      "formula": "SUM(INDEX(A1:F10,0,6))",
+      "row": 127,
+      "number": 550.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "MATCH",
+      "formula": "MATCH(\"cherry\",C1:C10,0)",
+      "row": 128,
+      "number": 3.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "MATCH",
+      "formula": "MATCH(55,F1:F10,1)",
+      "row": 129,
+      "number": 5.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "XMATCH",
+      "formula": "XMATCH(70,F1:F10)",
+      "row": 130,
+      "number": 7.0,
+      "source": "excel, by hand"
+    },
+    {
+      "fn": "CHOOSE",
+      "formula": "CHOOSE(2,\"x\",\"y\",\"z\")",
+      "row": 131,
+      "string": "y",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "OFFSET",
+      "formula": "SUM(OFFSET(A1,1,0,3,1))",
+      "row": 132,
+      "number": 9.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "INDIRECT",
+      "formula": "INDIRECT(\"F\"&3)",
+      "row": 133,
+      "number": 30.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ROW",
+      "formula": "ROW(C7)",
+      "row": 134,
+      "number": 7.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "COLUMN",
+      "formula": "COLUMN(C7)",
+      "row": 135,
+      "number": 3.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ROWS",
+      "formula": "ROWS(A1:F10)",
+      "row": 136,
+      "number": 10.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "COLUMNS",
+      "formula": "COLUMNS(A1:F10)",
+      "row": 137,
+      "number": 6.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "DATE",
+      "formula": "DATE(2024,2,29)",
+      "row": 138,
+      "number": 45351.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "DATE",
+      "formula": "DATE(2023,13,1)",
+      "row": 139,
+      "number": 45292.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "TIME",
+      "formula": "TIME(13,30,0)",
+      "row": 140,
+      "number": 0.5625,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "YEAR",
+      "formula": "YEAR(D1)",
+      "row": 141,
+      "number": 2023.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "MONTH",
+      "formula": "MONTH(D5)",
+      "row": 142,
+      "number": 4.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "DAY",
+      "formula": "DAY(D4)",
+      "row": 143,
+      "number": 25.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "HOUR",
+      "formula": "HOUR(0.75)",
+      "row": 144,
+      "number": 18.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "MINUTE",
+      "formula": "MINUTE(0.7604166667)",
+      "row": 145,
+      "number": 15.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "SECOND",
+      "formula": "SECOND(0.5000115741)",
+      "row": 146,
+      "number": 1.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "EDATE",
+      "formula": "EDATE(D1,1)",
+      "row": 147,
+      "number": 45031.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "EOMONTH",
+      "formula": "EOMONTH(D1,0)",
+      "row": 148,
+      "number": 45016.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "EOMONTH",
+      "formula": "EOMONTH(D1,-1)",
+      "row": 149,
+      "number": 44985.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "NETWORKDAYS",
+      "formula": "NETWORKDAYS(D1,D5)",
+      "row": 150,
+      "number": 23.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "WEEKDAY",
+      "formula": "WEEKDAY(D1)",
+      "row": 151,
+      "number": 4.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "WEEKDAY",
+      "formula": "WEEKDAY(D1,2)",
+      "row": 152,
+      "number": 3.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "WEEKNUM",
+      "formula": "WEEKNUM(D1)",
+      "row": 153,
+      "number": 11.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "DATEDIF",
+      "formula": "DATEDIF(D1,D10,\"m\")",
+      "row": 154,
+      "number": 12.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "DATEDIF",
+      "formula": "DATEDIF(D1,D10,\"d\")",
+      "row": 155,
+      "number": 366.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "DAYS",
+      "formula": "DAYS(D10,D1)",
+      "row": 156,
+      "number": 366.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "DATEVALUE",
+      "formula": "DATEVALUE(\"2023-03-15\")",
+      "row": 157,
+      "number": 45000.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ISBLANK",
+      "formula": "ISBLANK(B7)",
+      "row": 158,
+      "boolean": true,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ISNUMBER",
+      "formula": "ISNUMBER(B1)",
+      "row": 159,
+      "boolean": true,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ISTEXT",
+      "formula": "ISTEXT(B5)",
+      "row": 160,
+      "boolean": true,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ISERROR",
+      "formula": "ISERROR(1/0)",
+      "row": 161,
+      "boolean": true,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ISERR",
+      "formula": "ISERR(NA())",
+      "row": 162,
+      "boolean": false,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ISNA",
+      "formula": "ISNA(NA())",
+      "row": 163,
+      "boolean": true,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "ISLOGICAL",
+      "formula": "ISLOGICAL(B6)",
+      "row": 164,
+      "boolean": true,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "NA",
+      "formula": "NA()",
+      "row": 165,
+      "error": "#N/A",
+      "source": "libreoffice"
+    },
+    {
+      "fn": "N",
+      "formula": "N(TRUE)",
+      "row": 166,
+      "number": 1.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "N",
+      "formula": "N(\"x\")",
+      "row": 167,
+      "number": 0.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "TODAY",
+      "formula": "TODAY()",
+      "row": 168,
+      "number": 46322.0,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "NOW",
+      "formula": "NOW()",
+      "row": 169,
+      "number": 46322.59533440569,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "RAND",
+      "formula": "RAND()",
+      "row": 170,
+      "number": 0.2618273281204757,
+      "source": "libreoffice"
+    },
+    {
+      "fn": "RANDBETWEEN",
+      "formula": "RANDBETWEEN(1,6)",
+      "row": 171,
+      "number": 2.0,
+      "source": "libreoffice"
+    }
+  ]
+}

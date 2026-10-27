@@ -1,0 +1,265 @@
+{
+  "note": "Number formats and values; golden.json holds what LibreOffice shows for each (scripts/numfmt-golden.py).",
+  "cases": [
+    {
+      "format": "General",
+      "value": 1234.5
+    },
+    {
+      "format": "General",
+      "value": -0.25
+    },
+    {
+      "format": "General",
+      "value": 0.3333333333333333
+    },
+    {
+      "format": "General",
+      "value": 123456789012
+    },
+    {
+      "format": "General",
+      "value": 1.234e-09
+    },
+    {
+      "format": "0",
+      "value": 1234.5
+    },
+    {
+      "format": "0",
+      "value": -1234.5
+    },
+    {
+      "format": "0.00",
+      "value": 3.14159
+    },
+    {
+      "format": "0.00",
+      "value": -0.005
+    },
+    {
+      "format": "0.000",
+      "value": 2.5
+    },
+    {
+      "format": "#,##0",
+      "value": 1234567.891
+    },
+    {
+      "format": "#,##0",
+      "value": -1234567.891
+    },
+    {
+      "format": "#,##0.00",
+      "value": 1234.5
+    },
+    {
+      "format": "#,##0.00",
+      "value": 0
+    },
+    {
+      "format": "#,##0.00",
+      "value": 999999.999
+    },
+    {
+      "format": "#.##",
+      "value": 3.1
+    },
+    {
+      "format": "#.##",
+      "value": 3
+    },
+    {
+      "format": "0.0#",
+      "value": 2.5
+    },
+    {
+      "format": "0.0#",
+      "value": 2.567
+    },
+    {
+      "format": "00000",
+      "value": 42
+    },
+    {
+      "format": "#,##0,",
+      "value": 1234567
+    },
+    {
+      "format": "#,##0,,",
+      "value": 1234567890
+    },
+    {
+      "format": "0.0,,\"M\"",
+      "value": 1234567
+    },
+    {
+      "format": "0%",
+      "value": 0.256
+    },
+    {
+      "format": "0.00%",
+      "value": 0.25678
+    },
+    {
+      "format": "0.00%",
+      "value": -0.5
+    },
+    {
+      "format": "0.00E+00",
+      "value": 12345.678
+    },
+    {
+      "format": "0.00E+00",
+      "value": 0.000123
+    },
+    {
+      "format": "##0.0E+0",
+      "value": 12345.678
+    },
+    {
+      "format": "0E+00",
+      "value": 5
+    },
+    {
+      "format": "$#,##0.00",
+      "value": 1234.5
+    },
+    {
+      "format": "$#,##0.00;($#,##0.00)",
+      "value": -1234.5
+    },
+    {
+      "format": "$#,##0.00;[Red]($#,##0.00)",
+      "value": -1234.5
+    },
+    {
+      "format": "0.00;-0.00;\"zero\"",
+      "value": 0
+    },
+    {
+      "format": "0.00;-0.00;\"zero\"",
+      "value": -2
+    },
+    {
+      "format": "\"Total: \"0.00",
+      "value": 12.5
+    },
+    {
+      "format": "0.00\" kg\"",
+      "value": 3.25
+    },
+    {
+      "format": "#,##0_);(#,##0)",
+      "value": 1234
+    },
+    {
+      "format": "#,##0_);(#,##0)",
+      "value": -1234
+    },
+    {
+      "format": "@",
+      "value": 12
+    },
+    {
+      "format": "[>=100]\"big\";[<0]\"neg\";\"small\"",
+      "value": 150
+    },
+    {
+      "format": "[>=100]\"big\";[<0]\"neg\";\"small\"",
+      "value": -3
+    },
+    {
+      "format": "[>=100]\"big\";[<0]\"neg\";\"small\"",
+      "value": 7
+    },
+    {
+      "format": "[Blue]0.00",
+      "value": 1.5
+    },
+    {
+      "format": "0.00;[Red]-0.00",
+      "value": -1.5
+    },
+    {
+      "format": "yyyy-mm-dd",
+      "value": 45000
+    },
+    {
+      "format": "dd/mm/yyyy",
+      "value": 45000
+    },
+    {
+      "format": "mm/dd/yy",
+      "value": 45000
+    },
+    {
+      "format": "d mmm yyyy",
+      "value": 45000
+    },
+    {
+      "format": "dddd, mmmm d, yyyy",
+      "value": 45000
+    },
+    {
+      "format": "mmm-yy",
+      "value": 45000
+    },
+    {
+      "format": "ddd",
+      "value": 45001
+    },
+    {
+      "format": "h:mm",
+      "value": 0.75
+    },
+    {
+      "format": "hh:mm:ss",
+      "value": 0.5123
+    },
+    {
+      "format": "h:mm AM/PM",
+      "value": 0.75
+    },
+    {
+      "format": "h:mm:ss AM/PM",
+      "value": 0.25
+    },
+    {
+      "format": "[h]:mm",
+      "value": 1.5
+    },
+    {
+      "format": "[mm]:ss",
+      "value": 0.0423
+    },
+    {
+      "format": "mm:ss.00",
+      "value": 0.000123
+    },
+    {
+      "format": "yyyy-mm-dd hh:mm",
+      "value": 45000.6
+    },
+    {
+      "format": "0.00",
+      "value": 1000000000000000.0
+    },
+    {
+      "format": "#,##0.00",
+      "value": -0.001
+    },
+    {
+      "format": "#,##0.0",
+      "value": 1234.56
+    },
+    {
+      "format": "mmmm",
+      "value": 45000
+    },
+    {
+      "format": "0.0%;-0.0%",
+      "value": -0.1234
+    }
+  ]
+}

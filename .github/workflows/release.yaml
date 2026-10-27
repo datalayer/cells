@@ -1,0 +1,177 @@
+# Copyright (c) 2022-2026 Datalayer, Inc.
+#
+# MIT License
+
+# Publishes the release a tag names: @datalayer/cells to npm and
+# datalayer-cells (the wheel and sdist) to PyPI, with no stored token. Both
+# registries trust this workflow file (OIDC trusted publishing, through the
+# `npm` and `pypi` environments). The tag must name the version that
+# datalayer_cells/__version__.py and package.json both carry (`make
+# bump-patch` moves them together); a version already published is skipped,
+# so a re-run after a partial release finishes it. See RELEASE.md.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      npm: ${{ steps.plan.outputs.npm }}
+      python: ${{ steps.plan.outputs.python }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check the tag names the version both packages carry
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          npm_version="$(node -p "require('./package.json').version")"
+          py_version="$(python -c "import re;print(re.search(r'__version__\s*=\s*\"([^\"]+)\"', open('datalayer_cells/__version__.py').read())[1])")"
+          echo "tag=$tag @datalayer/cells=$npm_version datalayer-cells=$py_version"
+          test "$tag" = "$npm_version"
+          test "$tag" = "$py_version"
+
+      - name: Find what is not published yet
+        id: plan
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          if npm view "@datalayer/cells@$version" version >/dev/null 2>&1; then
+            echo "npm: @datalayer/cells@$version is already published, skipping"
+            echo "npm=" >> "$GITHUB_OUTPUT"
+          else
+            echo "npm: @datalayer/cells@$version will be published"
+            echo "npm=yes" >> "$GITHUB_OUTPUT"
+          fi
+          status="$(curl -sL -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/datalayer-cells/$version/json")"
+          if [ "$status" = "200" ]; then
+            echo "PyPI: datalayer-cells $version is already published, skipping"
+            echo "python=" >> "$GITHUB_OUTPUT"
+          else
+            echo "PyPI: datalayer-cells $version will be published"
+            echo "python=yes" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Lint, type-check, build and test
+        if: steps.plan.outputs.npm != ''
+        run: |
+          set -euo pipefail
+          npm install --no-audit --no-fund --legacy-peer-deps
+          npm run lint
+          npm run typecheck
+          npm run build
+          npm run check:node
+          npm test
+          npm run size
+
+      - name: Pack
+        if: steps.plan.outputs.npm != ''
+        run: |
+          set -euo pipefail
+          mkdir -p dist-npm
+          npm pack --pack-destination dist-npm
+          ls -la dist-npm
+
+      - uses: actions/upload-artifact@v4
+        if: steps.plan.outputs.npm != ''
+        with:
+          name: npm
+          path: dist-npm/*.tgz
+
+      - name: Build and test the Python package (the sdist and wheel of the tag)
+        if: steps.plan.outputs.python != ''
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip build
+          python -m pip install ".[test]"
+          python -m pytest -q
+          python -m build --sdist --wheel --outdir dist-py .
+          ls -la dist-py
+
+      - uses: actions/upload-artifact@v4
+        if: steps.plan.outputs.python != ''
+        with:
+          name: python
+          path: dist-py/*
+
+  pypi:
+    needs: build
+    if: needs.build.outputs.python != ''
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: python
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+
+  npm:
+    needs: build
+    if: needs.build.outputs.npm != ''
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+      # Trusted publishing needs npm 11.5.1 or later.
+      - run: npm install -g npm@^11.5.1 && npm --version
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm
+          path: dist
+      - name: Publish
+        run: |
+          set -euo pipefail
+          for tarball in dist/*.tgz; do
+            # "./": npm reads a bare "dist/x.tgz" as the GitHub shorthand
+            # github:dist/x.tgz and refuses to fetch it (EALLOWGIT).
+            npm publish "./$tarball" --provenance --access public
+          done
+
+  release:
+    name: GitHub release
+    needs: [build, npm, pypi]
+    if: always() && needs.build.result == 'success' && needs.npm.result != 'failure' && needs.pypi.result != 'failure'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create the release with generated notes
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 && exit 0
+          gh release create "$GITHUB_REF_NAME" --title "Release $version" --generate-notes \
+            --notes "- [npm @datalayer/cells](https://www.npmjs.com/package/@datalayer/cells/v/$version)
+          - [PyPI datalayer-cells](https://pypi.org/project/datalayer-cells/$version/)"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

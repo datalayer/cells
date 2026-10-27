@@ -1,0 +1,16 @@
+// The examples, type-checked on the package's source.
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "types": ["node"],
+    "paths": {
+      "@datalayer/cells": ["../src/index.ts"],
+      "@datalayer/cells/csv": ["../src/csv/index.ts"],
+      "@datalayer/cells/xlsx": ["../src/xlsx/index.ts"]
+    }
+  },
+  "include": ["src", "vite.config.ts", "../src"],
+  "exclude": ["../src/**/__tests__/**"]
+}
