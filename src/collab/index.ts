@@ -10,4 +10,4 @@
  * @module collab
  */
 
-export {};
+export { AxisOrder, type AxisEntry, implicitId, implicitIndex, insert, remove } from './axis.js';
