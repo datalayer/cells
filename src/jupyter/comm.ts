@@ -53,6 +53,9 @@ export interface CellsComm {
   close(): void;
 }
 
+/** How long a kernel has to answer the comm before the runs go on without the live workbook. */
+export const COMM_READY_MS = 5000;
+
 /**
  * Open the `datalayer.cells` comm on a kernel connection: the kernel's
  * `datalayer_cells` answers `ready` with its mode; then the page sends the
@@ -60,9 +63,6 @@ export interface CellsComm {
  * update, and takes the kernel's updates (Loro bytes merged into the
  * document) or writes (`SET_CELLS`, labelled with the cell that wrote).
  */
-/** How long a kernel has to answer the comm before the runs go on without the live workbook. */
-export const COMM_READY_MS = 5000;
-
 export function openCellsComm(
   connection: JupyterKernel.IKernelConnection,
   binding: CellsBinding,
