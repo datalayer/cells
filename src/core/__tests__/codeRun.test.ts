@@ -190,6 +190,20 @@ describe('running code cells', () => {
     expect(error.ename).toBe('ZeroDivisionError');
   });
 
+  it('says a refused result instead of landing nowhere (an output without its output_type)', async () => {
+    const bare: CellsKernel = {
+      execute: async () => ({
+        outputs: [{ data: { 'text/plain': 'x' }, metadata: {} } as never],
+      }),
+    };
+    const m = setup(bare);
+    m.dispatch({ type: 'SET_CODE', sheet: 's1', row: 0, col: 2, code: codeCell('x') });
+    await expect(codeRunner(m).run({ sheet: 's1', row: 0, col: 2 })).rejects.toThrow(
+      "The run's result was refused",
+    );
+    expect(m.codeState('s1', 0, 2)).toBeUndefined();
+  });
+
   it('says No kernel when none is contributed', async () => {
     const m = setup(undefined);
     m.dispatch({ type: 'SET_CODE', sheet: 's1', row: 0, col: 2, code: codeCell('1') });

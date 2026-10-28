@@ -407,9 +407,19 @@ export class CodeRunner {
     const at = codeCells(sheet).find((c) => codeKey(sheet, c.row, c.col) === key);
     m.setCodeState(place.sheet, place.row, place.col, undefined);
     if (at === undefined) return;
-    m.transact('Run code', () =>
-      m.dispatch({ type: 'SET_CODE', sheet: place.sheet, row: at.row, col: at.col, code: after }),
-    );
+    let written: ReturnType<CellsModel['dispatch']> | undefined;
+    m.transact('Run code', () => {
+      written = m.dispatch({
+        type: 'SET_CODE',
+        sheet: place.sheet,
+        row: at.row,
+        col: at.col,
+        code: after,
+      });
+    });
+    // A refused write is said, never a run that silently lands nowhere.
+    if (written !== undefined && !written.ok)
+      throw new Error(`The run's result was refused: ${written.refusals[0].message}`);
     m.setCodeTrusted(place.sheet, at.row, at.col);
     this.#reads.set(`${place.sheet}:${key}`, reads);
     this.#seen.set(`${place.sheet}:${key}`, fingerprint(m, place.sheet, reads));
