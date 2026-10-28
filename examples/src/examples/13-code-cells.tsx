@@ -48,7 +48,7 @@ export const KERNEL_TARGETS: readonly {
   {
     id: 'jupyter',
     label: 'Jupyter (prod1)',
-    hint: 'An anonymous Jupyter server on prod1.datalayer.run. Sandbox only — no agent, no account; no datalayer_cells there, so a run reads the values it names.',
+    hint: 'An anonymous Jupyter server on prod1.datalayer.run, with datalayer_cells: Python reads and writes the sheet live. Sandbox only — no agent, no account.',
   },
   {
     id: 'local',
