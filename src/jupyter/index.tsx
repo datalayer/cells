@@ -46,16 +46,13 @@ import type { ServiceManager } from '@jupyterlab/services';
 import { useEffect, useId, useRef, useState } from 'react';
 import { type CodeOutput as CodeOutputData, codeRef } from '../core/code.js';
 import { Themed } from './theme.js';
-import {
-  CODE_EDITOR_MIN_WIDTH,
-  PlainEditor,
-  safeOutputs,
-  shownOutputs,
-} from '../react/CodeLayer.js';
+import { CODE_EDITOR_MIN_WIDTH, safeOutputs, shownOutputs } from '../react/CodeLayer.js';
+import { SourceCell } from './sourceCell.js';
 import { type CellsBinding, type CellsComm, openCellsComm } from './comm.js';
 
 export { type CellsBinding, type CellsComm, type LoroDocLike, openCellsComm } from './comm.js';
 export { Themed, useHostColorMode } from './theme.js';
+export { SourceCell, type SourceCellProps } from './sourceCell.js';
 export {
   connectionOf,
   KernelStatus,
@@ -227,7 +224,7 @@ export function CodeOutput({ outputs, cell, width, height }: CodeOutputRendererP
 /** How long a kernel may take to connect before the overlay says so and goes on without it, ms. */
 export const KERNEL_CONNECT_TIMEOUT_MS = 20_000;
 
-/** The kernel as the editor sees it: connecting, connected (jupyter-react's `Cell` mounts), or failed (the error shown, the plain editor stays). */
+/** The kernel as the editor sees it: connecting, connected (jupyter-react's `Cell` mounts), or failed (the error shown, `SourceCell` stays). */
 export type EditorKernelState =
   | { readonly kind: 'connecting' }
   | { readonly kind: 'connected'; readonly kernel: Kernel }
@@ -284,10 +281,12 @@ export function useEditorKernel(model: CellsModel): EditorKernelState {
  * no second session starts; the kernel connects through the runner, as a
  * run does). `Cell` needs a connected kernel to mount (it waits for the
  * kernel's `ready` before building its editor), so while the kernel
- * connects, and when it fails or takes over 20 s (said in a line), the plain
- * editor stands in: never a spinner with no editor. The cell's last outputs
- * show under the editor, statically. *Save* writes the source back as one
- * undo step.
+ * connects, and when it fails or takes over 20 s (said in a line),
+ * `SourceCell` stands in: the same JupyterLab cell and CodeMirror with no
+ * kernel, in the same theme, editable at once (never a spinner with no
+ * editor); the `Cell` starts from what was typed there. The cell's last
+ * outputs show under the editor, statically. *Save* writes the source back
+ * as one undo step.
  */
 export function CodeCellEditor({
   model: m,
@@ -323,13 +322,16 @@ export function CodeCellEditor({
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
   }, []);
+  // What the stand-in holds while the kernel connects: the Cell starts from it once it can mount.
+  const draft = useRef<string | undefined>(undefined);
+  const connected = kernel.kind === 'connected';
   const write = () => {
     const current = model.code(sheet, row, col);
-    const source = cellsStore.getState().getSource(id);
+    const source = connected ? cellsStore.getState().getSource(id) : draft.current;
     if (current !== undefined && source !== undefined && source !== current.source)
       model.dispatch({ type: 'SET_CODE', sheet, row, col, code: { ...current, source } });
   };
-  if (kernel.kind === 'connected') register?.({ save: write });
+  register?.({ save: write });
   if (code === undefined) return null;
   const save = () => {
     write();
@@ -353,57 +355,60 @@ export function CodeCellEditor({
   const ref = codeRef(row, col);
   // The last run's outputs, or the value it returned when it displayed nothing.
   const shown = shownOutputs(code);
-  const outputs = shown.length > 0 && (
-    <div data-cells-code-editor-outputs="" style={{ marginTop: 8 }}>
-      <CodeOutput
-        outputs={model.codeTrusted(sheet, row, col) ? shown : safeOutputs(shown)}
-        trusted={model.codeTrusted(sheet, row, col)}
-        cell={ref}
-        width={CODE_EDITOR_MIN_WIDTH - 16}
-        height={200}
-      />
-    </div>
-  );
-  if (kernel.kind !== 'connected') {
-    // The plain editor until the kernel is there (or instead of it): editable at once, saved the same way.
-    return (
-      <Themed>
-        <div data-cells-code-editor-waiting={kernel.kind}>
+  return (
+    <Themed>
+      <div
+        data-cells-code-editor=""
+        data-cells-code-editor-waiting={connected ? undefined : kernel.kind}
+        role="dialog"
+        aria-label={`Code of ${ref}`}
+        ref={dialog}
+      >
+        {!connected && (
+          // Said above the editor, which is the JupyterLab cell either way: editable at once, saved the same way.
           <p
-            style={{ margin: '0 0 6px', fontSize: 12 }}
+            style={{ margin: '0 0 6px', fontSize: 12, color: 'var(--jp-ui-font-color1)' }}
             data-cells-code-editor-kernel={kernel.kind}
           >
             {kernel.kind === 'connecting' ? 'Connecting the kernel…' : kernel.message}
           </p>
-          <PlainEditor
-            model={model}
-            sheet={sheet}
-            row={row}
-            col={col}
-            onClose={onClose}
-            register={register}
+        )}
+        {connected ? (
+          <Cell
+            id={id}
+            source={draft.current ?? code.source}
+            // The outputs show once, below, from the model: a run writes them there.
+            outputs={[] as IOutput[]}
+            startDefaultKernel={false}
+            autoStart={false}
+            kernel={kernel.kernel}
+            showToolbar={false}
           />
-          {outputs}
-        </div>
-      </Themed>
-    );
-  }
-  return (
-    <Themed>
-      <div data-cells-code-editor="" role="dialog" aria-label={`Code of ${ref}`} ref={dialog}>
-        <Cell
-          id={id}
-          source={code.source}
-          // The outputs show once, below, from the model: a run writes them there.
-          outputs={[] as IOutput[]}
-          startDefaultKernel={false}
-          autoStart={false}
-          kernel={kernel.kernel}
-          showToolbar={false}
-        />
-        {outputs}
+        ) : (
+          <SourceCell
+            source={draft.current ?? code.source}
+            autoFocus
+            onChange={(source) => {
+              draft.current = source;
+            }}
+          />
+        )}
+        {shown.length > 0 && (
+          <div data-cells-code-editor-outputs="" style={{ marginTop: 8 }}>
+            <CodeOutput
+              outputs={model.codeTrusted(sheet, row, col) ? shown : safeOutputs(shown)}
+              trusted={model.codeTrusted(sheet, row, col)}
+              cell={ref}
+              width={CODE_EDITOR_MIN_WIDTH - 16}
+              height={200}
+            />
+          </div>
+        )}
         {runError !== undefined && (
-          <p data-cells-code-editor-error="" style={{ margin: '8px 0 0', fontSize: 12 }}>
+          <p
+            data-cells-code-editor-error=""
+            style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--jp-error-color1)' }}
+          >
             {runError}
           </p>
         )}

@@ -19,7 +19,7 @@
  * @module react/CodeLayer
  */
 
-import { Overlay, ThemeProvider } from '@primer/react';
+import { Button, Overlay, Textarea, ThemeProvider } from '@primer/react';
 import {
   createElement,
   type ComponentType,
@@ -634,7 +634,7 @@ export function CodeEditorOverlay(props: CodeEditorOverlayProps) {
   );
 }
 
-/** The editor with no renderer contributed: a textarea over the source, *Save* writes it back as one undo step. */
+/** The editor with no renderer contributed: Primer's textarea over the source, *Save* writes it back as one undo step. */
 export function PlainEditor({
   model,
   sheet,
@@ -667,20 +667,22 @@ export function PlainEditor({
   };
   return (
     <div role="dialog" aria-label={`Code of ${codeRef(row, col)}`} data-cells-code-editor="">
-      <textarea
+      <Textarea
         aria-label="Source"
         value={text}
+        block
+        resize="vertical"
         rows={Math.min(20, Math.max(4, text.split('\n').length + 1))}
-        style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'monospace' }}
+        style={{ fontFamily: 'var(--fontStack-monospace, monospace)' }}
         onChange={(e) => setText(e.target.value)}
       />
       <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-        <button type="button" onClick={save}>
+        <Button size="small" variant="primary" onClick={save}>
           Save
-        </button>
-        <button type="button" onClick={onClose}>
+        </Button>
+        <Button size="small" onClick={onClose}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );

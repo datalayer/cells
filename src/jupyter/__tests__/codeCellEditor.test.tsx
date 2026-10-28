@@ -11,7 +11,9 @@
  * packages do not load in jsdom): the editor mounts while the kernel is
  * still connecting (the plain editor, editable, the outputs under it), the
  * `Cell` takes over once the kernel is connected, and a kernel that fails
- * to connect leaves the editor with the error said. The kernel indicator
+ * to connect leaves the editor with the error said. While it connects the
+ * stand-in is `SourceCell` (JupyterLab's cell with no kernel, mocked here):
+ * what is typed there is saved, and the `Cell` starts from it. The kernel indicator
  * shows no kernel, then follows the connection's `statusChanged` from
  * idle to busy and back, and the model hears the state.
  */
@@ -35,6 +37,17 @@ vi.mock('@datalayer/jupyter-react', () => ({
   jupyterReactStore: { getState: () => ({ serviceManager: {}, setServiceManager: () => {} }) },
   Kernel: class {},
   ServiceManagerLess: class {},
+}));
+// JupyterLab's own cell, with no kernel: a textarea standing in for it here.
+vi.mock('../sourceCell.js', () => ({
+  SourceCell: ({ source, onChange }: { source: string; onChange: (s: string) => void }) => (
+    <textarea
+      data-mock-source-cell=""
+      aria-label="Source"
+      defaultValue={source}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  ),
 }));
 vi.mock('@datalayer/jupyter-react/theme', () => ({
   JupyterReactTheme: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -165,6 +178,48 @@ describe('the code editor of ./jupyter', () => {
     expect(div.querySelector('[data-mock-jupyter-cell]')!.textContent).toBe('1 + 1');
     expect(div.querySelector('textarea[aria-label="Source"]')).toBeNull();
     expect(div.querySelector('[data-mock-jupyter-output]')!.textContent).toBe('two');
+  });
+
+  it('the stand-in is the kernel-free cell, with Run, Save and Cancel: what is typed is saved as one step, and the Cell starts from it', async () => {
+    const { CodeCellEditor } = await import('../index.js');
+    let resolve: (k: unknown) => void = () => undefined;
+    const m = modelWith(() => new Promise((r) => (resolve = r)));
+    let controls: { save: () => void } | undefined;
+    const div = mount(
+      <CodeCellEditor
+        model={m}
+        sheet="s1"
+        row={1}
+        col={1}
+        onClose={() => {}}
+        register={(c) => (controls = c)}
+      />,
+    );
+    await tick();
+    const standIn = div.querySelector<HTMLTextAreaElement>('[data-mock-source-cell]')!;
+    expect(div.querySelector('[data-cells-code-editor-waiting="connecting"]')).not.toBeNull();
+    expect([...div.querySelectorAll('button')].map((b) => b.textContent)).toEqual([
+      'Run',
+      'Save',
+      'Cancel',
+    ]);
+    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!;
+    act(() => {
+      setter.call(standIn, '2 + 2');
+      standIn.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    const before = m.revision;
+    act(() => controls!.save());
+    expect(m.code('s1', 1, 1)!.source).toBe('2 + 2');
+    expect(m.revision).toBe(before + 1);
+    m.undo();
+    expect(m.code('s1', 1, 1)!.source).toBe('1 + 1');
+    const { connection } = fakeConnection();
+    await act(async () => {
+      resolve(fakeKernel(connection));
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(div.querySelector('[data-mock-jupyter-cell]')!.textContent).toBe('2 + 2');
   });
 
   it('a kernel that fails to connect leaves the editor, with the error said', async () => {
