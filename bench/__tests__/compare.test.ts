@@ -24,6 +24,14 @@ describe('the bench comparison', () => {
     expect(failures[0]).toMatch(/harness\.noop\.ms: 0\.6 ms regressed 20\.0 %/);
   });
 
+  it('a size growing over the threshold but under the floor is not a regression; over both, it is', () => {
+    const size = (value: number) => ({ figures: { 'bundle.jupyter.kB': { value, unit: 'kB' } } });
+    expect(compare(size(4.7), size(5.58), budgets).ok).toBe(true);
+    const { ok, failures } = compare(size(4.7), size(7.5), budgets);
+    expect(ok).toBe(false);
+    expect(failures[0]).toMatch(/bundle\.jupyter\.kB: 7\.5 kB regressed/);
+  });
+
   it('passes on a 10 % regression, under the threshold', () => {
     expect(compare(result(0.5), result(0.55), budgets).ok).toBe(true);
   });

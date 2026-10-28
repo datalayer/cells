@@ -7,9 +7,12 @@
 /**
  * Compare two bench result files against each other and against the budgets.
  * A figure fails when it is over its budget, or when it regressed by more
- * than the threshold (15 % by default) against the base. Lower is better
- * for every figure. A figure absent from the base is checked against its
- * budget only; a figure with no budget is refused, so none goes unchecked.
+ * than the threshold (15 % by default) against the base; a size (kB) also
+ * has to grow by {@link SIZE_FLOOR_KB} or more, so a small entry gaining a
+ * feature (a 5 kB entry growing by 1 kB) is not a regression, while its
+ * budget still caps it. Lower is better for every figure. A figure absent
+ * from the base is checked against its budget only; a figure with no budget
+ * is refused, so none goes unchecked.
  *
  * Result file shape:
  *   { version: 1, sha, date, machine, figures: { "<name>": { value, unit, runs? } } }
@@ -22,6 +25,9 @@
  * @param {{ threshold?: number }} [options]
  * @returns {{ ok: boolean, lines: string[], failures: string[] }}
  */
+/** The least a size has to grow, kB, before a growth over the threshold counts as a regression. */
+export const SIZE_FLOOR_KB = 2;
+
 export function compare(base, current, budgets, options = {}) {
   const threshold = options.threshold ?? 0.15;
   const lines = [];
@@ -55,7 +61,8 @@ export function compare(base, current, budgets, options = {}) {
     if (before !== undefined && before.value > 0) {
       const change = (figure.value - before.value) / before.value;
       line += `, ${change >= 0 ? '+' : ''}${(change * 100).toFixed(1)} % against ${round(before.value)}`;
-      if (change > threshold) {
+      const small = figure.unit === 'kB' && figure.value - before.value < SIZE_FLOOR_KB;
+      if (change > threshold && !small) {
         failures.push(
           `${name}: ${round(figure.value)} ${figure.unit} regressed ${(change * 100).toFixed(1)} % ` +
             `against ${round(before.value)} (more than ${(threshold * 100).toFixed(0)} %)`,
