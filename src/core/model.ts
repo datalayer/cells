@@ -849,6 +849,11 @@ export class CellsModel {
     return this.#codeTrusted.has(`${sheet}:${s.rows.idAt(row)}.${s.cols.idAt(col)}`);
   }
 
+  /** Ask the grid to repaint (a code cell's thumbnail decoded): a change with no patches, `origin: 'code'`. */
+  repaint(): void {
+    this.#emit({ label: 'repaint', commands: [], patches: [], origin: 'code' });
+  }
+
   /** Mark a code cell's outputs as made here (the runner, after a run); the grid repaints. */
   setCodeTrusted(sheet: string, row: number, col: number): void {
     const s = this.workbook.sheet(sheet);

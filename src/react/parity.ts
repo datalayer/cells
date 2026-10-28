@@ -226,6 +226,7 @@ export const MODEL_MEMBERS: Readonly<Record<string, Surface>> = {
   setCodeState: hook('useCodeCell'),
   codeTrusted: hook('useCodeCell'),
   setCodeTrusted: hook('useCodeCell'),
+  repaint: hook('useCellsRevision'),
   codeCells: hook('useCellsModel'),
   cellTypeIds: hook('useContributions'),
   renderLayers: hook('useContributions'),

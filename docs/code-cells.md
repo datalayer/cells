@@ -15,11 +15,20 @@ A code cell is `SET_CODE` with a `CodeCell` (`codeCell(source)` makes one),
 or *Make the cell a code cell* (`cells.code.insert`) in the context menu.
 The canvas paints a badge, the result (or the source's first line before a
 run), `#BUSY!` while it runs and a corner mark when what it reads changed.
+A cell with outputs paints a preview of them too: a PNG's thumbnail scaled
+to the cell's height, or the first line of a text output, and an output
+glyph in the corner; hovering the cell (300 ms) or Alt+Down shows the
+outputs in a preview at the cell, drawn by the contributed renderer, up to
+480 × 360. A cell whose `frame` is set keeps them pinned beside the cells
+instead (`frame: null` shows the preview only). A host whose bundler is not
+webpack defines `__webpack_public_path__` (`''`) before loading `./jupyter`,
+as the examples' Vite config and page do: JupyterLab's packages read it.
 
 | Keys, on a code cell | Command                | What it does                                   |
 | -------------------- | ---------------------- | ---------------------------------------------- |
 | Shift+Enter          | `cells.code.run`       | Run it on the sheet's kernel                   |
 | Enter, F2, F4, a double-click | `cells.code.openEditor` | An overlay at the cell with the source in `Cell`; Escape, a click outside or Ctrl+S save and close; Shift+Enter there runs |
+| Alt+Down | `cells.code.preview` | Its outputs in a preview at the cell (a hover of 300 ms too); Escape closes |
 |                      | `cells.code.goToOutput` | Focus its output frame (Escape returns)       |
 |                      | `cells.code.runAll`    | Every code cell of the sheet, in dependency order |
 |                      | `cells.code.interrupt` | Stop the run in flight                         |

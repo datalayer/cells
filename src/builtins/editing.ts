@@ -44,6 +44,8 @@ export interface CellsGridAccess {
   focusOutput?(row: number, col: number): boolean;
   /** Open the contributed code editor over a code cell (*Open in editor*). */
   openCodeEditor?(row: number, col: number): void;
+  /** Show a code cell's outputs in a preview at the cell (Alt+Down, a hover); `false` when it has none. */
+  previewOutput?(row: number, col: number): boolean;
 }
 
 /** What a Cells command is run with: the grid's model, and how its text measures (for fitting). */

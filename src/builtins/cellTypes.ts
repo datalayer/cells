@@ -22,6 +22,7 @@ import {
   type CellTypeCell,
 } from '../points/index.js';
 import type { CellsModel } from '../core/model.js';
+import type { CodeOutput } from '../core/code.js';
 import { display } from '../render/numberFormat.js';
 import type { Style } from '../core/styles.js';
 import { type CellValue, isCellError } from '../core/values.js';
@@ -271,6 +272,70 @@ export function codeName(value: CellValue, cell: CellTypeCell | undefined): stri
  * (or, before its first run, the source's first line in monospace), `#BUSY!`
  * while it runs, and a corner mark when what it reads changed since its run.
  */
+/** The decoded images of code outputs, by their PNG bytes (base64); `loading` while the browser decodes, `failed` when it could not. */
+const thumbnails = new Map<string, CanvasImageSource | 'loading' | 'failed'>();
+const THUMBNAILS_CAP = 100;
+
+/** The first PNG of a code cell's outputs, base64, or `undefined`. */
+export function firstPng(outputs: readonly CodeOutput[]): string | undefined {
+  for (const o of outputs) {
+    if (o.output_type !== 'display_data' && o.output_type !== 'execute_result') continue;
+    const png = ((o as { data?: Record<string, unknown> }).data ?? {})['image/png'];
+    if (typeof png === 'string') return png.replace(/\s+/g, '');
+    if (Array.isArray(png)) return png.join('').replace(/\s+/g, '');
+  }
+  return undefined;
+}
+
+/** The first line of the outputs' text, or `undefined`: a stream's, an error's, or a display's `text/plain`. */
+export function firstOutputLine(outputs: readonly CodeOutput[]): string | undefined {
+  for (const o of outputs) {
+    let text: unknown;
+    if (o.output_type === 'stream') text = (o as { text?: unknown }).text;
+    else if (o.output_type === 'error')
+      text = `${String(o.ename ?? 'Error')}: ${String(o.evalue ?? '')}`;
+    else text = ((o as { data?: Record<string, unknown> }).data ?? {})['text/plain'];
+    if (Array.isArray(text)) text = text.join('');
+    if (typeof text !== 'string') continue;
+    const line = text.split('\n').find((l) => l.trim() !== '');
+    if (line !== undefined) return line.trim();
+  }
+  return undefined;
+}
+
+/**
+ * The thumbnail of a PNG output: decoded once through the platform's `Image`
+ * (the browser's; a test lends `@napi-rs/canvas`'s), the grid repainted when
+ * it arrives. `undefined` while it loads or when nothing can decode.
+ */
+export function thumbnailOf(png: string, repaint: () => void): CanvasImageSource | undefined {
+  const cached = thumbnails.get(png);
+  if (cached === 'loading' || cached === 'failed') return undefined;
+  if (cached !== undefined) return cached;
+  const ImageClass = (globalThis as { Image?: new () => HTMLImageElement }).Image;
+  if (ImageClass === undefined) return undefined;
+  if (thumbnails.size >= THUMBNAILS_CAP) thumbnails.delete(thumbnails.keys().next().value!);
+  thumbnails.set(png, 'loading');
+  const image = new ImageClass();
+  const done = () => {
+    thumbnails.set(png, image.naturalWidth > 0 ? image : 'failed');
+    repaint();
+  };
+  image.onload = done;
+  image.onerror = () => {
+    thumbnails.set(png, 'failed');
+  };
+  const bytes = (globalThis as { Buffer?: { from(s: string, e: string): unknown } }).Buffer;
+  // Node's canvas takes the bytes and decodes at once; a browser takes the data URL and decodes later.
+  (image as { src: unknown }).src =
+    bytes !== undefined ? bytes.from(png, 'base64') : `data:image/png;base64,${png}`;
+  if (image.complete && image.naturalWidth > 0) {
+    thumbnails.set(png, image);
+    return image;
+  }
+  return undefined;
+}
+
 export const code: CellType = {
   id: 'code',
   paintsEmpty: true,
@@ -280,6 +345,7 @@ export const code: CellType = {
     const source = cell !== undefined ? m?.code(cell.sheet, cell.row, cell.col) : undefined;
     const state = cell !== undefined ? m?.codeState(cell.sheet, cell.row, cell.col) : undefined;
     const z = rect.zoom;
+    const outputs = source?.outputs ?? [];
     // The badge: a small rounded square with a chevron, in the accent colour.
     const size = Math.max(6, Math.min(12 * z, rect.height - 6 * z));
     const bx = rect.x + PADDING * z;
@@ -294,7 +360,26 @@ export const code: CellType = {
     ctx.moveTo(bx + size * 0.6, by + size * 0.72);
     ctx.lineTo(bx + size * 0.78, by + size * 0.72);
     ctx.stroke();
-    const after = { ...rect, x: bx + size, width: rect.width - (bx + size - rect.x) };
+    let after = { ...rect, x: bx + size, width: rect.width - (bx + size - rect.x) };
+    // A rich output's preview in the cell (§3.13): a PNG's thumbnail, scaled to the cell's height.
+    const png = state === 'running' ? undefined : firstPng(outputs);
+    if (png !== undefined && m !== undefined) {
+      const image = thumbnailOf(png, () => m.repaint());
+      if (image !== undefined) {
+        const bitmap = image as {
+          naturalWidth?: number;
+          naturalHeight?: number;
+          width: number;
+          height: number;
+        };
+        const iw = bitmap.naturalWidth ?? bitmap.width;
+        const ih = bitmap.naturalHeight ?? bitmap.height;
+        const th = Math.max(1, rect.height - 2 * z);
+        const tw = Math.max(1, Math.min(after.width - PADDING * z, (iw / Math.max(1, ih)) * th));
+        ctx.drawImage(image as CanvasImageSource, after.x + PADDING * z, rect.y + z, tw, th);
+        after = { ...after, x: after.x + tw + PADDING * z, width: after.width - tw - PADDING * z };
+      }
+    }
     if (state === 'running') {
       drawPlainText(ctx, after, '#BUSY!', style, theme, theme.errorText, 'right');
     } else if (value !== null) {
@@ -314,6 +399,33 @@ export const code: CellType = {
     } else if (source !== undefined) {
       const mono = { ...style, font: theme.monoFontFamily ?? MONO };
       drawPlainText(ctx, after, firstLine(source.source), mono, theme, theme.textMuted, 'left');
+    }
+    if (outputs.length > 0 && state !== 'running') {
+      // The first line of a text output, muted, after the result, where there is room; and the output glyph.
+      const line = png === undefined ? firstOutputLine(outputs) : undefined;
+      const shown = value === null ? '' : display(value, style.format).text;
+      if (line !== undefined && line !== shown) {
+        ctx.font = font(style, theme, z);
+        const used = shown === '' ? 0 : ctx.measureText(shown).width + 2 * PADDING * z;
+        const room = { ...after, x: after.x + used, width: after.width - used - 10 * z };
+        if (room.width > 24 * z) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(room.x, room.y, room.width, room.height);
+          ctx.clip();
+          drawPlainText(ctx, room, line, style, theme, theme.textMuted, 'left');
+          ctx.restore();
+        }
+      }
+      const g = Math.max(4, 6 * z);
+      ctx.strokeStyle = theme.textMuted;
+      ctx.lineWidth = Math.max(1, z);
+      ctx.strokeRect(
+        rect.x + rect.width - g - 2 * z + 0.5,
+        rect.y + rect.height - g - 2 * z + 0.5,
+        g,
+        g,
+      );
     }
     if (state === 'stale') {
       // The stale mark: a triangle in the top-right corner.

@@ -163,6 +163,9 @@ export interface SpreadsheetProps {
 /** The mirror holds at most this many cells (§ accessibility). */
 export const MIRROR_CAP = 1000;
 
+/** How long the pointer rests on a code cell with outputs before its preview opens, ms. */
+export const CODE_HOVER_MS = 300;
+
 function errorMeaning(code: string): string {
   const meanings: Record<string, string> = {
     '#DIV/0!': 'division by zero',
@@ -520,6 +523,26 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
 
     // ------------------------------------------------------------ keyboard and pointer
     const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+    /** The code cell whose outputs are previewed at the cell (a hover, Alt+Down), and where the preview goes. */
+    const [codePreview, setCodePreview] = useState<{
+      row: number;
+      col: number;
+      x: number;
+      y: number;
+    } | null>(null);
+    /** The preview as the pointer handlers see it (they are memoised: a ref, not a stale closure). */
+    const previewRef = useRef(codePreview);
+    previewRef.current = codePreview;
+    /** The hover's timer, and the cell it waits on. */
+    const hover = useRef<{ row: number; col: number; timer: ReturnType<typeof setTimeout> } | null>(
+      null,
+    );
+    /** Whether the pointer is over the preview overlay (then leaving the cell keeps it). */
+    const overPreview = useRef(false);
+    const cancelHover = () => {
+      if (hover.current !== null) clearTimeout(hover.current.timer);
+      hover.current = null;
+    };
     /** The code cell open in the editor overlay (*Open in editor*), and where the overlay goes. */
     const [codeEditing, setCodeEditing] = useState<{
       row: number;
@@ -576,7 +599,19 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
           const sheetNow = model.sheet(r.sheet);
           const pane = r.viewport.panes.find((p) => p.name === 'main')!;
           const rect = cellRect(pane, r.viewport.zoom, sheetNow.rows, sheetNow.cols, row, col);
+          setCodePreview(null);
           setCodeEditing({ row, col, x: rect.x, y: rect.y + rect.height });
+        },
+        previewOutput: (row: number, col: number) => {
+          const r = rendererRef.current;
+          if (r === null) return false;
+          const code = model.code(r.sheet, row, col);
+          if (code === undefined || code.outputs.length === 0) return false;
+          const sheetNow = model.sheet(r.sheet);
+          const pane = r.viewport.panes.find((p) => p.name === 'main')!;
+          const rect = cellRect(pane, r.viewport.zoom, sheetNow.rows, sheetNow.cols, row, col);
+          setCodePreview({ row, col, x: rect.x, y: rect.y + rect.height });
+          return true;
         },
       }),
       [model, scrollToCell],
@@ -1041,8 +1076,43 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
       [model, pointToCell, cellBoxAt, activateCell],
     );
 
+    /** A hover over a code cell with outputs (300 ms) opens its preview; moving to another cell closes it. */
+    const hoverAt = (e: React.PointerEvent) => {
+      const r = rendererRef.current;
+      const cell = r === null ? undefined : pointToCell(e);
+      const over = hover.current;
+      if (cell !== undefined && over !== null && over.row === cell.row && over.col === cell.col)
+        return;
+      cancelHover();
+      const shown = previewRef.current;
+      if (
+        shown !== null &&
+        (cell === undefined || shown.row !== cell.row || shown.col !== cell.col)
+      ) {
+        if (!overPreview.current) setCodePreview(null);
+      }
+      if (cell === undefined || r === null) return;
+      const code = model.code(r.sheet, cell.row, cell.col);
+      if (code === undefined || code.outputs.length === 0) return;
+      if (shown !== null && shown.row === cell.row && shown.col === cell.col) return;
+      hover.current = {
+        row: cell.row,
+        col: cell.col,
+        timer: setTimeout(() => {
+          hover.current = null;
+          gridAccess.previewOutput?.(cell.row, cell.col);
+        }, CODE_HOVER_MS),
+      };
+    };
     const onPointerMove = useCallback(
       (e: React.PointerEvent) => {
+        if (
+          !pointing.current &&
+          fillDrag.current === null &&
+          headerDrag.current === null &&
+          !dragging.current
+        )
+          hoverAt(e);
         if (pointing.current) {
           const editing = model.edit;
           const p = point.current;
@@ -1361,6 +1431,10 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
             onFocus={() => setCellsCommandTarget(commandArgument)}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
+            onPointerLeave={() => {
+              cancelHover();
+              if (!overPreview.current) setCodePreview(null);
+            }}
             onPointerUp={onPointerUp}
             onDoubleClick={onDoubleClick}
             onContextMenu={onContextMenu}
@@ -1446,6 +1520,15 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
                 viewport={viewport}
                 theme={theme}
                 editing={codeEditing}
+                preview={codePreview}
+                onClosePreview={() => {
+                  overPreview.current = false;
+                  setCodePreview(null);
+                }}
+                onPreviewPointer={(over) => {
+                  overPreview.current = over;
+                  if (!over) setCodePreview(null);
+                }}
                 portalName={portalName}
                 returnFocusRef={rootRef}
                 onCloseEditor={() => {

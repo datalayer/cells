@@ -16,7 +16,13 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { CellsKernels, type KernelProvider } from '../../index.js';
+import {
+  CellsKernels,
+  type CodeEditorRendererProps,
+  type CodeRenderer,
+  type KernelProvider,
+} from '../../index.js';
+import { headerSizes } from '../../render/viewport.js';
 import CodeCells, {
   codeCellsModel,
   KERNEL_TARGET_KEY,
@@ -95,12 +101,50 @@ const fake = (id: string): KernelProvider => ({
   }),
 });
 
+/** A stand-in for jupyter-react's `Cell`, as the page's lazy renderer would mount it. */
+const MOCK_RENDERER: CodeRenderer = {
+  id: 'mock',
+  output: () => null,
+  editor: ({ row, col }: CodeEditorRendererProps) => (
+    <textarea data-mock-cell={`${row},${col}`} defaultValue="" />
+  ),
+};
+
 describe('the code cells page', () => {
+  it('a double-click on C2 before any run opens the contributed editor, never the textarea', async () => {
+    const div = document.createElement('div');
+    document.body.append(div);
+    root = createRoot(div);
+    act(() =>
+      root!.render(
+        <CodeCells
+          providers={{ browser: fake('lite'), jupyter: fake('prod1') }}
+          renderer={MOCK_RENDERER}
+        />,
+      ),
+    );
+    await act(async () => new Promise((r) => setTimeout(r, 0)));
+    const grid = div.querySelector<HTMLElement>('[role="grid"]')!;
+    act(() => grid.focus());
+    const h = headerSizes(1_048_576, true);
+    // C2: column widths 100, 100, then C 120 (the page widens it); row 2 is 21 px down.
+    const at = { clientX: h.width + 200 + 60, clientY: h.height + 21 + 10 };
+    act(() => {
+      grid.dispatchEvent(
+        new MouseEvent('dblclick', { bubbles: true, cancelable: true, button: 0, ...at }),
+      );
+    });
+    await act(async () => new Promise((r) => setTimeout(r, 0)));
+    expect(div.querySelector('[data-mock-cell="1,2"]')).not.toBeNull();
+    expect(div.querySelector('[data-cells-code-editor] textarea[aria-label="Source"]')).toBeNull();
+  });
+
   it('holds the table, the two code cells and the formula over C2', () => {
     const m = codeCellsModel({ browser: fake('lite'), jupyter: fake('prod1') });
     expect(m.code('s1', 1, 2)?.source).toContain('cells["B2:B7"]');
     expect(m.code('s1', 3, 2)?.source).toContain('matplotlib');
-    expect(m.code('s1', 3, 2)?.frame).toEqual({ width: 380, height: 240 });
+    expect(m.code('s1', 3, 2)?.frame).toBeNull();
+    expect(m.code('s1', 5, 2)?.frame).toEqual({ width: 380, height: 180 });
     expect(m.content('s1', 1, 3)?.formula).toBe('C2*2');
     expect(m.cellTypeIds()).toContain('code');
   });

@@ -102,6 +102,23 @@ export const CODE_COMMANDS: readonly CellsCommand[] = [
     },
   ),
   command(
+    'preview',
+    'Show the outputs',
+    ({ model: m, grid }) => {
+      if (grid?.previewOutput === undefined)
+        throw new Error('cells.code.preview shows a preview on a grid: run it from a grid.');
+      const { active } = m.selection;
+      if (!grid.previewOutput(active.row, active.col))
+        throw new Error('This cell shows no output.');
+    },
+    {
+      gridKeybindings: ['Alt+ArrowDown'],
+      description: gridKeysDescription(['Alt+ArrowDown'], false),
+      octicon: 'eye',
+      isEnabled: onCodeCell,
+    },
+  ),
+  command(
     'goToOutput',
     'Go to output',
     ({ model: m, grid }) => {
@@ -128,7 +145,7 @@ export const CellsCodePlugin = definePlugin({
   octicon: 'code',
   commands: [...CODE_COMMANDS],
   contributes: [
-    ...['insert', 'run', 'openEditor', 'goToOutput', 'runAll'].map((id, i) =>
+    ...['insert', 'run', 'openEditor', 'preview', 'goToOutput', 'runAll'].map((id, i) =>
       contribution(
         CellsMenuItems,
         { command: `cells.code.${id}`, group: 'code' },

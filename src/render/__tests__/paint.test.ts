@@ -22,6 +22,7 @@ import {
 import { exportPortableTheme } from '@datalayer/primer-addons/lib/theme/portable';
 import { themeFromVariables } from '../../react/theme.js';
 import { DARK_THEME, FORCED_COLORS_THEME } from '../theme.js';
+import { headerSizes } from '../viewport.js';
 import { expectSnapshot, paint, TEST_THEME } from './harness.js';
 
 function model(rows: unknown[][], styles: Record<string, Style> = {}): CellsModel {
@@ -340,6 +341,44 @@ describe('the paint rules', async () => {
       }),
       'code-cells-forced',
     );
+  });
+
+  it("paints a code cell's PNG output as a thumbnail scaled to the cell, decoded through the platform's Image", async () => {
+    // A 4 × 4 red PNG, as a run's display_data carries it.
+    const RED =
+      'iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAEElEQVR4nGP4z8AARwzEcQCukw/x0F8jngAAAABJRU5ErkJggg==';
+    const { Image } = await import('@napi-rs/canvas');
+    const had = (globalThis as { Image?: unknown }).Image;
+    (globalThis as { Image?: unknown }).Image = Image;
+    try {
+      const m = model([['Plot', null]]);
+      m.dispatch({
+        type: 'SET_CODE',
+        sheet: 's1',
+        row: 0,
+        col: 1,
+        code: codeCell('fig', {
+          result: 'Image',
+          outputs: [{ output_type: 'display_data', data: { 'image/png': RED }, metadata: {} }],
+          frame: null,
+        }),
+      });
+      const shot = { width: 240, height: 60, theme: { ...TEST_THEME, monoFontFamily: 'TestSans' } };
+      // The first paint asks for the decode and paints the glyph; the decoded image asks for a repaint.
+      paint(m, shot);
+      await new Promise((r) => setTimeout(r, 20));
+      const canvas = paint(m, shot);
+      const ctx = canvas.getContext('2d');
+      // B1 starts at x = header width + 100; the thumbnail sits after the badge, inside the cell's height.
+      const h = headerSizes(200, true);
+      const x = h.width + 100 + 3 + 12 + 3 + 4;
+      const y = h.height + 10;
+      const [r, g, b] = ctx.getImageData(x, y, 1, 1).data;
+      expect([r, g, b]).toEqual([255, 0, 0]);
+      await expectSnapshot(canvas, 'code-thumbnail');
+    } finally {
+      (globalThis as { Image?: unknown }).Image = had;
+    }
   });
 
   it('draws in the dark theme, and in forced colours with an outline for the selection', async () => {

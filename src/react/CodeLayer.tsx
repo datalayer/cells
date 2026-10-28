@@ -23,6 +23,7 @@ import { Overlay, ThemeProvider } from '@primer/react';
 import {
   createElement,
   type ComponentType,
+  Suspense,
   useCallback,
   useRef,
   useState,
@@ -57,6 +58,16 @@ export interface CodeLayerProps {
     readonly y: number;
   } | null;
   readonly onCloseEditor?: () => void;
+  /** The code cell whose outputs are previewed at the cell (a hover, Alt+Down), and where the preview goes. */
+  readonly preview?: {
+    readonly row: number;
+    readonly col: number;
+    readonly x: number;
+    readonly y: number;
+  } | null;
+  readonly onClosePreview?: () => void;
+  /** The pointer entered (`true`) or left (`false`) the preview: leaving closes it. */
+  readonly onPreviewPointer?: (over: boolean) => void;
   /** The grid's portal root, where the overlay goes (as the context menu does). */
   readonly portalName?: string;
   /** The grid's focus target, which the overlay returns focus to. */
@@ -234,13 +245,18 @@ function LazyOutputs(props: {
         {props.text}
       </pre>
     );
-  return createElement(props.renderer, {
-    outputs: props.outputs,
-    trusted: props.trusted,
-    cell: props.cell,
-    width: props.width,
-    height: props.height,
-  });
+  // A lazy renderer (the examples load jupyter-react on first use) shows its loading line meanwhile.
+  return (
+    <Suspense fallback={<span style={{ margin: 8 }}>Loading the output…</span>}>
+      {createElement(props.renderer, {
+        outputs: props.outputs,
+        trusted: props.trusted,
+        cell: props.cell,
+        width: props.width,
+        height: props.height,
+      })}
+    </Suspense>
+  );
 }
 
 /** The output frames of a sheet's code cells, per pane, and the editor over the cell being edited. */
@@ -290,6 +306,8 @@ export function CodeLayer(props: CodeLayerProps) {
     list.push(p);
   }
   const editing = props.editing ?? null;
+  const preview = props.preview ?? null;
+  const previewed = preview === null ? undefined : model.code(sheet.id, preview.row, preview.col);
   return (
     <>
       {[...byPane].map(([pane, list]) => (
@@ -344,7 +362,109 @@ export function CodeLayer(props: CodeLayerProps) {
           onClose={() => props.onCloseEditor?.()}
         />
       )}
+      {preview !== null && previewed !== undefined && previewed.outputs.length > 0 && (
+        <CodeOutputPreview
+          key={`preview:${sheet.id}:${preview.row},${preview.col}`}
+          cell={codeRef(preview.row, preview.col)}
+          outputs={previewed.outputs}
+          trusted={model.codeTrusted(sheet.id, preview.row, preview.col)}
+          x={preview.x}
+          y={preview.y}
+          renderer={Output}
+          theme={theme}
+          portalName={props.portalName}
+          returnFocusRef={props.returnFocusRef}
+          onClose={() => props.onClosePreview?.()}
+          onPointer={props.onPreviewPointer}
+        />
+      )}
     </>
+  );
+}
+
+/** The preview's most size, px. */
+export const CODE_PREVIEW_MAX = { width: 480, height: 360 } as const;
+
+/** The props of `<CodeOutputPreview>`. */
+export interface CodeOutputPreviewProps {
+  readonly cell: string;
+  readonly outputs: readonly CodeOutput[];
+  readonly trusted: boolean;
+  readonly x: number;
+  readonly y: number;
+  readonly renderer: ComponentType<CodeOutputRendererProps> | undefined;
+  readonly theme: CellsTheme;
+  readonly portalName?: string;
+  readonly returnFocusRef?: React.RefObject<HTMLElement | null>;
+  readonly onClose: () => void;
+  readonly onPointer?: (over: boolean) => void;
+}
+
+/**
+ * A code cell's outputs at the cell (§3.13): Primer's `Overlay` in the grid's
+ * portal root, opened by a hover of 300 ms or Alt+Down, drawn by the
+ * contributed renderer (untrusted outputs filtered as the frames are), up
+ * to 480 × 360; closed when the pointer leaves the cell and the overlay, by
+ * Escape, or by a click outside.
+ */
+export function CodeOutputPreview(props: CodeOutputPreviewProps) {
+  const outputs = props.trusted ? props.outputs : safeOutputs(props.outputs);
+  const text = outputsText(outputs);
+  return (
+    <ThemeProvider>
+      <Overlay
+        role="region"
+        aria-label={`Output of ${props.cell}`}
+        returnFocusRef={props.returnFocusRef as React.RefObject<HTMLElement>}
+        onClickOutside={props.onClose}
+        onEscape={props.onClose}
+        portalContainerName={props.portalName}
+        position="absolute"
+        top={props.y}
+        left={props.x}
+        width="auto"
+        preventFocusOnOpen
+        style={{
+          backgroundColor: 'var(--overlay-bgColor, Canvas)',
+          color: 'var(--fgColor-default, CanvasText)',
+          boxShadow:
+            'var(--shadow-floating-small, 0 0 0 1px rgba(128, 128, 128, 0.35), 0 8px 24px rgba(0, 0, 0, 0.2))',
+        }}
+        data-cells-code-preview={props.cell}
+      >
+        <div
+          data-cells-code-preview={props.cell}
+          style={{
+            maxWidth: CODE_PREVIEW_MAX.width,
+            maxHeight: CODE_PREVIEW_MAX.height,
+            overflow: 'auto',
+            padding: 4,
+            font: `${props.theme.fontSize}px ${props.theme.fontFamily}`,
+          }}
+          onPointerEnter={() => props.onPointer?.(true)}
+          onPointerLeave={() => props.onPointer?.(false)}
+          onPointerDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              props.onClose();
+            }
+          }}
+        >
+          <LazyOutputs
+            heavy={false}
+            renderer={props.renderer}
+            outputs={outputs}
+            trusted={props.trusted}
+            cell={props.cell}
+            width={CODE_PREVIEW_MAX.width - 8}
+            height={CODE_PREVIEW_MAX.height - 8}
+            text={text}
+          />
+        </div>
+      </Overlay>
+    </ThemeProvider>
   );
 }
 
@@ -451,7 +571,9 @@ export function CodeEditorOverlay(props: CodeEditorOverlayProps) {
           }}
         >
           {props.editor !== undefined ? (
-            createElement(props.editor, editorProps)
+            <Suspense fallback={<span data-cells-code-loading="">Loading the editor…</span>}>
+              {createElement(props.editor, editorProps)}
+            </Suspense>
           ) : (
             <PlainEditor {...editorProps} />
           )}

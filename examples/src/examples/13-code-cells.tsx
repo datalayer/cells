@@ -8,7 +8,9 @@ import { contribution, definePlugin, type PlatformInput } from '@datalayer/react
 import {
   buildCellsReactor,
   type CellsModel,
+  CellsCodeRenderer,
   CellsKernels,
+  type CodeRenderer,
   codeCell,
   codeRunner,
   createCellsModel,
@@ -21,7 +23,7 @@ import {
 import { LoroBinding } from '@datalayer/cells/collab';
 import { LoroDoc } from 'loro-crdt';
 import { SegmentedControl } from '@primer/react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { Frame } from '../shared';
 
 /** Where the code runs: the browser's Pyodide, or an anonymous Jupyter server on prod1. */
@@ -65,7 +67,11 @@ const PROD1_URL = 'https://prod1.datalayer.run/api/jupyter-server';
 const PROD1_TOKEN = '60c1661cc408f978c309d04157af55c9588ff9557c9380e4fb50785750703da6';
 
 /** The `./jupyter` entry, fetched once (it carries jupyter-react; JupyterLite and Pyodide come with the first run). */
-const jupyter = () => import('@datalayer/cells/jupyter');
+const jupyter = () => {
+  // JupyterLab's packages read webpack's public path at load; a bundler that is not webpack defines none.
+  (globalThis as { __webpack_public_path__?: string }).__webpack_public_path__ ??= '';
+  return import('@datalayer/cells/jupyter');
+};
 
 /** What the kernels are bound to (§3.13, C11-09): the page's model and its collaboration document, over the `datalayer.cells` comm. */
 export interface PageBinding {
@@ -120,12 +126,40 @@ export function prod1Kernel(binding?: PageBinding): KernelProvider {
   };
 }
 
-/** The two kernel plugins; the renderer (jupyter-react's `Output` and `Cell`) arrives with the browser one, through `./jupyter`. */
-export function kernelPlugins(providers: {
-  browser: KernelProvider;
-  jupyter: KernelProvider;
-}): PlatformInput[] {
+/**
+ * jupyter-react's `Output` and `Cell` as the code renderer, loaded on first
+ * use (a double-click, a frame) through `./jupyter`, so the page holds
+ * neither jupyter-react nor JupyterLite until a cell asks: the overlay shows
+ * `Cell` from the first double-click, before any run, on whichever kernel.
+ */
+export function lazyCodeRenderer(): CodeRenderer {
+  return {
+    id: 'jupyter-lazy',
+    output: lazy(() => jupyter().then((m) => ({ default: m.CodeOutput }))),
+    editor: lazy(() => jupyter().then((m) => ({ default: m.CodeCellEditor }))),
+  };
+}
+
+/** The name of the renderer plugin, always enabled. */
+export const RENDERER_PLUGIN = '@datalayer/cells-examples-jupyter-renderer';
+
+/** The two kernel plugins, and the renderer's (jupyter-react's `Output` and `Cell`, lazily). */
+export function kernelPlugins(
+  providers: {
+    browser: KernelProvider;
+    jupyter: KernelProvider;
+  },
+  renderer: CodeRenderer = lazyCodeRenderer(),
+): PlatformInput[] {
   return [
+    definePlugin({
+      name: RENDERER_PLUGIN,
+      displayName: 'jupyter-react renderer',
+      description:
+        "Outputs and the editor drawn by jupyter-react's Output and Cell, loaded on first use.",
+      octicon: 'code',
+      contributes: [contribution(CellsCodeRenderer, renderer, { id: renderer.id, order: 100 })],
+    }),
     definePlugin({
       name: KERNEL_PLUGIN.browser,
       displayName: 'Jupyter (browser)',
@@ -147,6 +181,10 @@ const SUM = `data = cells["B2:B7"]
 rows = data.values.tolist() if hasattr(data, "values") else data
 sum(r[0] for r in rows)`;
 
+const TABLE = `data = cells["A1:B7"]
+data["Double"] = data["Units"] * 2
+data`;
+
 const PLOT = `import io
 import matplotlib
 matplotlib.use("agg")
@@ -162,10 +200,13 @@ plt.close(fig)
 Image(buf.getvalue())`;
 
 /** The page's grid: a small table, a code cell summing it (C2), one plotting it beside the cells (C4); bound to its document, the kernels bound to it. */
-export function codeCellsModel(providers?: {
-  browser: KernelProvider;
-  jupyter: KernelProvider;
-}): CellsModel {
+export function codeCellsModel(
+  providers?: {
+    browser: KernelProvider;
+    jupyter: KernelProvider;
+  },
+  renderer?: CodeRenderer,
+): CellsModel {
   // The document's binding comes after the model; the kernels, made on the first run, bind to it then.
   const later: { binding?: PageBinding } = {};
   const reactor = buildCellsReactor(
@@ -178,6 +219,7 @@ export function codeCellsModel(providers?: {
           prod1Kernel(later.binding),
         ),
       },
+      renderer,
     ),
   );
   const m = createCellsModel({
@@ -186,9 +228,9 @@ export function codeCellsModel(providers?: {
       ['Month', 'Units', 'Total', 'Note'],
       ['Jan', 12, null, 'C2 sums B2:B7 in Python; D2 reads it as =C2*2'],
       ['Feb', 15],
-      ['Mar', 19, null, 'C4 plots the table: its figure shows beside the cells'],
+      ['Mar', 19, null, 'C4 plots the table: hover it, or Alt+Down, for the figure'],
       ['Apr', 24],
-      ['May', 28],
+      ['May', 28, null, 'C6 doubles the units: its table stays pinned beside the cells'],
       ['Jun', 31],
     ]),
   });
@@ -204,7 +246,15 @@ export function codeCellsModel(providers?: {
     sheet: 's1',
     row: 3,
     col: 2,
-    code: codeCell(PLOT, { frame: { width: 380, height: 240 } }),
+    // The plot shows on hover and Alt+Down (frame: null); C6's table keeps a pinned frame beside the cells.
+    code: codeCell(PLOT, { frame: null }),
+  });
+  m.dispatch({
+    type: 'SET_CODE',
+    sheet: 's1',
+    row: 5,
+    col: 2,
+    code: codeCell(TABLE, { frame: { width: 380, height: 180 } }),
   });
   m.dispatch({
     type: 'RESIZE_AXIS',
@@ -244,12 +294,13 @@ function Status({ model }: { model: CellsModel }) {
   useCellsRevision();
   const sum = model.code('s1', 1, 2);
   const plot = model.code('s1', 3, 2);
+  const table = model.code('s1', 5, 2);
   const state = (row: number) => model.codeState('s1', row, 2);
   const line = (name: string, c: typeof sum, s: ReturnType<typeof state>) =>
     `${name}: ${s === 'running' ? 'running' : c?.lastRun === undefined ? 'not run yet' : `run ${c.executionCount ?? ''} at ${new Date(c.lastRun).toLocaleTimeString()}${s === 'stale' ? ', stale' : ''}`}`;
   return (
     <p data-code-status="">
-      {line('C2', sum, state(1))} · {line('C4', plot, state(3))}
+      {line('C2', sum, state(1))} · {line('C4', plot, state(3))} · {line('C6', table, state(5))}
     </p>
   );
 }
@@ -264,8 +315,10 @@ function Status({ model }: { model: CellsModel }) {
  */
 export default function CodeCells(props: {
   readonly providers?: { browser: KernelProvider; jupyter: KernelProvider };
+  /** A test's renderer in place of jupyter-react's lazy one. */
+  readonly renderer?: CodeRenderer;
 }) {
-  const [model] = useState(() => codeCellsModel(props.providers));
+  const [model] = useState(() => codeCellsModel(props.providers, props.renderer));
   const [target, setTarget] = useState<KernelTarget>(readKernelTarget);
   const [message, setMessage] = useState('');
   useEffect(() => {
@@ -289,10 +342,11 @@ export default function CodeCells(props: {
   return (
     <CellsProvider model={model}>
       <p>
-        C2 and C4 are code cells (the badge): click one and press Shift+Enter to run it, or F4 to
-        open its source in jupyter-react&apos;s <code>Cell</code>. C2&apos;s result lands in the
-        grid, where D2 reads it; C4&apos;s figure shows in a frame beside the cells. Edit B2:B7 and
-        the cells turn stale until they run again.
+        C2, C4 and C6 are code cells (the badge): click one and press Shift+Enter to run it, or
+        double-click it to open its source in jupyter-react&apos;s <code>Cell</code>. C2&apos;s
+        result lands in the grid, where D2 reads it; C4&apos;s figure shows when you hover the cell
+        (or press Alt+Down on it), with a thumbnail of it in the cell; C6&apos;s table stays pinned
+        beside the cells. Edit B2:B7 and the cells turn stale until they run again.
       </p>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <span id="kernel-label">Kernel:</span>
