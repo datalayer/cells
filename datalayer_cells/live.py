@@ -202,6 +202,17 @@ class Store:
     def subscribe(self, callback: Callable[[], None]) -> Callable[[], None]:
         raise NotImplementedError
 
+    def charts(self, sheet: str) -> dict[str, dict[str, Any]]:
+        """The charts of a sheet as specs at the current positions (§3.12), by id."""
+        raise NotImplementedError
+
+    def write_chart(self, sheet: str, before: dict[str, Any] | None, after: dict[str, Any], origin: str) -> None:
+        """Insert (``before`` is ``None``) or change a chart."""
+        raise NotImplementedError
+
+    def delete_chart(self, sheet: str, chart_id: str, origin: str) -> None:
+        raise NotImplementedError
+
 
 class LoroStore(Store):
     """The collaboration document, read and written in the TypeScript binding's schema."""
@@ -223,7 +234,8 @@ class LoroStore(Store):
     # -- reading
 
     def sheet_ids(self) -> list[str]:
-        ids = [x for x in self.doc.get_movable_list("sheets").get_value() if isinstance(x, str)]
+        # An id listed twice (two peers putting one sheet back concurrently) is one sheet, as in the binding.
+        ids = list(dict.fromkeys(x for x in self.doc.get_movable_list("sheets").get_value() if isinstance(x, str)))
         return ids or [EMPTY_SHEET]
 
     def sheet_name(self, sheet: str) -> str:
@@ -289,6 +301,214 @@ class LoroStore(Store):
         self._listeners.append(callback)
         return lambda: self._listeners.remove(callback)
 
+    # -- charts: the ``charts:<sheetId>`` root of the binding (``src/collab/binding.ts``)
+
+    def _sheet_by_name(self, name: str) -> str | None:
+        lower = name.lower()
+        for s in self.sheet_ids():
+            if self.sheet_name(s).lower() == lower:
+                return s
+        return None
+
+    def _ref_to_ids(self, ref: str, sheet: str) -> str:
+        """A range (``Sheet1!$B$2:$B$5``) in id form (``Sheet1!⟦$b1|$b1⟧:⟦$b1|$b4⟧``), as the binding's ``#toIdForm``."""
+        from .charts import ref_zone
+
+        if ref_zone(ref) is None:  # ``#REF!``: a range already gone stays as it is
+            return ref
+        name, a1 = split_sheet(ref)
+        target = (self._sheet_by_name(name) or sheet) if name is not None else sheet
+        rows = self._order(target, "rows")
+        cols = self._order(target, "cols")
+        out = []
+        for part in a1.split(":"):
+            m = _A1.fullmatch(part.strip())
+            if m is None:
+                raise ValueError(f"'{ref}' is not a range such as Sheet1!A1:C4.")
+            out.append(f"⟦{m[1]}{cols.id_at(column_index(m[2]))}|{m[3]}{rows.id_at(int(m[4]) - 1)}⟧")
+        return ref[: len(ref) - len(a1)] + ":".join(out)
+
+    def _ref_from_ids(self, text: str, sheet: str) -> str:
+        """A range in id form as A1 text at the current positions; one with an end gone is ``#REF!`` whole."""
+        out = ""
+        last = 0
+        previous = sheet
+        for m in _ID_FORM.finditer(text):
+            before = text[last : m.start()]
+            out += before
+            prefix = _PREFIX.search(out)
+            named = None if prefix is None else (prefix[1].replace("''", "'") if prefix[1] else prefix[2])
+            if named is not None:
+                target = self._sheet_by_name(named) or sheet
+            elif before == ":":
+                target = previous
+            else:
+                target = sheet
+            previous = target
+            col_abs, col_id, row_abs, row_id = m.groups()
+            col = None if col_id == "" else self._order(target, "cols").position_of(col_id)
+            row = None if row_id == "" else self._order(target, "rows").position_of(row_id)
+            if (col_id != "" and col is None) or (row_id != "" and row is None):
+                if prefix is not None:
+                    out = out[: len(out) - len(prefix[0])]
+                out += "#REF!"
+            else:
+                out += ("" if col is None else f"{col_abs}{column_letters(col)}") + (
+                    "" if row is None else f"{row_abs}{row + 1}"
+                )
+            last = m.end()
+        out += text[last:]
+        out = _GONE.sub("#REF!", out)
+        return "#REF!" if "#REF!" in out else out
+
+    def _series_to_ids(self, s: dict[str, Any], sheet: str) -> dict[str, Any]:
+        from .charts import ref_zone
+
+        out: dict[str, Any] = {"values": self._ref_to_ids(s["values"], sheet)}
+        if "name" in s:
+            out["name"] = self._ref_to_ids(s["name"], sheet) if ref_zone(s["name"]) is not None else s["name"]
+        for k in ("categories", "x"):
+            if k in s:
+                out[k] = self._ref_to_ids(s[k], sheet)
+        for k in ("type", "axis", "color"):
+            if k in s:
+                out[k] = s[k]
+        return out
+
+    def _anchor_to_ids(self, a: dict[str, Any], sheet: str) -> dict[str, Any]:
+        if a["kind"] == "absolute":
+            return dict(a)
+        rows = self._order(sheet, "rows")
+        cols = self._order(sheet, "cols")
+
+        def corner(c: dict[str, Any]) -> dict[str, Any]:
+            return {"r": rows.id_at(c["row"]), "c": cols.id_at(c["col"]), "dx": c["dx"], "dy": c["dy"]}
+
+        if a["kind"] == "cell":
+            return {"kind": "cell", "from": corner(a["from"]), "width": a["width"], "height": a["height"]}
+        return {"kind": "cells", "from": corner(a["from"]), "to": corner(a["to"])}
+
+    def charts(self, sheet: str) -> dict[str, dict[str, Any]]:
+        """The charts of a sheet as the binding's ``#readCharts`` projects them: a deleted id is ``#REF!``, an anchor whose corner is gone collapses onto its other corner, one with both gone is dropped."""
+        rows = self._order(sheet, "rows")
+        cols = self._order(sheet, "cols")
+
+        def corner(c: Any) -> dict[str, Any] | None:
+            if not isinstance(c, dict) or not isinstance(c.get("r"), str) or not isinstance(c.get("c"), str):
+                return None
+            row = rows.position_of(c.get("r"))
+            col = cols.position_of(c.get("c"))
+            if row is None or col is None or row >= self.limits["rows"] or col >= self.limits["cols"]:
+                return None
+            return {"row": row, "col": col, "dx": c.get("dx"), "dy": c.get("dy")}
+
+        out: dict[str, dict[str, Any]] = {}
+        for chart_id, raw in self.doc.get_map(f"charts:{sheet}").get_deep_value().items():
+            if not isinstance(raw, dict) or not isinstance(raw.get("type"), str):
+                continue
+            a = raw.get("anchor") or {}
+            anchor: dict[str, Any] | None = None
+            if a.get("kind") == "absolute":
+                anchor = {k: a.get(k) for k in ("kind", "x", "y", "width", "height")}
+            elif a.get("kind") == "cell":
+                f = corner(a.get("from"))
+                if f is not None:
+                    anchor = {"kind": "cell", "from": f, "width": a.get("width"), "height": a.get("height")}
+            elif a.get("kind") == "cells":
+                f = corner(a.get("from"))
+                t = corner(a.get("to"))
+                if f is not None and t is not None:
+                    anchor = {
+                        "kind": "cells",
+                        "from": {"row": min(f["row"], t["row"]), "col": min(f["col"], t["col"]), "dx": f["dx"], "dy": f["dy"]},
+                        "to": {"row": max(f["row"], t["row"]), "col": max(f["col"], t["col"]), "dx": t["dx"], "dy": t["dy"]},
+                    }
+                elif f is not None:
+                    anchor = {"kind": "cells", "from": f, "to": f}
+                elif t is not None:
+                    anchor = {"kind": "cells", "from": t, "to": t}
+            if anchor is None:
+                continue
+            series = []
+            for x in raw.get("series") if isinstance(raw.get("series"), list) else []:
+                if not isinstance(x, dict) or not isinstance(x.get("values"), str):
+                    continue
+                sr: dict[str, Any] = {}
+                if isinstance(x.get("name"), str):
+                    sr["name"] = self._ref_from_ids(x["name"], sheet) if "⟦" in x["name"] else x["name"]
+                sr["values"] = self._ref_from_ids(x["values"], sheet)
+                for k in ("categories", "x"):
+                    if isinstance(x.get(k), str):
+                        sr[k] = self._ref_from_ids(x[k], sheet)
+                for k in ("type", "axis", "color"):
+                    if x.get(k) is not None:
+                        sr[k] = x[k]
+                series.append(sr)
+            if not series:
+                continue
+            spec: dict[str, Any] = {
+                "id": chart_id,
+                "type": raw["type"],
+                "anchor": anchor,
+                "data": {
+                    "series": series,
+                    "by": raw.get("by", "columns"),
+                    "headers": raw.get("headers", {"row": False, "column": False}),
+                    "blanks": raw.get("blanks", "gap"),
+                },
+                "legend": raw.get("legend", "bottom"),
+            }
+            for k in ("variant", "title", "axes", "labels"):
+                if raw.get(k) is not None:
+                    spec[k] = raw[k]
+            out[chart_id] = spec
+        return out
+
+    def write_chart(self, sheet: str, before: dict[str, Any] | None, after: dict[str, Any], origin: str) -> None:
+        """A chart's fields into its map, field by field (two peers changing different fields both keep theirs), as the binding's ``#writeChart``."""
+        charts = self.doc.get_map(f"charts:{sheet}")
+        if before is None:
+            m = charts.insert_container(after["id"], _loro.LoroMap())
+        else:
+            m = charts.get_or_create_container(after["id"], _loro.LoroMap())
+        for f in ("type", "variant", "title", "legend", "axes", "labels"):
+            if before is not None and before.get(f) == after.get(f):
+                continue
+            if after.get(f) is None:
+                m.delete(f)
+            else:
+                m.insert(f, after[f])
+        for f in ("by", "headers", "blanks"):
+            if before is not None and before["data"].get(f) == after["data"].get(f):
+                continue
+            m.insert(f, after["data"][f])
+        if before is None or before["anchor"] != after["anchor"]:
+            m.insert("anchor", self._anchor_to_ids(after["anchor"], sheet))
+        want = lambda: [self._series_to_ids(x, sheet) for x in after["data"]["series"]]  # noqa: E731
+        if before is None:
+            series = m.insert_container("series", _loro.LoroMovableList())
+            for i, x in enumerate(want()):
+                series.insert(i, x)
+        elif before["data"]["series"] != after["data"]["series"]:
+            series = m.get_or_create_container("series", _loro.LoroMovableList())
+            have = series.get_deep_value()
+            want = want()
+            n = min(len(have), len(want))
+            for i in range(n):
+                if have[i] != want[i]:
+                    series.set(i, want[i])
+            for i in range(n, len(want)):
+                series.insert(i, want[i])
+            if len(have) > len(want):
+                series.delete(len(want), len(have) - len(want))
+        self.doc.set_next_commit_message(origin)
+        self.doc.commit()
+
+    def delete_chart(self, sheet: str, chart_id: str, origin: str) -> None:
+        self.doc.get_map(f"charts:{sheet}").delete(chart_id)
+        self.doc.set_next_commit_message(origin)
+        self.doc.commit()
+
     # -- the transport's side
 
     def snapshot(self) -> bytes:
@@ -316,6 +536,13 @@ def _value_of(stored: dict[str, Any] | None) -> Value:
     if isinstance(v, dict) and "error" in v:
         return {"error": v["error"]}
     return v
+
+
+_A1 = re.compile(r"(\$?)([A-Za-z]{1,3})(\$?)([0-9]{1,7})")
+#: A reference in id form: ``⟦$col|$row⟧``, either part empty for whole rows or columns.
+_ID_FORM = re.compile(r"⟦(\$?)([^|⟧]*)\|(\$?)([^⟧]*)⟧")
+_PREFIX = re.compile(r"(?:'((?:[^']|'')+)'|([A-Za-z_][A-Za-z0-9_.]*))!$")
+_GONE = re.compile(r"#REF!:[$A-Za-z0-9]+|[$A-Za-z0-9]+:#REF!|#REF!:#REF!")
 
 
 class JsonStore(Store):
@@ -389,6 +616,15 @@ class JsonStore(Store):
     def subscribe(self, callback: Callable[[], None]) -> Callable[[], None]:
         self._listeners.append(callback)
         return lambda: self._listeners.remove(callback)
+
+    def charts(self, sheet: str) -> dict[str, dict[str, Any]]:
+        return {k: dict(v) for k, v in self._sheet(sheet).get("charts", {}).items()}
+
+    def write_chart(self, sheet: str, before: dict[str, Any] | None, after: dict[str, Any], origin: str) -> None:
+        raise NotImplementedError("Charts are written into the collaboration document, which needs loro-py; this kernel has none.")
+
+    def delete_chart(self, sheet: str, chart_id: str, origin: str) -> None:
+        raise NotImplementedError("Charts are written into the collaboration document, which needs loro-py; this kernel has none.")
 
 
 # ----------------------------------------------------------------- the API
@@ -561,6 +797,121 @@ class LiveWorkbook:
         for sheet, cells in by_sheet.items():
             self.store.write(sheet, cells, f"{key} (undone)")
         return len(mine)
+
+    # -- charts (§3.12, C10-09): the same API as ``Workbook``'s, written into the document
+
+    def _sheet_id(self, sheet: str | None) -> str:
+        return self.sheet(sheet).sheet
+
+    def charts(self, sheet: str | None = None) -> list[dict[str, Any]]:
+        """The charts of a sheet (the first by default), as their specs at the current positions."""
+        return list(self.store.charts(self._sheet_id(sheet)).values())
+
+    def _check_chart(self, sheet: str, spec: dict[str, Any]) -> None:
+        from .charts import MAX_CHART_POINTS, ChartRefusal, chart_problem, ref_zone
+
+        limits = getattr(self.store, "limits", DEFAULT_LIMITS)
+        problem = chart_problem(spec, limits)
+        if problem is not None:
+            raise ChartRefusal("InvalidArgument", problem)
+        points = 0
+        numeric = False
+        for s in spec["data"]["series"]:
+            found = ref_zone(s["values"])
+            if found is None:
+                continue
+            name, (top, left, bottom, right) = found
+            target = self._sheet_id(name) if name is not None else sheet
+            points += (bottom - top + 1) * (right - left + 1)
+            if not numeric:
+                numeric = any(
+                    isinstance(v, (int, float)) and not isinstance(v, bool)
+                    for row in self.store.values(target, Zone(top, left, bottom, right))
+                    for v in row
+                )
+        if points > MAX_CHART_POINTS:
+            raise ChartRefusal("ChartTooLarge", f"A chart holds at most {MAX_CHART_POINTS:,} points; this one has {points:,}.")
+        if not numeric:
+            raise ChartRefusal("NoNumericData", "The chart’s ranges hold no number to draw.")
+
+    def add_chart(
+        self,
+        type: str,
+        data: str,
+        anchor: str,
+        title: str | None = None,
+        legend: str = "bottom",
+        variant: str | None = None,
+        id: str | None = None,
+        sheet: str | None = None,
+    ) -> dict[str, Any]:
+        """Add a chart of ``type`` from the cells of ``data`` (``Sheet1!A1:C13``, inferred as the TypeScript
+        core infers a selection), anchored on the cells of ``anchor`` (``E2:L18``); every peer sees it.
+        Returns its spec; refusals are :class:`~datalayer_cells.charts.ChartRefusal` with the core's reasons."""
+        from .charts import ChartRefusal, infer_chart_data
+
+        target = self._sheet_id(sheet)
+        source = self._resolve(data)
+        z = source.zone
+        held = self.store.values(source.sheet, z)
+        inferred = infer_chart_data(
+            lambda r, c: held[r - z.top][c - z.left],
+            self.store.sheet_name(source.sheet),
+            (z.top, z.left, z.bottom, z.right),
+        )
+        top, left, bottom, right = parse_zone(split_sheet(anchor)[1])
+        existing = self.store.charts(target)
+        if id is None:
+            n = 1
+            while f"chart{n}" in existing:
+                n += 1
+            id = f"chart{n}"
+        elif id in existing:
+            raise ChartRefusal("DuplicateChart", f"A chart '{id}' is on this sheet already.")
+        spec: dict[str, Any] = {
+            "id": id,
+            "type": type,
+            "anchor": {
+                "kind": "cells",
+                "from": {"row": top, "col": left, "dx": 0, "dy": 0},
+                "to": {"row": bottom + 1, "col": right + 1, "dx": 0, "dy": 0},
+            },
+            "data": inferred,
+            "legend": legend,
+        }
+        if variant is not None:
+            spec["variant"] = variant
+        if title is not None:
+            spec["title"] = title
+        self._check_chart(target, spec)
+        self.store.write_chart(target, None, spec, self.origin)
+        return dict(spec)
+
+    def update_chart(self, id: str, sheet: str | None = None, **changes: Any) -> dict[str, Any]:
+        """Change a chart's type, variant, data, title, legend, axes or labels (``None`` removes a field); returns the new spec."""
+        from .charts import ChartRefusal
+
+        target = self._sheet_id(sheet)
+        before = self.store.charts(target).get(id)
+        if before is None:
+            raise ChartRefusal("UnknownChart", f"No chart '{id}' on this sheet.")
+        if "id" in changes or "anchor" in changes:
+            raise ChartRefusal("InvalidArgument", "An update changes neither the id nor the anchor (MOVE_CHART, RESIZE_CHART).")
+        after = {**before, **{k: v for k, v in changes.items() if v is not None}}
+        for k, v in changes.items():
+            if v is None:
+                after.pop(k, None)
+        self._check_chart(target, after)
+        self.store.write_chart(target, before, after, self.origin)
+        return dict(after)
+
+    def remove_chart(self, id: str, sheet: str | None = None) -> None:
+        from .charts import ChartRefusal
+
+        target = self._sheet_id(sheet)
+        if id not in self.store.charts(target):
+            raise ChartRefusal("UnknownChart", f"No chart '{id}' on this sheet.")
+        self.store.delete_chart(target, id, self.origin)
 
     # -- following the page
 

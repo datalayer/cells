@@ -161,6 +161,69 @@ class TestWriting:
         assert rows == [[12], [99], [19]]
 
 
+class TestCharts:
+    """C10-09: charts in the ``charts:<sheetId>`` root, in the binding's schema (ranges in id form, anchors on ids)."""
+
+    def test_a_chart_added_is_stored_on_ids_and_a_peer_reads_its_spec(self):
+        w = workbook(21)
+        before = w.store.doc.oplog_vv
+        spec = w.add_chart("line", "A3:B5", "G2:J8", title="Units", variant="smooth")
+        assert spec["data"]["series"] == [{"values": "Sheet1!$B$3:$B$5", "categories": "Sheet1!$A$3:$A$5"}]
+        stored = w.store.doc.get_map("charts:s1").get_deep_value()["chart1"]
+        # The fixture's row 2 was inserted on the page (p7-1) and its third column deleted: ids, not positions.
+        assert stored["series"] == [{"values": "Sheet1!⟦$b1|$b1⟧:⟦$b1|$b3⟧", "categories": "Sheet1!⟦$b0|$b1⟧:⟦$b0|$b3⟧"}]
+        assert stored["anchor"]["from"] == {"r": "p7-1", "c": "b7", "dx": 0, "dy": 0}
+        peer = workbook(22)
+        peer.store.apply(w.store.doc.export(loro.ExportMode.Updates(from_=before)))
+        assert peer.charts() == [spec]
+
+    def test_a_range_of_another_sheet_keeps_its_prefix(self):
+        w = workbook()
+        spec = w.add_chart("column", "Figures!A1:B1", "E2:H9", sheet="Sheet1")
+        assert spec["data"]["series"][0]["values"] == "Figures!$B$1"
+        assert w.charts()[0]["data"]["series"][0]["values"] == "Figures!$B$1"
+        assert w.charts("Figures") == []
+
+    def test_update_and_remove(self):
+        w = workbook()
+        w.add_chart("column", "A3:B5", "G2:J8", title="Units")
+        after = w.update_chart("chart1", type="bar", title=None, legend="top")
+        assert "title" not in after
+        assert w.charts() == [after]
+        assert w.charts()[0]["type"] == "bar" and w.charts()[0]["legend"] == "top"
+        w.remove_chart("chart1")
+        assert w.charts() == []
+
+    def test_the_refusals_are_the_cores(self):
+        from datalayer_cells.charts import ChartRefusal
+
+        w = workbook()
+        with pytest.raises(ChartRefusal) as e:
+            w.add_chart("column", "A1:A1", "E2:H9")
+        assert e.value.reason == "NoNumericData"
+        w.add_chart("column", "A3:B5", "G2:J8", id="units")
+        with pytest.raises(ChartRefusal) as e:
+            w.add_chart("column", "A3:B5", "G2:J8", id="units")
+        assert e.value.reason == "DuplicateChart"
+        with pytest.raises(ChartRefusal) as e:
+            w.update_chart("units", legend="middle")
+        assert e.value.reason == "InvalidArgument" and "legend" in str(e.value)
+        with pytest.raises(ChartRefusal) as e:
+            w.update_chart("units", anchor={})
+        assert e.value.reason == "InvalidArgument"
+        for call in (lambda: w.update_chart("gone", title="x"), lambda: w.remove_chart("gone")):
+            with pytest.raises(ChartRefusal) as e:
+                call()
+            assert e.value.reason == "UnknownChart"
+
+    def test_a_kernel_without_loro_reads_charts_and_refuses_to_write_them(self):
+        workbook_json = json.loads((ROOT / "tests" / "collab" / "live.json").read_text())
+        w = LiveWorkbook(JsonStore(workbook_json))
+        assert w.charts() == []
+        with pytest.raises(NotImplementedError, match="loro-py"):
+            w.add_chart("column", "A3:B5", "G2:J8")
+
+
 class TestCommTransport:
     def test_over_loro_bytes_the_page_sends_the_snapshot_and_reads_the_kernels_writes(self):
         comm = FakeComm()

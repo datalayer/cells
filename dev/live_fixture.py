@@ -8,7 +8,8 @@
     python dev/live_fixture.py
 
 ``src/collab/__tests__/liveFixture.test.ts`` reads it back through the
-TypeScript binding, which is what proves the two sides share one schema.
+TypeScript binding (its cells and the chart added here), which is what proves
+the two sides share one schema.
 """
 
 from __future__ import annotations
@@ -34,6 +35,8 @@ def main() -> None:
     units = cells.values("B3:B5")
     cells["E3:E5"] = [[v[0] * 2] for v in units]
     cells["Figures!A2"] = "from python"
+    # C10-09: a chart a Python peer adds, which the TypeScript binding reads with the same spec.
+    cells.add_chart("column", "A3:B5", "G2:J8", title="Units by month")
     (DIR / "live-python.loro").write_bytes(doc.export(loro.ExportMode.Snapshot()))
     print(f"wrote {DIR / 'live-python.loro'}")
 

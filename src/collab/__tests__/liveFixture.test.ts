@@ -89,5 +89,26 @@ describe('the live workbook fixtures', () => {
     expect(m.toRows({ top: 1, left: 4, bottom: 4, right: 4 })).toEqual([[null], [24], [30], [38]]);
     // The sheet the Python side named by its name.
     expect(m.value('s2', 1, 0)).toBe('from python');
+    // C10-09: the chart the Python peer added (`LiveWorkbook.add_chart`), read with the same spec.
+    expect(m.sheet('s1').charts.get('chart1')).toEqual({
+      id: 'chart1',
+      type: 'column',
+      title: 'Units by month',
+      anchor: {
+        kind: 'cells',
+        from: { row: 1, col: 6, dx: 0, dy: 0 },
+        to: { row: 8, col: 10, dx: 0, dy: 0 },
+      },
+      data: {
+        series: [{ values: 'Sheet1!$B$3:$B$5', categories: 'Sheet1!$A$3:$A$5' }],
+        by: 'columns',
+        headers: { row: false, column: true },
+        blanks: 'gap',
+      },
+      legend: 'bottom',
+    });
+    // A row inserted above it on the TypeScript side moves its anchor and its ranges.
+    m.dispatch({ type: 'INSERT_AXIS', sheet: 's1', axis: 'rows', at: 0, n: 1 });
+    expect(m.sheet('s1').charts.get('chart1')?.data.series[0].values).toBe('Sheet1!$B$4:$B$6');
   });
 });
