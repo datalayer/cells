@@ -525,7 +525,7 @@ export default function CodeCells(props: {
       </div>
       <p data-kernel-hint="">{hint}</p>
       {!available('local') && <p data-kernel-local-hint="">{LOCAL_ELSEWHERE_HINT}</p>}
-      <Frame height={360}>
+      <Frame height={720}>
         <Spreadsheet model={model} aria-label="Units by month" />
       </Frame>
       <Status model={model} />
