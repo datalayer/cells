@@ -412,7 +412,7 @@ export function CodeCellEditor({
             {runError}
           </p>
         )}
-        <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+        <div style={{ marginTop: 8, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <Button size="small" onClick={() => void run()} disabled={running}>
             {running ? 'Running…' : 'Run'}
           </Button>

@@ -28,6 +28,7 @@ import {
   type ComponentType,
   Suspense,
   useCallback,
+  useEffect,
   useRef,
   useState,
   useSyncExternalStore,
@@ -792,6 +793,22 @@ export function CodeEditorOverlay(props: CodeEditorOverlayProps) {
       .catch(() => undefined);
   };
   const Status = props.status;
+  // The overlay's first focus is the editor, never the header's kernel
+  // indicator: focused, the indicator opens its details overlay over the cell.
+  const editorArea = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // The editor mounts lazily: hand it the focus once its text area exists.
+    let tries = 0;
+    const timer = setInterval(() => {
+      const area = editorArea.current;
+      const text = area?.querySelector<HTMLElement>('.cm-content, textarea');
+      if (text !== null && text !== undefined) {
+        text.focus();
+        clearInterval(timer);
+      } else if (++tries > 50) clearInterval(timer);
+    }, 100);
+    return () => clearInterval(timer);
+  }, []);
   const editorProps: CodeEditorRendererProps = {
     sheet,
     row,
@@ -811,6 +828,7 @@ export function CodeEditorOverlay(props: CodeEditorOverlayProps) {
         role="dialog"
         aria-label={`Code of ${codeRef(row, col)}`}
         returnFocusRef={props.returnFocusRef as React.RefObject<HTMLElement>}
+        initialFocusRef={editorArea as React.RefObject<HTMLElement>}
         onClickOutside={close}
         onEscape={close}
         portalContainerName={props.portalName}
@@ -873,13 +891,20 @@ export function CodeEditorOverlay(props: CodeEditorOverlayProps) {
               </Suspense>
             )}
           </div>
-          {props.editor !== undefined ? (
-            <Suspense fallback={<span data-cells-code-loading="">Loading the editor…</span>}>
-              {createElement(props.editor, editorProps)}
-            </Suspense>
-          ) : (
-            <PlainEditor {...editorProps} />
-          )}
+          <div
+            ref={editorArea}
+            tabIndex={-1}
+            data-cells-code-editor-area=""
+            style={{ outline: 'none' }}
+          >
+            {props.editor !== undefined ? (
+              <Suspense fallback={<span data-cells-code-loading="">Loading the editor…</span>}>
+                {createElement(props.editor, editorProps)}
+              </Suspense>
+            ) : (
+              <PlainEditor {...editorProps} />
+            )}
+          </div>
         </div>
       </Overlay>
     </ThemeProvider>
@@ -928,7 +953,7 @@ export function PlainEditor({
         style={{ fontFamily: 'var(--fontStack-monospace, monospace)' }}
         onChange={(e) => setText(e.target.value)}
       />
-      <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+      <div style={{ marginTop: 8, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <Button size="small" variant="primary" onClick={save}>
           Save
         </Button>
