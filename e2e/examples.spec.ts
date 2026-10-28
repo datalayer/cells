@@ -33,7 +33,8 @@ test.describe('the examples', () => {
       });
       page.on('pageerror', (e) => errors.push(e.message));
       await page.goto(`/#/${id}`);
-      await expect(page.getByRole('heading', { level: 2 })).toHaveText(title);
+      // The page's title; a Reactor table on the page may bring a heading of its own.
+      await expect(page.locator('main > h2')).toHaveText(title);
       await expect(page.locator('nav a[aria-current="page"]')).toHaveText(title);
       expect(errors).toEqual([]);
     });
@@ -41,7 +42,10 @@ test.describe('the examples', () => {
 
   test('the menu runs from simple to advanced', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('nav li')).toHaveText(EXAMPLES.map(([, t]) => t));
+    // The ActionList's items only: the appearance menu in the title row is in the nav too.
+    await expect(page.getByRole('list', { name: 'Examples' }).locator(':scope > li')).toHaveText(
+      EXAMPLES.map(([, t]) => t),
+    );
   });
 
   test('the plugin command works, and is refused once the plugin is disabled', async ({ page }) => {
@@ -82,7 +86,7 @@ test.describe('the examples', () => {
     await page.goto('/#/cell-types');
     const grid = page.getByRole('grid', { name: 'Tasks' });
     await expect(grid.getByRole('gridcell', { name: 'checked', exact: true })).toHaveCount(2);
-    await expect(grid.getByRole('gridcell', { name: 'https://datalayer.io, link' })).toHaveCount(1);
+    await expect(grid.getByRole('gridcell', { name: 'https://datalayer.ai, link' })).toHaveCount(1);
     await expect(grid.getByRole('gridcell', { name: '80 percent' })).toHaveCount(1);
     // A2 (not checked) is the active cell: Space checks it, and the COUNTIF above follows.
     await grid.focus();

@@ -125,10 +125,11 @@ test.describe('the grid', () => {
     // An empty cell's background, light: the page sets --bgColor-default to #fffdf5.
     await expect.poll(() => pixel(page, 'Page grid', 300, 150)).toEqual([0xff, 0xfd, 0xf5]);
     // primer-addons' appearance chooser: the colour mode, then a theme.
-    await page.getByRole('button', { name: 'Dark' }).click();
+    // The page's chooser, in main: the site's appearance menu in the title row has its own.
+    await page.getByRole('main').getByRole('button', { name: 'Dark' }).click();
     await expect.poll(() => pixel(page, 'Page grid', 300, 150)).toEqual([0x0d, 0x11, 0x17]);
     const before = (await pixel(page, 'Themed grid', 300, 150)).join(',');
-    await page.getByRole('button', { name: 'Loop', exact: true }).click();
+    await page.getByRole('main').getByRole('button', { name: 'Loop', exact: true }).click();
     await expect
       .poll(async () => (await pixel(page, 'Themed grid', 300, 150)).join(','))
       .not.toBe(before);

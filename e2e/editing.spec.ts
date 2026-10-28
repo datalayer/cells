@@ -153,12 +153,13 @@ test.describe('editing (C3-01)', () => {
   });
 
   test('the formula bar and the in-cell editor share one buffer', async ({ page }) => {
+    // By its role: the menu's "Toolbar, formula bar and tabs" link carries the words too.
     await page.keyboard.type('shared');
-    await expect(page.getByLabel('Formula bar')).toHaveValue('shared');
+    await expect(page.getByRole('textbox', { name: 'Formula bar' })).toHaveValue('shared');
     await page.keyboard.press('Enter');
     await page.keyboard.press('ArrowUp');
-    await page.getByLabel('Formula bar').fill('from the bar');
-    await page.getByLabel('Formula bar').press('Enter');
+    await page.getByRole('textbox', { name: 'Formula bar' }).fill('from the bar');
+    await page.getByRole('textbox', { name: 'Formula bar' }).press('Enter');
     await expect(cell(page, 'from the bar')).toHaveCount(1);
   });
 
