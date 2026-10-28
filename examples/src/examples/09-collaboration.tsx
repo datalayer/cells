@@ -18,6 +18,7 @@ import { bindRoom, bridgeDocs, LoroBinding, type Room } from '@datalayer/cells/c
 import { LoroDoc } from 'loro-crdt';
 import { useEffect, useRef, useState } from 'react';
 import { Frame } from '../shared';
+import { Button } from '@primer/react';
 
 function Writer({ label }: { label: string }) {
   const set = useCommand('SET_CELLS');
@@ -130,7 +131,9 @@ export default function Collaboration() {
             size={40}
           />
         </label>
-        <button type="submit">Connect</button>
+        <Button size="small" type="submit">
+          Connect
+        </Button>
         <span role="status">{status}</span>
       </form>
       <p>

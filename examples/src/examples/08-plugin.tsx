@@ -31,6 +31,7 @@ import {
   TwicePlugin,
   writeMarkdownTable,
 } from './plugin/acme';
+import { Button } from '@primer/react';
 
 /**
  * A third-party Reactor plugin (`./plugin/acme.ts`) that reaches every
@@ -160,10 +161,11 @@ function Panel({ model }: { model: CellsModel }) {
       <p>
         Plugin <code>@acme/everything</code> is{' '}
         <strong>{plugin.enabled ? 'enabled' : 'disabled'}</strong>.{' '}
-        <button onClick={() => (plugin.enabled ? plugin.disable() : plugin.enable())}>
+        <Button size="small" onClick={() => (plugin.enabled ? plugin.disable() : plugin.enable())}>
           {plugin.enabled ? 'Disable' : 'Enable'} it
-        </button>{' '}
-        <button
+        </Button>{' '}
+        <Button
+          size="small"
           onClick={() => {
             const r = dispatch({
               type: 'UPPERCASE',
@@ -174,8 +176,9 @@ function Panel({ model }: { model: CellsModel }) {
           }}
         >
           UPPERCASE the selection
-        </button>{' '}
-        <button
+        </Button>{' '}
+        <Button
+          size="small"
           onClick={() => {
             const { sheet, active } = selection;
             const r = dispatch({
@@ -189,8 +192,9 @@ function Panel({ model }: { model: CellsModel }) {
           }}
         >
           Note the active cell
-        </button>{' '}
-        <button
+        </Button>{' '}
+        <Button
+          size="small"
           onClick={() => {
             const r = dispatch({
               type: 'SET_CELLS',
@@ -202,7 +206,7 @@ function Panel({ model }: { model: CellsModel }) {
           }}
         >
           Write into row 1
-        </button>{' '}
+        </Button>{' '}
         <output data-message="">{message}</output>
       </p>
       <p>
@@ -222,7 +226,8 @@ function Panel({ model }: { model: CellsModel }) {
             onChange={(e) => setMarkdown(e.target.value)}
           />
         </label>{' '}
-        <button
+        <Button
+          size="small"
           onClick={() => {
             const workbook = readMarkdownTable(markdown);
             const rows = workbook.sheets[0].rows;
@@ -246,13 +251,14 @@ function Panel({ model }: { model: CellsModel }) {
           }}
         >
           Import at A7
-        </button>{' '}
-        <button onClick={() => setMarkdown(writeMarkdownTable(model))}>
+        </Button>{' '}
+        <Button size="small" onClick={() => setMarkdown(writeMarkdownTable(model))}>
           Export the sheet as Markdown
-        </button>
+        </Button>
       </p>
       <p>
-        <button
+        <Button
+          size="small"
           onClick={() => {
             try {
               const reactor = buildReactorFromPlugins([CellsCorePlugin, AcmePlugin, TwicePlugin]);
@@ -265,7 +271,7 @@ function Panel({ model }: { model: CellsModel }) {
           }}
         >
           Start a grid with a duplicate plugin
-        </button>{' '}
+        </Button>{' '}
         <output data-duplicate="">{duplicate}</output>
       </p>
     </div>

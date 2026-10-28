@@ -7,6 +7,7 @@
 import { type CellsModel, type CellValue, createCellsModel, Spreadsheet } from '@datalayer/cells';
 import { useState } from 'react';
 import { Frame } from '../shared';
+import { Button } from '@primer/react';
 
 /** Ten columns of numbers and a column of labels down a million rows, loaded as a file is: no undo step. */
 export function loadMillion(): { model: CellsModel; ms: number } {
@@ -31,7 +32,9 @@ export default function Large() {
   const debug = new URLSearchParams(window.location.search).get('debug') === 'cells';
   return loaded === null ? (
     <p>
-      <button onClick={() => setLoaded(loadMillion())}>Load 11 columns × 1,000,000 rows</button>
+      <Button size="small" onClick={() => setLoaded(loadMillion())}>
+        Load 11 columns × 1,000,000 rows
+      </Button>
     </p>
   ) : (
     <>

@@ -19,6 +19,7 @@ import {
 } from '@datalayer/cells';
 import { useState } from 'react';
 import { Frame } from '../shared';
+import { Button } from '@primer/react';
 
 const ROWS = 10_000_000;
 const PRODUCTS = ['Widget', 'Gadget', 'Gizmo', 'Doohickey', 'Thingamajig', 'Whatsit', 'Sprocket'];
@@ -171,15 +172,18 @@ export default function DataSources() {
         its rows then show from there, read in pages as you scroll and as formulas read them,{' '}
         <code>#BUSY!</code> while a page is on its way. The pages are read, never saved, and the
         bound cells cannot be edited. Scroll to the bottom (Ctrl+End) to reach row ten million.{' '}
-        <button
+        <Button
+          size="small"
           onClick={() => {
             faults.failNext = true;
             model.refreshDataSource('s1');
           }}
         >
           Fail the next page
-        </button>{' '}
-        <button onClick={() => model.refreshDataSource('s1')}>Read again</button>
+        </Button>{' '}
+        <Button size="small" onClick={() => model.refreshDataSource('s1')}>
+          Read again
+        </Button>
       </p>
       <Frame height={300}>
         <Spreadsheet

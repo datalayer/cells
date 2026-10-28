@@ -22,7 +22,7 @@ import {
 } from '@datalayer/cells';
 import { LoroBinding } from '@datalayer/cells/collab';
 import { LoroDoc } from 'loro-crdt';
-import { SegmentedControl } from '@primer/react';
+import { Button, SegmentedControl } from '@primer/react';
 import { lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { Frame } from '../shared';
 
@@ -362,12 +362,12 @@ export default function CodeCells(props: {
             </SegmentedControl.Button>
           ))}
         </SegmentedControl>
-        <button type="button" onClick={() => run('cells.code.runAll')}>
+        <Button size="small" type="button" onClick={() => run('cells.code.runAll')}>
           Run all
-        </button>
-        <button type="button" onClick={() => run('cells.code.interrupt')}>
+        </Button>
+        <Button size="small" type="button" onClick={() => run('cells.code.interrupt')}>
           Interrupt
-        </button>
+        </Button>
       </div>
       <p data-kernel-hint="">{hint}</p>
       <Frame height={360}>

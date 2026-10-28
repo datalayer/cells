@@ -13,7 +13,7 @@ import { createThemeStore } from '@datalayer/primer-addons';
  * the root wears it, and the pages with their own chooser (Theming, Charts)
  * change the same choice.
  */
-export const useAppearance = createThemeStore('cells-examples-theme', {
+export const useAppearance: ReturnType<typeof createThemeStore> = createThemeStore('cells-examples-theme', {
   colorMode: 'auto',
   theme: 'datalayer',
 });

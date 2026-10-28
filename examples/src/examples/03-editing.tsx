@@ -18,6 +18,7 @@ import {
 } from '@datalayer/cells';
 import { useState } from 'react';
 import { Frame, Soon } from '../shared';
+import { Button } from '@primer/react';
 
 /**
  * A formula bar: a plain input bound to the edit buffer the in-cell editor
@@ -68,26 +69,28 @@ function Actions() {
     setMessage(result.ok ? '' : (result.refusals?.[0]?.message ?? ''));
   return (
     <p>
-      <button
+      <Button
+        size="small"
         onClick={() =>
           run(insert({ sheet: selection.sheet, axis: 'rows', at: selection.active.row, n: 1 }))
         }
       >
         Insert row above
-      </button>
-      <button
+      </Button>
+      <Button
+        size="small"
         onClick={() =>
           run(remove({ sheet: selection.sheet, axis: 'rows', at: selection.active.row, n: 1 }))
         }
       >
         Delete row
-      </button>
-      <button disabled={!history.canUndo} onClick={() => history.undo()}>
+      </Button>
+      <Button size="small" disabled={!history.canUndo} onClick={() => history.undo()}>
         Undo {history.undoLabel ?? ''}
-      </button>
-      <button disabled={!history.canRedo} onClick={() => history.redo()}>
+      </Button>
+      <Button size="small" disabled={!history.canRedo} onClick={() => history.redo()}>
         Redo {history.redoLabel ?? ''}
-      </button>
+      </Button>
       {message && <span role="alert"> {message}</span>}
     </p>
   );

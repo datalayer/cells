@@ -16,6 +16,7 @@ import { importCsv, toCsv } from '@datalayer/cells/csv';
 import { writeXlsx } from '@datalayer/cells/xlsx';
 import { useState } from 'react';
 import { Frame } from '../shared';
+import { Button } from '@primer/react';
 
 /** Give the browser bytes to save. */
 function download(bytes: Uint8Array): void {
@@ -57,7 +58,9 @@ function Csv({ model, onReload }: { model: CellsModel; onReload: (model: CellsMo
             }}
           />
         </label>{' '}
-        <button onClick={() => setText(toCsv(model))}>Export the sheet as CSV</button>
+        <Button size="small" onClick={() => setText(toCsv(model))}>
+          Export the sheet as CSV
+        </Button>
       </p>
       {status && <p role="status">{status}</p>}
       {text && <textarea aria-label="CSV" rows={6} cols={80} readOnly value={text} />}
@@ -72,10 +75,11 @@ function Json({ onReload }: { onReload: (model: CellsModel) => void }) {
   return (
     <div>
       <p>
-        <button onClick={() => setText(JSON.stringify(toJSON(), null, 2))}>
+        <Button size="small" onClick={() => setText(JSON.stringify(toJSON(), null, 2))}>
           Export as CellsWorkbook JSON
-        </button>
-        <button
+        </Button>
+        <Button
+          size="small"
           onClick={() => {
             try {
               onReload(createCellsModel({ data: JSON.parse(text) }));
@@ -86,7 +90,7 @@ function Json({ onReload }: { onReload: (model: CellsModel) => void }) {
           }}
         >
           Load the JSON below
-        </button>
+        </Button>
       </p>
       {error && <p role="alert">Refused: {error}</p>}
       <textarea
@@ -145,7 +149,10 @@ export default function ImportExport() {
     <CellsProvider model={model}>
       <p>
         Drop a <code>.xlsx</code>, <code>.csv</code> or <code>.tsv</code> file on the grid, or pick
-        one below. <button onClick={() => download(writeXlsx(model))}>Download as XLSX</button>
+        one below.{' '}
+        <Button size="small" onClick={() => download(writeXlsx(model))}>
+          Download as XLSX
+        </Button>
       </p>
       <div
         onDragOver={(e) => {

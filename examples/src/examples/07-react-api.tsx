@@ -20,6 +20,7 @@ import {
 } from '@datalayer/cells';
 import { useRef, useState } from 'react';
 import { Frame } from '../shared';
+import { Button } from '@primer/react';
 
 function Live() {
   const total = useCellValue('B2');
@@ -41,13 +42,15 @@ function Live() {
       </li>
       <li>
         <code>useSheets().sheets</code> → {sheets.sheets.map((s) => s.name).join(', ')}{' '}
-        <button onClick={() => sheets.add()}>add a sheet</button>
+        <Button size="small" onClick={() => sheets.add()}>
+          add a sheet
+        </Button>
       </li>
       <li>
         <code>useHistory()</code> → canUndo {String(history.canUndo)}{' '}
-        <button disabled={!history.canUndo} onClick={() => history.undo()}>
+        <Button size="small" disabled={!history.canUndo} onClick={() => history.undo()}>
           undo
-        </button>
+        </Button>
       </li>
     </ul>
   );
@@ -98,14 +101,19 @@ export default function ReactApi() {
   return (
     <CellsProvider model={model}>
       <p>
-        Handle: <button onClick={() => handle.current?.select('B2:B3')}>select('B2:B3')</button>
-        <button onClick={() => handle.current?.scrollTo('A500', { align: 'start' })}>
+        Handle:{' '}
+        <Button size="small" onClick={() => handle.current?.select('B2:B3')}>
+          select('B2:B3')
+        </Button>
+        <Button size="small" onClick={() => handle.current?.scrollTo('A500', { align: 'start' })}>
           scrollTo('A500')
-        </button>
-        <button onClick={() => handle.current?.scrollTo('A1', { align: 'start' })}>
+        </Button>
+        <Button size="small" onClick={() => handle.current?.scrollTo('A1', { align: 'start' })}>
           scrollTo('A1')
-        </button>
-        <button onClick={() => handle.current?.focus()}>focus()</button>
+        </Button>
+        <Button size="small" onClick={() => handle.current?.focus()}>
+          focus()
+        </Button>
       </p>
       <Frame height={200}>
         <Spreadsheet

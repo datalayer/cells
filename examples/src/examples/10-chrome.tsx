@@ -6,7 +6,7 @@
 
 import { CellsProvider, createCellsModel, Spreadsheet, useCellsModel } from '@datalayer/cells';
 import { FormulaBar, SheetTabs, Toolbar } from '@datalayer/cells/chrome';
-import { DatalayerThemeProvider, themeConfigs } from '@datalayer/primer-addons';
+import { useAppearance } from '../appearance';
 import { Frame } from '../shared';
 
 /**
@@ -34,21 +34,23 @@ export default function Chrome() {
     m.dispatch({ type: 'RENAME_SHEET', sheet: 's1', name: 'Budget' });
     return m;
   });
-  const config = themeConfigs.datalayer;
+  // The site's appearance (the menu beside the title): the chrome wears the page's
+  // theme, and the grid draws in the same theme and colour mode.
+  const { colorMode, theme } = useAppearance();
   return (
-    <DatalayerThemeProvider
-      colorMode="auto"
-      theme={config.primerTheme}
-      themeStyles={config.themeStyles}
-    >
-      <CellsProvider model={model}>
-        <Toolbar />
-        <FormulaBar />
-        <Frame height={260}>
-          <Spreadsheet model={model} aria-label="Budget" />
-        </Frame>
-        <SheetTabs />
-      </CellsProvider>
-    </DatalayerThemeProvider>
+    <CellsProvider model={model}>
+      <Toolbar />
+      <FormulaBar />
+      <Frame height={260}>
+        <Spreadsheet
+          key={theme}
+          model={model}
+          theme={theme}
+          colorMode={colorMode}
+          aria-label="Budget"
+        />
+      </Frame>
+      <SheetTabs />
+    </CellsProvider>
   );
 }
