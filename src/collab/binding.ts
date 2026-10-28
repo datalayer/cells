@@ -35,6 +35,9 @@ import type { Zone } from '../core/zone.js';
 import { tokenize } from '../formula/tokens.js';
 import { AxisOrder, implicitId, insert, move, remove } from './axis.js';
 
+/** The id of the sheet shown when the document has none left. */
+const EMPTY_SHEET = 'empty';
+
 /** The origin of the binding's own commits: what it does not project back. */
 const LOCAL = 'cells-local';
 
@@ -82,6 +85,8 @@ export class LoroBinding {
     this.model = model;
     this.doc = doc;
     this.#peer = options.peer;
+    // Sheets this peer adds get ids no other peer makes.
+    model.workbook.sheetIdPrefix = `p${options.peer}-s`;
     if (this.#sheetsList().length === 0) this.#seed();
     else this.#project();
     this.#undo = new UndoManager(doc, { mergeInterval: 0 });
@@ -126,6 +131,19 @@ export class LoroBinding {
 
   #cells(sheet: string): LoroMap {
     return this.doc.getMap(`cells:${sheet}`);
+  }
+
+  // Root containers only: two peers creating one nested container at once would race, one losing.
+  #sizes(sheet: string, axis: AxisName): LoroMap {
+    return this.doc.getMap(`sizes-${axis}:${sheet}`);
+  }
+
+  #hidden(sheet: string, axis: AxisName): LoroMap {
+    return this.doc.getMap(`hidden-${axis}:${sheet}`);
+  }
+
+  #merges(sheet: string): LoroMap {
+    return this.doc.getMap(`merges:${sheet}`);
   }
 
   #count(axis: AxisName): number {
@@ -241,40 +259,47 @@ export class LoroBinding {
         if (cell.s !== undefined && cell.s !== 0) stored.s = styles[cell.s];
         cells.set(`${implicitId(Number(r))}.${implicitId(Number(c))}`, stored);
       }
-    const sizes = map.setContainer('sizes', new LoroMap());
     for (const axis of ['rows', 'cols'] as const) {
-      const m = sizes.setContainer(axis, new LoroMap());
+      const sizes = this.#sizes(sheet.id, axis);
       for (const [i, px] of Object.entries(sheet.sizes?.[axis] ?? {}))
-        m.set(implicitId(Number(i)), px);
+        sizes.set(implicitId(Number(i)), px);
+      const hidden = this.#hidden(sheet.id, axis);
+      for (const i of sheet.hidden?.[axis] ?? []) hidden.set(implicitId(i), true);
     }
-    const hidden = map.setContainer('hidden', new LoroMap());
-    for (const axis of ['rows', 'cols'] as const) {
-      const m = hidden.setContainer(axis, new LoroMap());
-      for (const i of sheet.hidden?.[axis] ?? []) m.set(implicitId(i), true);
-    }
-    this.#writeMerges(sheet.id, sheet.merges ?? []);
+    this.#writeMerges(sheet.id, [], sheet.merges ?? []);
   }
 
-  #writeMerges(sheet: string, merges: readonly Zone[]): void {
-    const map = this.#sheetMap(sheet);
-    const m = map.setContainer('merges', new LoroMap());
+  /** Merges keyed by their top-left corner's ids: those gone are deleted, those new set. */
+  #writeMerges(sheet: string, before: readonly Zone[], after: readonly Zone[]): void {
+    const m = this.#merges(sheet);
     const rows = this.#order(sheet, 'rows');
     const cols = this.#order(sheet, 'cols');
-    merges.forEach((z) => {
-      const corners = {
-        r0: rows.idAt(z.top),
-        c0: cols.idAt(z.left),
-        r1: rows.idAt(z.bottom),
-        c1: cols.idAt(z.right),
-      };
-      m.set(`${corners.r0}.${corners.c0}`, corners);
+    const corners = (z: Zone) => ({
+      r0: rows.idAt(z.top)!,
+      c0: cols.idAt(z.left)!,
+      r1: rows.idAt(z.bottom)!,
+      c1: cols.idAt(z.right)!,
     });
+    const keyOf = (c: { r0: string; c0: string }) => `${c.r0}.${c.c0}`;
+    const kept = new Set(after.map((z) => keyOf(corners(z))));
+    for (const z of before) {
+      const k = keyOf(corners(z));
+      if (!kept.has(k)) m.delete(k);
+    }
+    for (const z of after) {
+      const c = corners(z);
+      m.set(keyOf(c), c);
+    }
   }
 
   #local(tx: Transaction): void {
     if (this.#projecting) return;
     if (tx.origin !== 'local' && tx.origin !== 'undo' && tx.origin !== 'redo') return;
-    for (const p of tx.patches) this.#patch(p);
+    for (const p of tx.patches) {
+      const sheet = (p as { sheet?: unknown }).sheet;
+      if (typeof sheet === 'string' && p.op !== 'sheet-add') this.#ensureSheet(sheet);
+      this.#patch(p);
+    }
     this.doc.commit({ origin: LOCAL });
   }
 
@@ -317,7 +342,15 @@ export class LoroBinding {
       }
       case 'axis-move': {
         const a = p as Patch & { sheet: string; axis: AxisName; at: number; n: number; to: number };
-        move(this.#axisMap(a.sheet, a.axis), this.#count(a.axis), a.at, a.n, a.to);
+        move(
+          this.#axisMap(a.sheet, a.axis),
+          this.#count(a.axis),
+          a.at,
+          a.n,
+          a.to,
+          this.#peer,
+          this.#counter,
+        );
         return;
       }
       case 'axis-sizes': {
@@ -325,8 +358,8 @@ export class LoroBinding {
         const sheet = m.sheet(a.sheet);
         const axis = a.axis === 'rows' ? sheet.rows : sheet.cols;
         const order = this.#order(a.sheet, a.axis);
-        const sizes = (this.#sheetMap(a.sheet).get('sizes') as LoroMap).get(a.axis) as LoroMap;
-        const hidden = (this.#sheetMap(a.sheet).get('hidden') as LoroMap).get(a.axis) as LoroMap;
+        const sizes = this.#sizes(a.sheet, a.axis);
+        const hidden = this.#hidden(a.sheet, a.axis);
         for (let i = a.at; i < a.at + a.n; i += 1) {
           const id = order.idAt(i)!;
           if (axis.sizeOf(i) === axis.defaultSize) sizes.delete(id);
@@ -337,8 +370,8 @@ export class LoroBinding {
         return;
       }
       case 'merges': {
-        const a = p as Patch & { sheet: string; after: readonly Zone[] };
-        this.#writeMerges(a.sheet, a.after);
+        const a = p as Patch & { sheet: string; before: readonly Zone[]; after: readonly Zone[] };
+        this.#writeMerges(a.sheet, a.before, a.after);
         return;
       }
       case 'frozen': {
@@ -378,6 +411,15 @@ export class LoroBinding {
     }
   }
 
+  /** A sheet written to but missing from the document's list (the empty sheet): put it back. */
+  #ensureSheet(id: string): void {
+    const list = this.#sheetsList();
+    if ((list.toJSON() as string[]).includes(id)) return;
+    list.push(id);
+    const map = this.#sheetMap(id);
+    if (map.get('name') === undefined) map.set('name', this.model.sheet(id).name);
+  }
+
   // ------------------------------------------------------------ Loro to local
 
   /** The document as a workbook, positions from the axes' orders. */
@@ -395,8 +437,13 @@ export class LoroBinding {
       }
       return i;
     };
-    const ids = [...new Set(this.#sheetsList().toJSON() as string[])];
-    const names = new Map(ids.map((id) => [id, this.#sheetMap(id).get('name') as string]));
+    let ids = [...new Set(this.#sheetsList().toJSON() as string[])];
+    // Two peers each deleting the other's last sheet leave none: every peer shows the same empty
+    // sheet then, under one id, and the first write to it puts it back in the document.
+    if (ids.length === 0) ids = [EMPTY_SHEET];
+    const names = new Map(
+      ids.map((id) => [id, (this.#sheetMap(id).get('name') as string | undefined) ?? 'Sheet1']),
+    );
     const sheets: CellsSheet[] = ids.map((id) => {
       const map = this.#sheetMap(id);
       const rows = this.#order(id, 'rows');
@@ -426,9 +473,9 @@ export class LoroBinding {
         if (cell.v === undefined && cell.f === undefined && cell.s === undefined) continue;
         (out[String(r)] ??= { cells: {} }).cells[String(c)] = cell;
       }
-      const axisRecord = (container: string, axis: AxisName, order: AxisOrder) => {
-        const m = (map.get(container) as LoroMap | undefined)?.get(axis) as LoroMap | undefined;
-        const entries = Object.entries((m?.toJSON() ?? {}) as Record<string, number | boolean>);
+      const axisRecord = (container: 'sizes' | 'hidden', axis: AxisName, order: AxisOrder) => {
+        const m = container === 'sizes' ? this.#sizes(id, axis) : this.#hidden(id, axis);
+        const entries = Object.entries(m.toJSON() as Record<string, number | boolean>);
         return entries
           .map(([k, v]) => [order.positionOf(k), v] as const)
           .filter(([i]) => i !== undefined && i < this.#count(axis)) as [
@@ -449,9 +496,8 @@ export class LoroBinding {
         cols: axisRecord('hidden', 'cols', cols).map(([i]) => i),
       };
       const merges: Zone[] = [];
-      const mergesMap = map.get('merges') as LoroMap | undefined;
       for (const corners of Object.values(
-        (mergesMap?.toJSON() ?? {}) as Record<string, Record<string, string>>,
+        this.#merges(id).toJSON() as Record<string, Record<string, string>>,
       )) {
         const top = rows.positionOf(corners.r0);
         const left = cols.positionOf(corners.c0);
@@ -459,7 +505,15 @@ export class LoroBinding {
         const right = cols.positionOf(corners.c1);
         if (top === undefined || left === undefined || bottom === undefined || right === undefined)
           continue;
-        merges.push({ top, left, bottom, right });
+        // Rows moved by peers may have turned the corners round: the merge is what they span.
+        const zone = {
+          top: Math.min(top, bottom),
+          left: Math.min(left, right),
+          bottom: Math.max(top, bottom),
+          right: Math.max(left, right),
+        };
+        const inside = zone.bottom < this.#count('rows') && zone.right < this.#count('cols');
+        if (inside && (zone.top !== zone.bottom || zone.left !== zone.right)) merges.push(zone);
       }
       return {
         id,
@@ -486,7 +540,6 @@ export class LoroBinding {
     this.#projecting = true;
     try {
       const wb = this.#workbook();
-      if (wb.sheets.length === 0) return;
       this.model.replaceData(wb, 'remote');
     } finally {
       this.#projecting = false;

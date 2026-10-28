@@ -71,6 +71,12 @@ export class Sheet {
 
 export class Workbook {
   readonly limits: Limits;
+  /**
+   * What new sheet ids start with. Peers of one shared document each set
+   * their own (the collaboration binding does), so two sheets added at once
+   * on two peers never share an id.
+   */
+  sheetIdPrefix = 's';
   readonly strings = new StringPool();
   readonly styles = new StyleTable();
   readonly formulas = new FormulaTable();
@@ -127,7 +133,7 @@ export class Workbook {
 
   #freshSheetId(): string {
     for (;;) {
-      const id = `s${this.#nextSheet++}`;
+      const id = `${this.sheetIdPrefix}${this.#nextSheet++}`;
       if (!this.hasSheet(id)) return id;
     }
   }

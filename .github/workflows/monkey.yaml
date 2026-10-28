@@ -1,0 +1,42 @@
+# Copyright (c) 2022-2026 Datalayer, Inc.
+#
+# MIT License
+
+# The nightly monkey party (C6-05): the collaboration property test with a
+# random seed and more rounds than CI's fixed-seed run. A failure prints its
+# seed; `CELLS_MONKEY_SEED=<seed> npx vitest run src/collab/__tests__/monkey.test.ts`
+# replays it.
+
+name: Monkey party
+
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: 'A seed to replay (empty: a random one)'
+        required: false
+      rounds:
+        description: 'Rounds'
+        required: false
+        default: '50000'
+
+permissions:
+  contents: read
+
+jobs:
+  party:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install
+        run: npm install --no-audit --no-fund --legacy-peer-deps
+      - name: The party
+        env:
+          CELLS_MONKEY_SEED: ${{ github.event.inputs.seed || 'random' }}
+          CELLS_MONKEY_ROUNDS: ${{ github.event.inputs.rounds || '50000' }}
+        run: npx vitest run src/collab/__tests__/monkey.test.ts

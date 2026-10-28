@@ -6,7 +6,7 @@
 
 import { LoroDoc } from 'loro-crdt';
 import { describe, expect, it } from 'vitest';
-import { AxisOrder, implicitId, insert, move, remove } from '../axis.js';
+import { AxisOrder, between, implicitId, insert, move, remove } from '../axis.js';
 
 const COUNT = 1_048_576;
 
@@ -54,7 +54,7 @@ describe('the axis encoding, two peers', () => {
     const ib = insert(b.rows, COUNT, 3, 1, '2', b.counter);
     sync(a.doc, b.doc);
     expect(order(a)).toEqual(order(b));
-    const ids = order(a, 6);
+    const ids = order(a, 7);
     expect(ids.slice(0, 3)).toEqual([implicitId(0), implicitId(1), implicitId(2)]);
     expect(new Set(ids.slice(3, 6))).toEqual(new Set([...ia, ...ib]));
     expect(ids).toContain(implicitId(3));
@@ -68,19 +68,17 @@ describe('the axis encoding, two peers', () => {
     b.cells.set(`${implicitId(4)}.0`, 'kept');
     sync(a.doc, b.doc);
     expect(order(a, 6)).toEqual(order(b, 6));
-    expect(order(a, 6)).toEqual([0, 1, 4, 5].map(implicitId));
+    // The axis keeps its length: rows past the deleted ones come up from the end.
+    expect(order(a, 6)).toEqual([0, 1, 4, 5, 6, 7].map(implicitId));
     expect(a.cells.get(`${implicitId(4)}.0`)).toBe('kept');
   });
 
-  it('inserting between rows again and again keeps the order, until no key is left', () => {
+  it('inserting at one place again and again keeps the order: there is always a key between two', () => {
     const a = peer(1);
     const made: string[] = [];
-    // Always right after row 2 (key 1): each new row's key halves the gap above 1.
-    for (let k = 0; k < 40; k += 1) made.push(...insert(a.rows, 12, 2, 1, '1', a.counter));
-    expect(order(a, 12).slice(2, 42)).toEqual([...made].reverse());
-    expect(() => {
-      for (let k = 0; k < 40; k += 1) insert(a.rows, 12, 2, 1, '1', a.counter);
-    }).toThrow(/No order key is left/);
+    // Always right after row 2: each new row goes between row 2 and the one inserted before it.
+    for (let k = 0; k < 300; k += 1) made.push(...insert(a.rows, 12, 2, 1, '1', a.counter));
+    expect(order(a, 302).slice(2, 302)).toEqual([...made].reverse());
   });
 });
 
@@ -89,7 +87,7 @@ describe('positions and ids', () => {
     const a = peer(1);
     insert(a.rows, 20, 3, 2, '1', a.counter);
     remove(a.rows, 20, 7, 3);
-    move(a.rows, 20, 10, 2, 1);
+    move(a.rows, 20, 10, 2, 1, '1', a.counter);
     insert(a.rows, 20, 0, 1, '1', a.counter);
     const order = AxisOrder.of(a.rows, 20);
     const ids = order.ids();
@@ -98,7 +96,30 @@ describe('positions and ids', () => {
       expect([p, order.idAt(p)]).toEqual([p, id]);
       expect([id, order.positionOf(id)]).toEqual([id, p]);
     });
-    expect(order.idAt(ids.length)).toBeUndefined();
+    // Past the axis's length, the next implicit ids.
+    expect(order.positionOf(order.idAt(ids.length)!)).toBe(ids.length);
     expect(order.positionOf(implicitId(7))).toBeUndefined();
+  });
+});
+
+describe('fractional keys', () => {
+  it('between gives a key strictly between, never a prefix of the upper one', () => {
+    const cases: [string, string | undefined][] = [
+      ['', '1'],
+      ['00001', '00002'],
+      ['0000z', '00010'],
+      ['00001', undefined],
+      ['00001abc', '00001abd'],
+      ['zzz', undefined],
+    ];
+    for (const [a, b] of cases) {
+      const m = between(a, b);
+      expect(m > a).toBe(true);
+      if (b !== undefined) {
+        expect(m < b).toBe(true);
+        expect(b.startsWith(m)).toBe(false);
+        expect(`${m}zzzz` < b).toBe(true);
+      }
+    }
   });
 });
