@@ -1,6 +1,6 @@
 {
   "name": "@datalayer/cells-docusaurus",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Datalayer Cells in a Docusaurus site: a plugin that checks the site's .cells.json and .csv files at build time, and a <Cells> component that shows one as a live sheet in an MDX page.",
   "license": "MIT",
   "repository": {

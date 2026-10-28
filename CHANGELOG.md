@@ -9,6 +9,14 @@
 Both packages, `@datalayer/cells` on npm and `datalayer-cells` on PyPI, carry
 one version (see `RELEASE.md`).
 
+## 1.0.3 — 28 October 2026
+
+1.0.2 reached PyPI but not npm (its release stopped on a missing TSDoc comment); 1.0.3 is the first of the two on both.
+
+- **Code cells:** a run's outputs come from the executor's output model, so a displayed DataFrame lands in the grid (jupyter-react's `executor.outputs` lacked `output_type`); a refused write rejects the run with its refusal; a kernel without `datalayer_cells` (closed comm, or no answer in 5 s) runs on the values the code names.
+- **Collaboration:** a row move no longer shifts the moved cells twice on the other peers; a delete keeps merges in place; a sheet added after two concurrent deletes no longer throws.
+- **Python:** `LiveWorkbook` reads, adds, updates and removes charts in the live document (loro-py), as the TypeScript binding writes them; a Python peer joins the monkey party.
+
 ## 1.0.2 — 28 October 2026
 
 - **Python reads and writes the sheet live** (`datalayer_cells.live`,
