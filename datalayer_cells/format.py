@@ -14,11 +14,12 @@ from __future__ import annotations
 import json
 import math
 import re
+from datetime import datetime
 from typing import Any
 
 FORMAT_VERSION = 1
 
-#: The errors a cell can hold, as Excel spells them (``#CYCLE!`` and ``#BUSY!`` are Cells').
+#: The errors a cell can hold, as Excel spells them (``#CYCLE!``, ``#BUSY!`` and ``#ERROR!`` are Cells').
 CELL_ERRORS = (
     "#DIV/0!",
     "#REF!",
@@ -30,6 +31,7 @@ CELL_ERRORS = (
     "#CYCLE!",
     "#BUSY!",
     "#SPILL!",
+    "#ERROR!",
 )
 
 STYLE_KEYS = (
@@ -201,6 +203,57 @@ def _check_zone(z: Any, path: str, limits: dict[str, int]) -> None:
         _fail(path, "outside the sheet")
 
 
+CODE_FIELDS = ("source", "language", "outputs", "result", "executionCount", "lastRun", "run", "frame")
+OUTPUT_TYPES = ("stream", "display_data", "execute_result", "error")
+
+
+def check_code(v: Any, path: str = "code") -> None:
+    """Refuse a malformed code cell (§3.13) with the path of its bad field, as TypeScript's ``codeProblem``."""
+    if not _is_object(v):
+        _fail(path, "a code cell is { source, language, outputs, result, run }")
+    for k in v:
+        if k not in CODE_FIELDS:
+            _fail(f"{path}.{k}", f"a code cell has {', '.join(CODE_FIELDS)} only")
+    if not isinstance(v.get("source"), str):
+        _fail(f"{path}.source", "the code, a string")
+    if v.get("language") != "python":
+        _fail(f"{path}.language", "'python'")
+    outputs = v.get("outputs")
+    if not isinstance(outputs, list):
+        _fail(f"{path}.outputs", "a list of nbformat outputs")
+    for i, o in enumerate(outputs):
+        if not _is_object(o) or o.get("output_type") not in OUTPUT_TYPES:
+            _fail(f"{path}.outputs[{i}].output_type", f"one of {', '.join(OUTPUT_TYPES)}")
+    r = v["result"] if "result" in v else object()
+    ok = (
+        r is None
+        or isinstance(r, (str, bool))
+        or (_is_number(r) and math.isfinite(r))
+        or (_is_object(r) and list(r) == ["error"] and r["error"] in CELL_ERRORS)
+    )
+    if not ok:
+        _fail(f"{path}.result", "a value (a number, a string, a boolean, null or { error })")
+    if "executionCount" in v and not (_is_int(v["executionCount"]) and v["executionCount"] >= 0):
+        _fail(f"{path}.executionCount", "a non-negative integer")
+    if "lastRun" in v:
+        try:
+            datetime.fromisoformat(str(v["lastRun"]).replace("Z", "+00:00"))
+            good = isinstance(v["lastRun"], str)
+        except ValueError:
+            good = False
+        if not good:
+            _fail(f"{path}.lastRun", "an ISO time")
+    if v.get("run") not in ("manual", "auto"):
+        _fail(f"{path}.run", "'manual' or 'auto'")
+    frame = v.get("frame")
+    if frame is not None:
+        if not _is_object(frame):
+            _fail(f"{path}.frame", "{ width, height } or null")
+        for k in ("width", "height"):
+            if not (_is_number(frame.get(k)) and frame[k] > 0):
+                _fail(f"{path}.frame.{k}", "a positive size in px")
+
+
 def validate_workbook(data: Any, limits: dict[str, int] | None = None) -> dict[str, Any]:
     """Return ``data`` when it is a valid CellsWorkbook; raise :class:`FormatError` otherwise."""
     limits = limits or DEFAULT_LIMITS
@@ -304,6 +357,20 @@ def validate_workbook(data: Any, limits: dict[str, int] | None = None) -> dict[s
                 _fail(f"{p}.merges", "a list of zones")
             for j, z in enumerate(merges):
                 _check_zone(z, f"{p}.merges[{j}]", limits)
+        code = sheet.get("code")
+        if code is not None:
+            if not _is_object(code):
+                _fail(f"{p}.code", "an object of code cells by cell (B4)")
+            for ref, cell in code.items():
+                cp = f'{p}.code["{ref}"]'
+                m = re.fullmatch(r"([A-Z]{1,3})([1-9][0-9]*)", ref)
+                col = -1
+                if m is not None:
+                    for ch in m.group(1):
+                        col = (col + 1) * 26 + ord(ch) - 65
+                if m is None or int(m.group(2)) > limits["rows"] or col >= limits["cols"]:
+                    _fail(cp, f"'{ref}' is not a cell of the sheet")
+                check_code(cell, cp)
         source = sheet.get("dataSource")
         if source is not None:
             dp = f"{p}.dataSource"

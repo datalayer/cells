@@ -66,6 +66,7 @@ const ERRORS = [
   '#CYCLE!',
   '#BUSY!',
   '#SPILL!',
+  '#ERROR!',
   '#GETTING_DATA',
 ];
 const OPERATORS = ['<>', '<=', '>=', '+', '-', '*', '/', '^', '&', '=', '<', '>', '%', ':'];

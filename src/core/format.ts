@@ -15,6 +15,7 @@
 
 import type { CellContent } from './cells.js';
 import { type ChartSpec, checkChart } from './charts.js';
+import { type CodeCell, codeKey, codePosition, codeProblem, codeRef } from './code.js';
 import { checkStyle, type Style } from './styles.js';
 import { type CellValue, cellError, isCellError, isErrorCode } from './values.js';
 import { DEFAULT_LIMITS, type Limits, type Workbook } from './workbook.js';
@@ -51,6 +52,8 @@ export interface CellsSheet {
   readonly frozen?: { readonly rows: number; readonly cols: number };
   /** Charts by id (§3.12). */
   readonly charts?: Readonly<Record<string, ChartSpec>>;
+  /** Code cells by their cell, `B4` (§3.13); the cell itself holds the result as its value. */
+  readonly code?: Readonly<Record<string, CodeCell>>;
   /** The data source bound to the sheet (C7-03): which, where its first cell lands, and its shape; its rows are not in the file. */
   readonly dataSource?: {
     readonly id: string;
@@ -202,6 +205,19 @@ export function validateWorkbook(data: unknown, limits: Limits = DEFAULT_LIMITS)
           fail(`${cp}.id`, `the chart is filed under '${id}' and says '${spec.id}'`);
       }
     }
+    if (sheet.code !== undefined) {
+      if (!isObject(sheet.code)) fail(`${p}.code`, 'an object of code cells by cell (B4)');
+      for (const [ref, code] of Object.entries(sheet.code)) {
+        const cp = `${p}.code["${ref}"]`;
+        const m = /^([A-Z]{1,3})([1-9][0-9]*)$/.exec(ref);
+        let col = -1;
+        if (m !== null) for (const ch of m[1]) col = (col + 1) * 26 + ch.charCodeAt(0) - 65;
+        if (m === null || Number(m[2]) > limits.rows || col >= limits.cols)
+          fail(cp, `'${ref}' is not a cell of the sheet`);
+        const problem = codeProblem(code, cp);
+        if (problem !== undefined) throw new FormatError(problem);
+      }
+    }
     if (sheet.dataSource !== undefined) {
       const d = sheet.dataSource as Record<string, unknown>;
       const dp = `${p}.dataSource`;
@@ -266,6 +282,12 @@ export function loadInto(workbook: Workbook, data: unknown): void {
     }
     sheet.merges = (s.merges ?? []).map((z) => ({ ...z }));
     for (const [id, chart] of Object.entries(s.charts ?? {})) sheet.charts.set(id, chart);
+    for (const [ref, code] of Object.entries(s.code ?? {})) {
+      const m = /^([A-Z]+)([0-9]+)$/.exec(ref)!;
+      let col = -1;
+      for (const ch of m[1]) col = (col + 1) * 26 + ch.charCodeAt(0) - 65;
+      sheet.code.set(codeKey(sheet, Number(m[2]) - 1, col), code);
+    }
     sheet.frozen = s.frozen ? { rows: s.frozen.rows, cols: s.frozen.cols } : { rows: 0, cols: 0 };
     sheet.dataSource = s.dataSource
       ? {
@@ -324,6 +346,13 @@ export function toJSON(workbook: Workbook): CellsWorkbook {
     if (sheet.merges.length > 0) out.merges = sheet.merges.map((z) => ({ ...z }));
     if (sheet.frozen.rows > 0 || sheet.frozen.cols > 0) out.frozen = { ...sheet.frozen };
     if (sheet.charts.size > 0) out.charts = Object.fromEntries(sheet.charts);
+    const code: Record<string, CodeCell> = {};
+    for (const [key, c] of sheet.code) {
+      const at = codePosition(sheet, key);
+      if (at !== undefined) code[codeRef(at.row, at.col)] = c;
+    }
+    if (Object.keys(code).length > 0)
+      out.code = Object.fromEntries(Object.entries(code).sort(([a], [b]) => a.localeCompare(b)));
     if (sheet.dataSource !== null)
       out.dataSource = {
         id: sheet.dataSource.id,

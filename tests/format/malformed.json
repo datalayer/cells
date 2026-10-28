@@ -450,6 +450,104 @@
         ]
       },
       "message": "^styles\\[1\\]\\.format: '\\[Wobble\\]0': \\[Wobble\\] is not a colour, a condition or an elapsed time\\."
+    },
+    {
+      "name": "a code cell under a key that is not a cell",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "s1",
+            "name": "S",
+            "rows": {},
+            "code": {
+              "b2": {
+                "source": "1",
+                "language": "python",
+                "outputs": [],
+                "result": null,
+                "run": "manual"
+              }
+            }
+          }
+        ]
+      },
+      "message": "^sheets\\[0\\]\\.code\\[\"b2\"\\]: 'b2' is not a cell of the sheet"
+    },
+    {
+      "name": "a code cell with a result that is not a value",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "s1",
+            "name": "S",
+            "rows": {},
+            "code": {
+              "B2": {
+                "source": "1",
+                "language": "python",
+                "outputs": [],
+                "result": [
+                  1
+                ],
+                "run": "manual"
+              }
+            }
+          }
+        ]
+      },
+      "message": "^sheets\\[0\\]\\.code\\[\"B2\"\\]\\.result: a value"
+    },
+    {
+      "name": "a code cell with an output of no known type",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "s1",
+            "name": "S",
+            "rows": {},
+            "code": {
+              "B2": {
+                "source": "1",
+                "language": "python",
+                "outputs": [
+                  {
+                    "output_type": "bogus"
+                  }
+                ],
+                "result": null,
+                "run": "manual"
+              }
+            }
+          }
+        ]
+      },
+      "message": "^sheets\\[0\\]\\.code\\[\"B2\"\\]\\.outputs\\[0\\]\\.output_type: one of stream"
+    },
+    {
+      "name": "a code cell in another language",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "s1",
+            "name": "S",
+            "rows": {},
+            "code": {
+              "B2": {
+                "source": "1",
+                "language": "r",
+                "outputs": [],
+                "result": null,
+                "run": "manual"
+              }
+            }
+          }
+        ]
+      },
+      "message": "^sheets\\[0\\]\\.code\\[\"B2\"\\]\\.language: 'python'"
     }
   ]
 }

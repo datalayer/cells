@@ -10,7 +10,7 @@
  * @module core/values
  */
 
-/** The errors a cell can hold, as Excel spells them (`#CYCLE!` and `#BUSY!` are ours). */
+/** The errors a cell can hold, as Excel spells them (`#CYCLE!`, `#BUSY!` and `#ERROR!` are ours). */
 export const CELL_ERRORS = [
   '#DIV/0!',
   '#REF!',
@@ -22,9 +22,10 @@ export const CELL_ERRORS = [
   '#CYCLE!',
   '#BUSY!',
   '#SPILL!',
+  '#ERROR!',
 ] as const;
 
-/** An error a cell can show: `#DIV/0!`, `#REF!`, `#NAME?`, `#VALUE!`, `#N/A`, `#NUM!`, `#NULL!`, `#CYCLE!`, `#BUSY!`, `#SPILL!`. */
+/** An error a cell can show: `#DIV/0!`, `#REF!`, `#NAME?`, `#VALUE!`, `#N/A`, `#NUM!`, `#NULL!`, `#CYCLE!`, `#BUSY!`, `#SPILL!`, `#ERROR!` (a code cell's run raised). */
 export type CellErrorCode = (typeof CELL_ERRORS)[number];
 
 /** An error value, with an optional sentence saying why (shown in the cell's tooltip). */

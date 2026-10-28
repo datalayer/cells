@@ -254,6 +254,18 @@ export {
   EDITING_COMMANDS,
 } from '../builtins/editing.js';
 export {
+  CODE_CELL_TYPE,
+  type CodeCell,
+  type CodeOutput,
+  type CodePatch,
+  type CodeResult,
+  codeAt,
+  codeCell,
+  codeCells,
+  codeProblem,
+  type SetCodeCommand,
+} from './code.js';
+export {
   CELLS_NAVIGATION_PLUGIN,
   CellsNavigationPlugin,
   NAVIGATION_COMMANDS,

@@ -51,6 +51,7 @@ import {
   type ChartSpec,
   refAst,
 } from '../core/charts.js';
+import { type CodeCell, type CodePatch, codePosition, codeRef } from '../core/code.js';
 
 /** The id of the sheet shown when the document has none left. */
 const EMPTY_SHEET = 'empty';
@@ -215,6 +216,11 @@ export class LoroBinding {
     return this.doc.getMap(`charts:${sheet}`);
   }
 
+  /** The code cells of a sheet (§3.13): `rowId.colId` → the code cell, whole (a run replaces it). */
+  #code(sheet: string): LoroMap {
+    return this.doc.getMap(`code:${sheet}`);
+  }
+
   #count(axis: AxisName): number {
     return this.model.workbook.limits[axis];
   }
@@ -350,6 +356,13 @@ export class LoroBinding {
     }
     this.#writeMerges(sheet.id, [], sheet.merges ?? []);
     for (const chart of Object.values(sheet.charts ?? {})) this.#writeChart(sheet.id, null, chart);
+    const code = this.#code(sheet.id);
+    for (const [ref, c] of Object.entries(sheet.code ?? {})) {
+      const m = /^([A-Z]+)([0-9]+)$/.exec(ref)!;
+      let col = -1;
+      for (const ch of m[1]) col = (col + 1) * 26 + ch.charCodeAt(0) - 65;
+      code.set(`${implicitId(Number(m[2]) - 1)}.${implicitId(col)}`, c);
+    }
   }
 
   // ------------------------------------------------------------ charts
@@ -665,6 +678,15 @@ export class LoroBinding {
         else this.#sheetMap(a.sheet).set('dataSource', this.#dataSourceToIds(a.after, a.sheet));
         return;
       }
+      case 'code': {
+        const c = p as unknown as CodePatch;
+        const at = codePosition(m.sheet(c.sheet), c.key);
+        if (at === undefined) return;
+        const key = `${this.#order(c.sheet, 'rows').idAt(at.row)}.${this.#order(c.sheet, 'cols').idAt(at.col)}`;
+        if (c.after === null) this.#code(c.sheet).delete(key);
+        else this.#code(c.sheet).set(key, c.after);
+        return;
+      }
       case 'chart': {
         const a = p as unknown as ChartPatch;
         // A delete wins over a concurrent edit: the map goes, and an edit of a gone chart recreates nothing.
@@ -811,6 +833,20 @@ export class LoroBinding {
       }
       const charts = this.#readCharts(id);
       const dataSource = this.#readDataSource(id);
+      const code: Record<string, CodeCell> = {};
+      for (const [key, c] of Object.entries(this.#code(id).toJSON() as Record<string, CodeCell>)) {
+        const dot = key.indexOf('.');
+        const r = rows.positionOf(key.slice(0, dot));
+        const col = cols.positionOf(key.slice(dot + 1));
+        if (
+          r === undefined ||
+          col === undefined ||
+          r >= this.#count('rows') ||
+          col >= this.#count('cols')
+        )
+          continue;
+        code[codeRef(r, col)] = c;
+      }
       return {
         id,
         name: names.get(id) ?? id,
@@ -819,6 +855,7 @@ export class LoroBinding {
         hidden,
         merges: disjoint(merges),
         ...(Object.keys(charts).length > 0 ? { charts } : {}),
+        ...(Object.keys(code).length > 0 ? { code } : {}),
         ...(dataSource !== undefined ? { dataSource } : {}),
         frozen: (map.get('frozen') as { rows: number; cols: number } | undefined) ?? {
           rows: 0,

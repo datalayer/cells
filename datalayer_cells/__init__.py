@@ -21,7 +21,7 @@ from .charts import (
     ref_zone,
     zone_ref,
 )
-from .format import CELL_ERRORS, FORMAT_VERSION, FormatError, validate_workbook
+from .format import CELL_ERRORS, FORMAT_VERSION, FormatError, check_code, validate_workbook
 from .workbook import Workbook, column_index, column_letters, parse_a1, parse_input, parse_zone
 
 __all__ = [
@@ -31,6 +31,7 @@ __all__ = [
     "ChartRefusal",
     "chart_problem",
     "check_chart",
+    "check_code",
     "infer_chart_data",
     "ref_zone",
     "zone_ref",

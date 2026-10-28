@@ -170,7 +170,7 @@ class Workbook:
                     out["s"] = used[s]
                 rows.setdefault(str(r), {"cells": {}})["cells"][str(c)] = out
             item: dict[str, Any] = {"id": sheet["id"], "name": sheet["name"], "rows": rows}
-            for key in ("sizes", "hidden", "merges", "frozen", "charts", "dataSource"):
+            for key in ("sizes", "hidden", "merges", "frozen", "charts", "code", "dataSource"):
                 if key in sheet and sheet[key]:
                     if key == "frozen" and sheet[key] == {"rows": 0, "cols": 0}:
                         continue
@@ -293,6 +293,10 @@ class Workbook:
     def charts(self, sheet: str | None = None) -> list[dict[str, Any]]:
         """The charts of a sheet (the first by default), as their specs."""
         return [dict(c) for c in self._sheet(sheet).get("charts", {}).values()]
+
+    def code(self, sheet: str | None = None) -> dict[str, dict[str, Any]]:
+        """The code cells of a sheet (the first by default), by cell (``B4``) (§3.13)."""
+        return {ref: dict(c) for ref, c in self._sheet(sheet).get("code", {}).items()}
 
     def _chart_sheet_and_zone(self, ref: str, default: dict[str, Any]) -> tuple[dict[str, Any], tuple[int, int, int, int]]:
         name, zone = split_sheet(ref)

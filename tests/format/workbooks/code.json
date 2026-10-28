@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "sheets": [
+    {
+      "id": "s1",
+      "name": "Sales",
+      "rows": {
+        "0": {
+          "cells": {
+            "0": {
+              "v": "Month"
+            },
+            "1": {
+              "v": "Units"
+            }
+          }
+        },
+        "1": {
+          "cells": {
+            "0": {
+              "v": "Jan"
+            },
+            "1": {
+              "v": 12
+            }
+          }
+        },
+        "2": {
+          "cells": {
+            "0": {
+              "v": "Feb"
+            },
+            "1": {
+              "v": 15
+            }
+          }
+        },
+        "3": {
+          "cells": {
+            "0": {
+              "v": "Mar"
+            },
+            "1": {
+              "v": 19
+            }
+          }
+        },
+        "4": {
+          "cells": {
+            "0": {
+              "v": "Total"
+            },
+            "1": {
+              "v": 46,
+              "s": 1
+            }
+          }
+        },
+        "5": {
+          "cells": {
+            "0": {
+              "v": "Trend"
+            },
+            "1": {
+              "v": {
+                "error": "#ERROR!"
+              },
+              "s": 1
+            }
+          }
+        }
+      },
+      "code": {
+        "B5": {
+          "source": "cells[\"B2:B4\"].sum().iloc[0]",
+          "language": "python",
+          "outputs": [
+            {
+              "output_type": "execute_result",
+              "data": {
+                "text/plain": "46"
+              },
+              "metadata": {},
+              "execution_count": 1
+            }
+          ],
+          "result": 46,
+          "executionCount": 1,
+          "lastRun": "2026-10-28T10:42:00.000Z",
+          "run": "manual",
+          "frame": null
+        },
+        "B6": {
+          "source": "1/0",
+          "language": "python",
+          "outputs": [
+            {
+              "output_type": "error",
+              "ename": "ZeroDivisionError",
+              "evalue": "division by zero",
+              "traceback": [
+                "ZeroDivisionError: division by zero"
+              ]
+            }
+          ],
+          "result": {
+            "error": "#ERROR!"
+          },
+          "executionCount": 2,
+          "lastRun": "2026-10-28T10:43:00.000Z",
+          "run": "auto",
+          "frame": {
+            "width": 320,
+            "height": 200
+          }
+        }
+      }
+    }
+  ],
+  "styles": [
+    {},
+    {
+      "type": "code"
+    }
+  ]
+}

@@ -173,6 +173,7 @@ function errorMeaning(code: string): string {
     '#CYCLE!': 'circular reference',
     '#BUSY!': 'still calculating',
     '#SPILL!': 'cannot spill',
+    '#ERROR!': 'the code raised an error',
   };
   return meanings[code] ?? 'error';
 }
