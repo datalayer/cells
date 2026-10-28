@@ -4,4 +4,4 @@
 
 """The version of datalayer_cells; dev/bump_version.py moves it with package.json."""
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"

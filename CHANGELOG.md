@@ -9,6 +9,22 @@
 Both packages, `@datalayer/cells` on npm and `datalayer-cells` on PyPI, carry
 one version (see `RELEASE.md`).
 
+## 1.0.2 — 28 October 2026
+
+- **Python reads and writes the sheet live** (`datalayer_cells.live`,
+  `datalayer_cells.transport`): `cells[range]`, `cells[range] = value` or a
+  DataFrame (spilling, `#SPILL!`), `on_change`, over a collaboration room or
+  the `datalayer.cells` comm a page opens on the kernel it runs code on.
+  `pip install datalayer-cells[live]` adds loro and websockets.
+- **Code cells:** the editor overlay is jupyter-react's `Cell`, themed in the
+  host's colour mode, with the kernel indicator; Run and Shift/Ctrl+Enter go
+  through the grid's runner, so `cells` is defined and the result lands in
+  the grid; a returned value shows on hover and under the editor; a kernel
+  without `datalayer_cells` runs on the values the code names.
+- **Reactor tables:** the command palette example lists the commands with
+  `@datalayer/reactor-commands`' table, the plugin example the contribution
+  points with `@datalayer/reactor-manager`'s (both need reactor 1.3.3).
+
 ## 1.0.1 — 28 October 2026
 
 - **Agent tools.** `@datalayer/cells/plugin` exports `cellsAgentToolsPlugin`,
