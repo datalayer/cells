@@ -13,7 +13,7 @@
  * returns focus to the grid.
  */
 
-import { act } from 'react';
+import { act, StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { createCellsModel, type Transaction } from '../../core/index.js';
@@ -78,7 +78,13 @@ async function mount() {
   const div = document.createElement('div');
   document.body.append(div);
   root = createRoot(div);
-  await act(async () => root!.render(<Spreadsheet model={model} theme="auto" />));
+  await act(async () =>
+    root!.render(
+      <StrictMode>
+        <Spreadsheet model={model} theme="auto" />
+      </StrictMode>,
+    ),
+  );
   await act(async () => {
     await new Promise((r) => setTimeout(r, 20));
   });

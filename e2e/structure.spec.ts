@@ -165,6 +165,26 @@ test.describe('structural editing (C3-02)', () => {
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('ArrowRight');
     await page.keyboard.press('Shift+F10');
+    await page.waitForTimeout(300);
+    console.log(
+      'MENU-DOM',
+      await page.evaluate(() => {
+        const menus = [...document.querySelectorAll('[data-cells-menu]')];
+        const first = menus[0] as HTMLElement | undefined;
+        const style = first ? getComputedStyle(first) : undefined;
+        return JSON.stringify({
+          menus: menus.length,
+          roles: document.querySelectorAll('[role="menu"]').length,
+          items: document.querySelectorAll('[role="menuitem"]').length,
+          html: first?.outerHTML.slice(0, 400),
+          visibility: style?.visibility,
+          display: style?.display,
+          rect: first?.getBoundingClientRect().toJSON(),
+          portal: document.querySelector('#__primerPortalRoot__')?.children.length,
+          active: (document.activeElement as HTMLElement | null)?.outerHTML.slice(0, 120),
+        });
+      }),
+    );
     await expect(page.getByRole('menu', { name: 'Cell actions' })).toBeVisible();
     // Arrow keys reach the item; Enter runs it.
     const items = await page.getByRole('menuitem').allTextContents();
