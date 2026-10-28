@@ -18,6 +18,7 @@ import ReactApi from './examples/07-react-api';
 import Plugin from './examples/08-plugin';
 import Collaboration from './examples/09-collaboration';
 import Chrome from './examples/10-chrome';
+import Charts from './examples/11-charts';
 
 const SOURCES = import.meta.glob('./examples/*.tsx', {
   query: '?raw',
@@ -73,6 +74,7 @@ export const EXAMPLES: readonly Example[] = [
     file: '10-chrome.tsx',
     Component: Chrome,
   },
+  { id: 'charts', title: 'Charts', file: '11-charts.tsx', Component: Charts },
 ];
 
 function useRoute(): string {

@@ -17,6 +17,7 @@ const EXAMPLES = [
   ['plugin', 'A Reactor plugin'],
   ['collaboration', 'Collaboration'],
   ['chrome', 'Toolbar, formula bar and sheet tabs'],
+  ['charts', 'Charts'],
 ] as const;
 
 test.describe('the examples', () => {

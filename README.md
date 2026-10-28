@@ -16,6 +16,14 @@ features are Reactor plugins contributing through the same points.
 Formulas: 117 functions, each checked against what LibreOffice computes; the
 list is in [docs/functions.md](docs/functions.md).
 
+Charts: column, bar, line, area, pie, scatter and combo charts anchored on a
+sheet, fed by ranges that follow recalculation, carried through XLSX, and drawn
+with [Apache ECharts](https://echarts.apache.org) from `@datalayer/cells/charts`,
+a lazy plugin the grid loads only when a chart is drawn. See them live on the
+[charts example](https://cells.datalayer.tech/#/charts): twelve months of
+figures with a column, a line, a doughnut and a combo chart beside them, in
+light and dark.
+
 ## Packages
 
 | Import                    | What                                                    |
@@ -26,6 +34,7 @@ list is in [docs/functions.md](docs/functions.md).
 | `@datalayer/cells/xlsx`   | XLSX in and out, loaded lazily                          |
 | `@datalayer/cells/collab` | real-time collaboration over Loro                       |
 | `@datalayer/cells/chrome` | toolbar, formula bar and sheet tabs                     |
+| `@datalayer/cells/charts` | charts drawn with Apache ECharts (an optional peer)     |
 | `@datalayer/cells/plugin` | views for a Reactor shell                               |
 
 ## Python

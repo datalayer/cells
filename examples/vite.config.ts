@@ -34,6 +34,10 @@ export default defineConfig({
         find: /^@datalayer\/cells\/xlsx$/,
         replacement: fileURLToPath(new URL('../src/xlsx/index.ts', import.meta.url)),
       },
+      {
+        find: /^@datalayer\/cells\/charts$/,
+        replacement: fileURLToPath(new URL('../src/charts/index.ts', import.meta.url)),
+      },
     ],
   },
   server: { port: PORT, strictPort: true, host: '127.0.0.1' },
