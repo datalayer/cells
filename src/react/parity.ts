@@ -60,6 +60,9 @@ export const CORE_EXPORTS: Readonly<Record<string, Surface>> = {
   // Charts (§3.12): the commands through useCharts, one chart through useChart
   inferChartData: hook('useCharts'),
   chartPoints: hook('useChart'),
+  chartData: hook('useChart'),
+  chartRanges: hook('useChart'),
+  chartRefs: hook('useChart'),
   refZone: hook('useChart'),
   checkChart: hook('useCharts'),
   chartProblem: hook('useCharts'),
@@ -181,6 +184,9 @@ export const MODEL_MEMBERS: Readonly<Record<string, Surface>> = {
   patchOpNames: hook('useContributions'),
   functionNames: hook('useContributions'),
   formulaFunction: hook('useContributions'),
+  chartRevision: hook('useChart'),
+  chartData: hook('useChart'),
+  chartsPending: hook('useCharts'),
 };
 
 void component;

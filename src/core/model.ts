@@ -27,6 +27,7 @@ import {
   PointTable,
 } from '../points/index.js';
 import { FormulaEngine } from '../formula/engine.js';
+import { type ChartData, chartData, chartRanges, type ChartSpec } from './charts.js';
 import type { CellContent } from './cells.js';
 import {
   type Command,
@@ -51,7 +52,7 @@ import type { Position, Zone } from './zone.js';
  * functions did (a plugin switched on or off), so formulas show other values.
  * `async`: no cell changed, but an asynchronous function's value arrived.
  */
-export type Origin = 'local' | 'undo' | 'redo' | 'remote' | 'load' | 'plugins' | 'async';
+export type Origin = 'local' | 'undo' | 'redo' | 'remote' | 'load' | 'plugins' | 'async' | 'charts';
 
 /** One committed change: what listeners and `onChange` receive. */
 export interface Transaction {
@@ -59,6 +60,13 @@ export interface Transaction {
   readonly commands: readonly Command[];
   readonly patches: readonly Patch[];
   readonly origin: Origin;
+  /**
+   * The charts whose data settled with this change (§3.12): once per
+   * recalculation slice, after the slice their cells settled in. A change
+   * with no formula pending carries them itself; a pass that runs on in the
+   * background sends them later as `origin: 'charts'`, with no patches.
+   */
+  readonly charts?: readonly { readonly sheet: string; readonly id: string }[];
 }
 
 export interface CellsModelOptions {
@@ -109,6 +117,9 @@ export class CellsModel {
   #mark: ClipboardMark | null = null;
   #revision = 0;
   #selection: SelectionState;
+  /** Charts settled while patches were being applied: announced with the change that applied them. */
+  #settledCharts: { sheet: string; id: string }[] = [];
+  #applying = false;
   /** The open transaction, while `transact` runs. */
   #open: {
     label: string;
@@ -169,6 +180,11 @@ export class CellsModel {
       },
       {
         onSettled: () => this.#emit({ label: 'async', commands: [], patches: [], origin: 'async' }),
+        chartRanges: (sheet, spec) => chartRanges(this.workbook, sheet, spec as ChartSpec),
+        onCharts: (charts) => {
+          if (this.#applying || this.#open !== null) this.#settledCharts.push(...charts);
+          else this.#emit({ label: 'charts', commands: [], patches: [], origin: 'charts', charts });
+        },
       },
     );
     // Resolved now, so two plugins contributing one function name are refused at once, by name.
@@ -591,6 +607,28 @@ export class CellsModel {
     return this.workbook.styles.get(c?.style ?? 0);
   }
 
+  /**
+   * How many times a chart's data settled (§3.12): what a drawing memoises
+   * on, with the spec. It moves once per recalculation slice at most, after
+   * the slice the chart's cells settled in; a change with no formula pending
+   * moves it at once. 0 for a chart the model does not hold.
+   */
+  chartRevision(sheet: string, id: string): number {
+    return this.#engine.chartRevision(sheet, id);
+  }
+
+  /** The charts marked by a pass still running: waiting for their cells. */
+  chartsPending(): { sheet: string; id: string }[] {
+    return this.#engine.markedCharts();
+  }
+
+  /** The data a chart draws, read now (a cell still being fetched is a gap). */
+  chartData(sheet: string, id: string): ChartData {
+    const spec = this.workbook.sheet(sheet).charts.get(id);
+    if (spec === undefined) throw new Error(`No chart '${id}' on sheet '${sheet}'.`);
+    return chartData((s, r, c) => this.value(s, r, c), this.workbook, sheet, spec);
+  }
+
   /** The workbook as `CellsWorkbook` JSON. */
   toJSON(): CellsWorkbook {
     return toJSON(this.workbook);
@@ -666,6 +704,7 @@ export class CellsModel {
 
   #applyAll(patches: readonly Patch[]): void {
     const applied: Patch[] = [];
+    this.#applying = true;
     try {
       for (const p of patches) {
         const op = this.#patchOps.get(p.op);
@@ -682,6 +721,8 @@ export class CellsModel {
       for (const p of this.#inverses(applied))
         this.#patchOps.get(p.op)!.value.apply(this.workbook, p);
       throw error;
+    } finally {
+      this.#applying = false;
     }
   }
 
@@ -726,6 +767,10 @@ export class CellsModel {
   #emit(tx: Transaction): void {
     if (tx.origin === 'load') this.#engine.reset();
     if (this.#edit !== null && !this.workbook.hasSheet(this.#edit.sheet)) this.#setEdit(null);
+    if (this.#settledCharts.length > 0 && this.#open === null) {
+      tx = { ...tx, charts: [...(tx.charts ?? []), ...this.#settledCharts] };
+      this.#settledCharts = [];
+    }
     this.#revision += 1;
     for (const l of [...this.#listeners]) l(tx);
   }

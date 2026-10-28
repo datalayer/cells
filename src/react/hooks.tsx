@@ -27,6 +27,7 @@ import {
 } from 'react';
 import type { CellContent } from '../core/cells.js';
 import {
+  type ChartData,
   type ChartAnchor,
   type ChartSpec,
   chartPoints,
@@ -565,6 +566,8 @@ export type ChartInsert =
 /** The charts of a sheet (the active one by default), and the commands on them. */
 export function useCharts(sheet?: string): {
   charts: ChartSpec[];
+  /** The charts of the sheet still waiting for a pass to settle their cells. */
+  pending: string[];
   insert: (chart: ChartInsert) => CommandResult;
   update: (id: string, changes: UpdateChartCommand['changes']) => CommandResult;
   move: (id: string, to: MoveChartCommand['to']) => CommandResult;
@@ -577,6 +580,10 @@ export function useCharts(sheet?: string): {
       const id = sheet ?? m.selection.sheet;
       return {
         charts: [...m.sheet(id).charts.values()],
+        pending: m
+          .chartsPending()
+          .filter((c) => c.sheet === id)
+          .map((c) => c.id),
         insert: (chart: ChartInsert) => {
           if ('from' in chart) {
             const { sheet: source, zone } = resolveRange(model, chart.from);
@@ -617,27 +624,44 @@ export function useCharts(sheet?: string): {
   );
 }
 
-/** One chart: its spec (`undefined` once deleted), its point count, and its update. */
+/**
+ * One chart: its spec (`undefined` once deleted), its data, its point count,
+ * and its update. The data is read again only when the chart's data revision
+ * moves (once per recalculation slice at most, §3.12) or its spec changes,
+ * never on every change of the model.
+ */
 export function useChart(
   id: string,
   sheet?: string,
 ): {
   spec: ChartSpec | undefined;
+  data: ChartData | undefined;
+  /** How many times the data settled: what a drawing memoises on. */
+  revision: number;
   points: number;
   update: (changes: UpdateChartCommand['changes']) => CommandResult;
 } {
   const model = useCells();
-  return useDerived(
-    (m) => {
-      const s = sheet ?? m.selection.sheet;
-      const spec = m.sheet(s).charts.get(id);
-      return {
-        spec,
-        points: spec === undefined ? 0 : chartPoints(m.workbook, s, spec),
-        update: (changes: UpdateChartCommand['changes']) =>
-          model.dispatch({ type: 'UPDATE_CHART', sheet: s, id, changes }),
-      };
-    },
-    [id, sheet],
+  const sheetId = useDerived((m) => sheet ?? m.selection.sheet, [sheet]);
+  const spec = useSyncExternalStore(
+    useCallback((notify: () => void) => model.subscribe(notify), [model]),
+    () => (model.workbook.hasSheet(sheetId) ? model.sheet(sheetId).charts.get(id) : undefined),
+    () => (model.workbook.hasSheet(sheetId) ? model.sheet(sheetId).charts.get(id) : undefined),
+  );
+  const revision = useSyncExternalStore(
+    useCallback((notify: () => void) => model.subscribe(notify), [model]),
+    () => model.chartRevision(sheetId, id),
+    () => model.chartRevision(sheetId, id),
+  );
+  return useMemo(
+    () => ({
+      spec,
+      data: spec === undefined ? undefined : model.chartData(sheetId, id),
+      revision,
+      points: spec === undefined ? 0 : chartPoints(model.workbook, sheetId, spec),
+      update: (changes: UpdateChartCommand['changes']) =>
+        model.dispatch({ type: 'UPDATE_CHART', sheet: sheetId, id, changes }),
+    }),
+    [model, sheetId, id, spec, revision],
   );
 }

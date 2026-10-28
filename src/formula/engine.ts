@@ -73,7 +73,10 @@ const rowOfKey = (k: number) => Math.floor((k % SHEET) / COLS);
 const colOfKey = (k: number) => k % COLS;
 
 /** Patch ops that change no value a formula can read. */
-const VALUE_NEUTRAL = new Set(['axis-sizes', 'merges', 'frozen', 'sheet-move']);
+const VALUE_NEUTRAL = new Set(['axis-sizes', 'merges', 'frozen', 'sheet-move', 'chart']);
+
+/** Charts whose ranges are checked against the waiting cells at the end of a slice; past this many waiting, they wait for the pass to end. */
+const CHART_PENDING_SCAN = 20_000;
 
 class TooDeep {
   constructor(readonly key: number) {}
@@ -94,6 +97,38 @@ const sameItem = (a: RangeItem, b: RangeItem) =>
   a.minY === b.minY &&
   a.maxX === b.maxX &&
   a.maxY === b.maxY;
+
+/**
+ * A chart's range in the R-tree (§3.12): a node that is not a cell. The same
+ * search that finds a formula's dependents finds the charts reading a zone.
+ */
+interface ChartItem {
+  readonly minX: number;
+  readonly minY: number;
+  readonly maxX: number;
+  readonly maxY: number;
+  readonly chart: string;
+}
+
+const sameChartItem = (a: ChartItem, b: ChartItem) =>
+  a.chart === b.chart &&
+  a.minX === b.minX &&
+  a.minY === b.minY &&
+  a.maxX === b.maxX &&
+  a.maxY === b.maxY;
+
+/** A chart's key in the engine: its sheet and its id. */
+export const chartKey = (sheet: string, id: string) => `${sheet}\u0000${id}`;
+const chartOfKey = (key: string): { sheet: string; id: string } => {
+  const i = key.indexOf('\u0000');
+  return { sheet: key.slice(0, i), id: key.slice(i + 1) };
+};
+
+/** A range a chart reads: a sheet and a zone. */
+export interface ChartRange {
+  readonly sheet: string;
+  readonly zone: Zone;
+}
 
 /** A compiled shape, shared by every cell holding it. */
 interface Shape {
@@ -220,17 +255,123 @@ export class FormulaEngine {
   #awaited = new Map<string, Awaited>();
   #busy = 0;
   readonly #onSettled: () => void;
+  /** Charts' ranges, per sheet number (§3.12). */
+  readonly #chartTrees = new Map<number, RBush<ChartItem>>();
+  /** What each chart registered, so it leaves the trees as it came. */
+  readonly #chartItems = new Map<string, [number, ChartItem][]>();
+  /** Charts whose ranges a pass dirtied, waiting for their cells to settle. */
+  readonly #markedCharts = new Set<string>();
+  /** How many times each chart's data settled: what a drawing memoises on. */
+  readonly #chartRevisions = new Map<string, number>();
+  readonly #chartRanges: (sheet: string, spec: unknown) => readonly ChartRange[];
+  readonly #onCharts: (charts: readonly { sheet: string; id: string }[]) => void;
 
   constructor(
     workbook: Workbook,
     functions: FunctionSource,
-    options: { schedule?: Scheduler; onSettled?: () => void } = {},
+    options: {
+      schedule?: Scheduler;
+      onSettled?: () => void;
+      /** The ranges a chart reads (the model resolves its references). */
+      chartRanges?: (sheet: string, spec: unknown) => readonly ChartRange[];
+      /** Charts whose data settled: rebuilt once, after the slice their cells settled in. */
+      onCharts?: (charts: readonly { sheet: string; id: string }[]) => void;
+    } = {},
   ) {
     this.#workbook = workbook;
     this.#functions = functions;
     this.#functionsRevision = functions.revision;
     this.#schedule = options.schedule ?? defaultScheduler();
     this.#onSettled = options.onSettled ?? (() => undefined);
+    this.#chartRanges = options.chartRanges ?? (() => []);
+    this.#onCharts = options.onCharts ?? (() => undefined);
+  }
+
+  // ------------------------------------------------------------ charts
+
+  /** How many times a chart's data settled since it was registered; 0 for a chart the engine never saw. */
+  chartRevision(sheet: string, id: string): number {
+    return this.#chartRevisions.get(chartKey(sheet, id)) ?? 0;
+  }
+
+  /** The charts waiting for their cells to settle. */
+  markedCharts(): { sheet: string; id: string }[] {
+    return [...this.#markedCharts].map(chartOfKey);
+  }
+
+  #registerChart(sheet: string, id: string, spec: unknown): void {
+    const key = chartKey(sheet, id);
+    this.#unregisterChart(key);
+    const items: [number, ChartItem][] = [];
+    for (const r of this.#chartRanges(sheet, spec)) {
+      const n = this.#sheetNumber(r.sheet);
+      const item: ChartItem = {
+        minX: r.zone.left,
+        maxX: r.zone.right,
+        minY: r.zone.top,
+        maxY: r.zone.bottom,
+        chart: key,
+      };
+      let tree = this.#chartTrees.get(n);
+      if (tree === undefined) {
+        tree = new RBush<ChartItem>();
+        this.#chartTrees.set(n, tree);
+      }
+      tree.insert(item);
+      items.push([n, item]);
+    }
+    this.#chartItems.set(key, items);
+  }
+
+  #unregisterChart(key: string): void {
+    const items = this.#chartItems.get(key);
+    if (items === undefined) return;
+    for (const [n, item] of items) this.#chartTrees.get(n)?.remove(item, sameChartItem);
+    this.#chartItems.delete(key);
+  }
+
+  #markChartsAt(sheet: number, box: { minX: number; minY: number; maxX: number; maxY: number }) {
+    const tree = this.#chartTrees.get(sheet);
+    if (tree === undefined) return;
+    for (const item of tree.search(box)) this.#markedCharts.add(item.chart);
+  }
+
+  /**
+   * The marked charts whose cells settled: their revision moves and the model
+   * hears of them, once. Mid-pass (`final` false), a chart with a cell still
+   * waiting inside one of its ranges keeps waiting; the check scans the
+   * waiting cells, so past `CHART_PENDING_SCAN` of them every chart waits for
+   * the pass to end.
+   */
+  #settleCharts(final: boolean): void {
+    if (this.#markedCharts.size === 0) return;
+    const remaining = this.#pending.length - this.#next;
+    const settled: { sheet: string; id: string }[] = [];
+    for (const key of this.#markedCharts) {
+      if (!final && remaining > 0) {
+        if (remaining > CHART_PENDING_SCAN || this.#chartHasPending(key)) continue;
+      }
+      this.#markedCharts.delete(key);
+      if (!this.#chartItems.has(key)) continue; // deleted while marked
+      this.#chartRevisions.set(key, (this.#chartRevisions.get(key) ?? 0) + 1);
+      settled.push(chartOfKey(key));
+    }
+    if (settled.length > 0) this.#onCharts(settled);
+  }
+
+  #chartHasPending(key: string): boolean {
+    const items = this.#chartItems.get(key);
+    if (items === undefined) return false;
+    for (let i = this.#next; i < this.#pending.length; i += 1) {
+      const k = this.#pending[i];
+      const sheet = sheetOfKey(k);
+      const r = rowOfKey(k);
+      const c = colOfKey(k);
+      for (const [n, item] of items)
+        if (n === sheet && r >= item.minY && r <= item.maxY && c >= item.minX && c <= item.maxX)
+          return true;
+    }
+    return false;
   }
 
   /**
@@ -323,6 +464,19 @@ export class FormulaEngine {
     this.#mustReset = false;
     this.#awaited = new Map();
     this.#busy = 0;
+    // Charts are registered again from the workbook (their ranges were
+    // rewritten with the structure), and every one of them changed: the
+    // revisions move at once, silently, since what follows a reset is a
+    // change the model announces anyway.
+    this.#chartTrees.clear();
+    this.#chartItems.clear();
+    this.#markedCharts.clear();
+    for (const sheet of this.#workbook.sheets)
+      for (const [id, spec] of sheet.charts) {
+        this.#registerChart(sheet.id, id, spec);
+        const key = chartKey(sheet.id, id);
+        this.#chartRevisions.set(key, (this.#chartRevisions.get(key) ?? 0) + 1);
+      }
   }
 
   /** A patch is about to be applied: formulas it overwrites leave the graph. */
@@ -344,7 +498,21 @@ export class FormulaEngine {
 
   /** A patch was applied. */
   applied(p: Patch): void {
-    if (this.#mustReset || p.op !== 'cells') return;
+    if (this.#mustReset) return;
+    if (p.op === 'chart') {
+      const { sheet, id, after } = p as Patch & { sheet: string; id: string; after: unknown };
+      const key = chartKey(sheet, id);
+      if (after === null) {
+        this.#unregisterChart(key);
+        this.#markedCharts.delete(key);
+        this.#chartRevisions.delete(key);
+      } else {
+        this.#registerChart(sheet, id, after);
+        this.#markedCharts.add(key); // its ranges may have changed: it reads again
+      }
+      return;
+    }
+    if (p.op !== 'cells') return;
     const { sheet, zone } = p as Patch & { sheet: string; zone: Zone };
     this.#written.push([this.#sheetNumber(sheet), zone]);
   }
@@ -361,6 +529,8 @@ export class FormulaEngine {
     this.#written = [];
     for (const k of this.#volatile) this.#drop(k, dirty);
     this.#propagate(dirty);
+    // Nothing left to compute: the charts the step marked settle with it.
+    if (this.#next >= this.#pending.length) this.#settleCharts(true);
   }
 
   #zoneWritten(sheet: number, zone: Zone, dirty: number[]): void {
@@ -384,11 +554,10 @@ export class FormulaEngine {
           this.#readersOf(k, dirty);
       }
     }
+    const box = { minX: zone.left, minY: zone.top, maxX: zone.right, maxY: zone.bottom };
     const tree = this.#trees.get(sheet);
-    if (tree !== undefined) {
-      const box = { minX: zone.left, minY: zone.top, maxX: zone.right, maxY: zone.bottom };
-      for (const item of tree.search(box)) this.#drop(item.dependent, dirty);
-    }
+    if (tree !== undefined) for (const item of tree.search(box)) this.#drop(item.dependent, dirty);
+    this.#markChartsAt(sheet, box);
   }
 
   #readersOf(k: number, dirty: number[]): void {
@@ -417,13 +586,14 @@ export class FormulaEngine {
     for (let i = 0; i < dirty.length; i += 1) {
       const k = dirty[i];
       this.#readersOf(k, dirty);
-      const tree = this.#trees.get(sheetOfKey(k));
-      if (tree !== undefined) {
-        const r = rowOfKey(k);
-        const c = colOfKey(k);
-        for (const item of tree.search({ minX: c, minY: r, maxX: c, maxY: r }))
-          this.#drop(item.dependent, dirty);
-      }
+      const sheet = sheetOfKey(k);
+      const r = rowOfKey(k);
+      const c = colOfKey(k);
+      const point = { minX: c, minY: r, maxX: c, maxY: r };
+      const tree = this.#trees.get(sheet);
+      if (tree !== undefined)
+        for (const item of tree.search(point)) this.#drop(item.dependent, dirty);
+      this.#markChartsAt(sheet, point);
     }
     if (dirty.length === 0) return;
     if (this.#next >= this.#pending.length) {
@@ -451,9 +621,11 @@ export class FormulaEngine {
     if (this.#next < this.#pending.length) {
       this.#scheduled = true;
       this.#schedule(() => this.#slice());
+      this.#settleCharts(false);
     } else {
       this.#pending = [];
       this.#next = 0;
+      this.#settleCharts(true);
     }
   }
 
@@ -470,6 +642,7 @@ export class FormulaEngine {
     while (this.#next < this.#pending.length) this.#evaluatePending();
     this.#pending = [];
     this.#next = 0;
+    this.#settleCharts(true);
   }
 
   // ------------------------------------------------------------ reading

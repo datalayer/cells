@@ -307,6 +307,137 @@ export function refZone(
 
 const cellsOf = (z: Zone) => (z.bottom - z.top + 1) * (z.right - z.left + 1);
 
+/** The references of a chart: every range it reads (values, categories, x, and a name read from a cell). */
+export function chartRefs(spec: ChartSpec): Ref[] {
+  const refs: Ref[] = [];
+  for (const s of spec.data.series) {
+    refs.push(s.values);
+    if (s.categories !== undefined) refs.push(s.categories);
+    if (s.x !== undefined) refs.push(s.x);
+    if (s.name !== undefined && refAst(s.name) !== undefined) refs.push(s.name);
+  }
+  return refs;
+}
+
+/**
+ * The ranges a chart reads, resolved to sheets and zones: what the engine
+ * registers as the chart's precedents (§3.12). A `#REF!` range reads nothing.
+ */
+export function chartRanges(
+  workbook: Workbook,
+  sheet: string,
+  spec: ChartSpec,
+): { sheet: string; zone: Zone }[] {
+  const out: { sheet: string; zone: Zone }[] = [];
+  for (const ref of chartRefs(spec)) {
+    const r = refZone(workbook, sheet, ref);
+    if (r !== undefined) out.push(r);
+  }
+  return out;
+}
+
+// ------------------------------------------------------------------ the data
+
+/** One series as a chart draws it: numbers, with `null` for a gap. */
+export interface ChartSeriesData {
+  readonly name: string;
+  readonly values: readonly (number | null)[];
+  /** Scatter's x values, as long as `values`. */
+  readonly x?: readonly (number | null)[];
+  readonly type?: 'column' | 'line' | 'area';
+  readonly axis?: 'primary' | 'secondary';
+  readonly color?: string;
+  /** The range the values came from, for the description and *Show chart data*; `undefined` once deleted. */
+  readonly source?: Ref;
+}
+
+/** What a chart draws: the categories (of the first series naming some), and its series. */
+export interface ChartData {
+  readonly categories: readonly (string | number)[];
+  readonly series: readonly ChartSeriesData[];
+  /** The ranges that are `#REF!`: the chart draws an empty frame naming them. */
+  readonly deleted: readonly Ref[];
+}
+
+/** The cells of a zone in reading order: a column top down, a row left to right, a rectangle row by row. */
+function* cellsIn(z: Zone): IterableIterator<[number, number]> {
+  for (let r = z.top; r <= z.bottom; r += 1)
+    for (let c = z.left; c <= z.right; c += 1) yield [r, c];
+}
+
+/**
+ * The data of a chart, a pure function of the model's values: each series'
+ * numbers in reading order, with a gap (`null`) for an empty cell (or 0 when
+ * `blanks` is `zero`), a text, a boolean or an error (`#BUSY!` included: a
+ * cell still being fetched draws as a gap, then as its value). A series' name
+ * is its text, or the text of the cell it names, or "Series n".
+ */
+export function chartData(
+  read: (sheet: string, row: number, col: number) => CellValue,
+  workbook: Workbook,
+  sheet: string,
+  spec: ChartSpec,
+): ChartData {
+  const deleted: Ref[] = [];
+  const numbers = (ref: Ref | undefined): (number | null)[] | undefined => {
+    if (ref === undefined) return undefined;
+    const r = refZone(workbook, sheet, ref);
+    if (r === undefined) {
+      deleted.push(ref);
+      return [];
+    }
+    const out: (number | null)[] = [];
+    for (const [row, col] of cellsIn(r.zone)) {
+      const v = read(r.sheet, row, col);
+      if (typeof v === 'number') out.push(v);
+      else out.push(v === null && spec.data.blanks === 'zero' ? 0 : null);
+    }
+    return out;
+  };
+  const labels = (ref: Ref): (string | number)[] => {
+    const r = refZone(workbook, sheet, ref);
+    if (r === undefined) {
+      deleted.push(ref);
+      return [];
+    }
+    const out: (string | number)[] = [];
+    for (const [row, col] of cellsIn(r.zone)) {
+      const v = read(r.sheet, row, col);
+      out.push(typeof v === 'number' || typeof v === 'string' ? v : v === null ? '' : String(v));
+    }
+    return out;
+  };
+  let categories: (string | number)[] | undefined;
+  const series = spec.data.series.map((s, i) => {
+    if (categories === undefined && s.categories !== undefined) categories = labels(s.categories);
+    let name = `Series ${i + 1}`;
+    if (s.name !== undefined) {
+      if (refAst(s.name) === undefined) name = s.name;
+      else {
+        const r = refZone(workbook, sheet, s.name);
+        if (r === undefined) deleted.push(s.name);
+        else {
+          const v = read(r.sheet, r.zone.top, r.zone.left);
+          if (v !== null && typeof v !== 'object') name = String(v);
+        }
+      }
+    }
+    const values = numbers(s.values)!;
+    const x = numbers(s.x);
+    const deletedValues = refZone(workbook, sheet, s.values) === undefined;
+    return {
+      name,
+      values,
+      ...(x !== undefined ? { x } : {}),
+      ...(s.type !== undefined ? { type: s.type } : {}),
+      ...(s.axis !== undefined ? { axis: s.axis } : {}),
+      ...(s.color !== undefined ? { color: s.color } : {}),
+      ...(deletedValues ? {} : { source: s.values }),
+    };
+  });
+  return { categories: categories ?? [], series, deleted: [...new Set(deleted)] };
+}
+
 /** How many points a chart draws: the cells of its value ranges. */
 export function chartPoints(workbook: Workbook, sheet: string, spec: ChartSpec): number {
   let n = 0;
