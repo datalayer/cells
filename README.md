@@ -73,8 +73,8 @@ datalayer cells export budget.cells.json --format csv
 
 ```bash
 make examples       # http://127.0.0.1:3077
-# The dev server loads loro-crdt's WebAssembly through vite-plugin-wasm and
-# vite-plugin-top-level-await (devDependencies); a production build needs neither.
+# The dev server loads loro-crdt's WebAssembly through vite-plugin-wasm (a
+# devDependency) and a modern build target; a production build needs neither.
 ```
 
 A page with a menu of examples, from a few values to collaboration, each with

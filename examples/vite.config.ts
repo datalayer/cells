@@ -5,7 +5,6 @@
  */
 
 import react from '@vitejs/plugin-react';
-import topLevelAwait from 'vite-plugin-top-level-await';
 import wasm from 'vite-plugin-wasm';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
@@ -19,7 +18,7 @@ export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
   // loro-crdt (through ./collab and lexical-loro) is WebAssembly: the dev server needs
   // these two to load it; a production build does not.
-  plugins: [react(), wasm(), topLevelAwait()],
+  plugins: [react(), wasm()],
   optimizeDeps: { exclude: ['loro-crdt', '@datalayer/lexical-loro'] },
   resolve: {
     alias: [
@@ -51,6 +50,9 @@ export default defineConfig({
   },
   server: { port: PORT, strictPort: true, host: '127.0.0.1' },
   build: {
+    // loro-crdt's WebAssembly loads with a top-level await: the modern target carries it as is
+    // (vite-plugin-top-level-await's transform refused the production build's default target).
+    target: 'esnext',
     // Absolute: the dependency scan resolves the inputs from where the server
     // was started, not from the root (`make examples` starts it in the package).
     rollupOptions: {
