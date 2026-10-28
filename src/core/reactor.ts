@@ -23,6 +23,7 @@ import { CELLS_POINTS, CellsCommands, CellsPatchOps } from '../points/index.js';
 import { CORE_COMMANDS } from './commands.js';
 import { CORE_PATCH_OPS } from './patches.js';
 import { CHART_COMMANDS, chartOp } from './charts.js';
+import { bindDataSource, dataSourceOp } from './dataSources.js';
 import { CellsClipboardPlugin } from '../builtins/clipboard.js';
 import { CellsEditingPlugin } from '../builtins/editing.js';
 import { CellsFillPlugin } from '../builtins/fill.js';
@@ -44,10 +45,10 @@ export const CellsCorePlugin = definePlugin({
   octicon: 'table',
   contributionPoints: [...CELLS_POINTS],
   contributes: [
-    ...[...CORE_PATCH_OPS, chartOp].map((op) =>
+    ...[...CORE_PATCH_OPS, chartOp, dataSourceOp].map((op) =>
       contribution(CellsPatchOps, op, { id: op.op, order: 100 }),
     ),
-    ...[...CORE_COMMANDS, ...CHART_COMMANDS].map((handler) =>
+    ...[...CORE_COMMANDS, ...CHART_COMMANDS, bindDataSource].map((handler) =>
       contribution(CellsCommands, handler, { id: handler.type, order: 100 }),
     ),
   ],

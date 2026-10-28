@@ -304,6 +304,21 @@ def validate_workbook(data: Any, limits: dict[str, int] | None = None) -> dict[s
                 _fail(f"{p}.merges", "a list of zones")
             for j, z in enumerate(merges):
                 _check_zone(z, f"{p}.merges[{j}]", limits)
+        source = sheet.get("dataSource")
+        if source is not None:
+            dp = f"{p}.dataSource"
+            if not _is_object(source):
+                _fail(dp, "{ id, row, col, rows, cols }")
+            if not (isinstance(source.get("id"), str) and source["id"] != ""):
+                _fail(f"{dp}.id", "the id of a data source")
+            for k in ("row", "col", "rows", "cols"):
+                if not (_is_int(source.get(k)) and source[k] >= 0):
+                    _fail(f"{dp}.{k}", "a non-negative integer")
+            for k in ("rows", "cols"):
+                if source[k] < 1:
+                    _fail(f"{dp}.{k}", "at least 1")
+            if source["row"] + source["rows"] > limits["rows"] or source["col"] + source["cols"] > limits["cols"]:
+                _fail(dp, "reaches outside the sheet")
         frozen = sheet.get("frozen")
         if frozen is not None:
             ok = (

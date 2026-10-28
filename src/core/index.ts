@@ -90,6 +90,17 @@ export {
   snapshotOf,
 } from './patches.js';
 export { buildCellsReactor, CELLS_CORE_PLUGIN, cellsBuiltins, CellsCorePlugin } from './reactor.js';
+export {
+  type BindDataSourceCommand,
+  bindingZone,
+  type DataSourceBinding,
+  type DataSourceError,
+  type DataSourcePatch,
+  type DataSourceStats,
+  DEFAULT_RESIDENT_PAGES,
+  PAGE_ROWS,
+  type ResolvedDataSource,
+} from './dataSources.js';
 export { resolveCell, resolveRange, type ResolvedCell, type ResolvedRange } from './refs.js';
 export {
   addZone,

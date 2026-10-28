@@ -20,15 +20,23 @@ import {
   CellsCellTypes,
   CellsClipboard,
   CellsCommands,
+  CellsDataSources,
   CellsEditGate,
   CellsFunctions,
   type CellType,
   type CommandHandler,
+  type DataSource,
   type FormulaFunction,
   CellsPatchOps,
   PointTable,
   type Resolved,
 } from '../points/index.js';
+import {
+  type DataSourceError,
+  DataSourceStore,
+  type DataSourceStats,
+  type ResolvedDataSource,
+} from './dataSources.js';
 import { FormulaEngine } from '../formula/engine.js';
 import { type ChartData, chartData, chartRanges, type ChartSpec } from './charts.js';
 import type { CellContent } from './cells.js';
@@ -48,14 +56,26 @@ import type { Style } from './styles.js';
 import { type CellsWorkbook, loadInto, toJSON, validateWorkbook } from './format.js';
 import type { CellValue } from './values.js';
 import { DEFAULT_LIMITS, type Limits, type Sheet, Workbook } from './workbook.js';
-import type { Position, Zone } from './zone.js';
+import { type Position, type Zone, zonesOverlap, zoneToA1 } from './zone.js';
+
+const zoneHelpers = { zonesOverlap, zoneToA1 };
 
 /**
  * Where a change came from. `plugins`: no cell changed, but the formula
  * functions did (a plugin switched on or off), so formulas show other values.
  * `async`: no cell changed, but an asynchronous function's value arrived.
  */
-export type Origin = 'local' | 'undo' | 'redo' | 'remote' | 'load' | 'plugins' | 'async' | 'charts';
+export type Origin =
+  | 'local'
+  | 'undo'
+  | 'redo'
+  | 'remote'
+  | 'load'
+  | 'plugins'
+  | 'async'
+  | 'charts'
+  /** No patches: a data source's page arrived, failed or was evicted (C7-03). */
+  | 'source';
 
 /** One committed change: what listeners and `onChange` receive. */
 export interface Transaction {
@@ -82,6 +102,8 @@ export interface CellsModelOptions {
   readonly history?: Partial<HistoryLimits>;
   /** A `CellsWorkbook` to load; validated whole first, refused with the path of the first bad field. */
   readonly data?: unknown;
+  /** Data sources (C7-03): how many pages of 1,024 rows stay resident across the workbook; 256 by default. */
+  readonly dataSources?: { readonly pages?: number };
 }
 
 export type ChangeListener = (transaction: Transaction) => void;
@@ -126,6 +148,9 @@ export class CellsModel {
   readonly #patchOps: PointTable<PatchOp<any>>;
   readonly #functions: PointTable<FormulaFunction>;
   readonly #cellTypes: PointTable<CellType>;
+  readonly #dataSources: PointTable<DataSource>;
+  readonly #sourceStore: DataSourceStore;
+  readonly #sourceErrorListeners = new Set<(error: DataSourceError) => void>();
   readonly #engine: FormulaEngine;
   readonly #history: LocalHistory<SelectionState>;
   readonly #listeners = new Set<ChangeListener>();
@@ -203,7 +228,41 @@ export class CellsModel {
           throw new Error(`the cell type '${t.id}' lists the keys that activate it in activateOn`);
       },
     });
+    this.#dataSources = new PointTable(this.reactor, CellsDataSources, {
+      label: 'data source',
+      key: (d) => d.id,
+      check: (d) => {
+        if (typeof d.id !== 'string' || d.id === '') throw new Error('a data source has an id');
+        if (!(Number.isInteger(d.rowCount) && d.rowCount >= 0))
+          throw new Error(`the data source '${d.id}' has a rowCount, a non-negative integer`);
+        if (!Array.isArray(d.columns))
+          throw new Error(`the data source '${d.id}' lists its columns`);
+        if (typeof d.fetch !== 'function')
+          throw new Error(`the data source '${d.id}' has no fetch`);
+      },
+    });
+    const dataSources = this.#dataSources;
+    this.#sourceStore = new DataSourceStore(
+      this.workbook,
+      {
+        get revision() {
+          return dataSources.revision;
+        },
+        get: (id) => dataSources.get(id),
+      },
+      {
+        pages: options.dataSources?.pages,
+        onWritten: (sheet, zone) => {
+          this.#engine.written(sheet, zone);
+          this.#emit({ label: 'source', commands: [], patches: [], origin: 'source' });
+        },
+        onError: (error) => {
+          for (const l of [...this.#sourceErrorListeners]) l(error);
+        },
+      },
+    );
     const functions = this.#functions;
+    const sourceStore = this.#sourceStore;
     this.#engine = new FormulaEngine(
       this.workbook,
       {
@@ -213,6 +272,7 @@ export class CellsModel {
         get: (name) => functions.get(name)?.value,
       },
       {
+        sources: sourceStore,
         onSettled: () => this.#emit({ label: 'async', commands: [], patches: [], origin: 'async' }),
         chartRanges: (sheet, spec) => chartRanges(this.workbook, sheet, spec as ChartSpec),
         onCharts: (charts) => {
@@ -224,6 +284,7 @@ export class CellsModel {
     // Resolved now, so two plugins contributing one function name (or cell type id) are refused at once, by name.
     functions.keys();
     this.#cellTypes.keys();
+    this.#dataSources.keys();
     if (options.data !== undefined) {
       loadInto(this.workbook, options.data);
       // Values a file carries for its formulas are recomputed, not trusted.
@@ -239,11 +300,20 @@ export class CellsModel {
       const sameFunctions = now.length === known.length && now.every((f, i) => f === known[i]);
       const sameTypes =
         types.length === knownTypes.length && types.every((t, i) => t === knownTypes[i]);
-      if (sameFunctions && sameTypes) return;
+      // A bound sheet whose source came or went drops its pages (the store compares on resolve).
+      let sourcesMoved = false;
+      for (const sheet of this.workbook.sheets) {
+        if (sheet.dataSource === null) continue;
+        const before = this.#sourceStore.stats.resident + this.#sourceStore.stats.loading;
+        this.#sourceStore.resolve(sheet.id);
+        if (this.#sourceStore.stats.resident + this.#sourceStore.stats.loading !== before)
+          sourcesMoved = true;
+      }
+      if (sameFunctions && sameTypes && !sourcesMoved) return;
       known = now;
       knownTypes = types;
       // Formulas show other values, or typed cells draw otherwise: the view reads everything again.
-      if ((!sameFunctions && this.workbook.formulas.size > 0) || !sameTypes)
+      if ((!sameFunctions && this.workbook.formulas.size > 0) || !sameTypes || sourcesMoved)
         this.#emit({ label: 'plugins', commands: [], patches: [], origin: 'plugins' });
     });
   }
@@ -268,6 +338,9 @@ export class CellsModel {
       );
     }
     const patches = handler.value.apply(context, command);
+    // A bound data source's zone is read, never written: a command reaching into it is refused whole.
+    const blocked = this.#sourceStore.refuses(patches);
+    if (blocked !== undefined) return blocked;
     this.#applyAll(patches);
     if (this.#open) {
       this.#open.commands.push(command);
@@ -349,6 +422,7 @@ export class CellsModel {
     for (const sheet of this.workbook.sheets)
       for (const [row, col] of [...sheet.cells.entries()]) sheet.cells.set(row, col, null);
     this.workbook.sheets.length = 0;
+    this.#sourceStore.forgetAll();
     loadInto(this.workbook, data);
     this.#engine.reset();
     this.#history.clear();
@@ -383,6 +457,20 @@ export class CellsModel {
       throw new Error(
         `${columns.length} columns of ${height} rows at ${at.row},${at.col} do not fit sheet '${sheet}'.`,
       );
+    }
+    const bound = this.#sourceStore.zoneOf(sheet);
+    if (bound !== undefined) {
+      const zone = {
+        top: at.row,
+        left: at.col,
+        bottom: at.row + height - 1,
+        right: at.col + columns.length - 1,
+      };
+      const { zonesOverlap, zoneToA1 } = zoneHelpers;
+      if (zonesOverlap(bound, zone))
+        throw new Error(
+          `${zoneToA1(zone)} reaches ${zoneToA1(bound)}, which shows the data source '${s.dataSource!.id}' and cannot be loaded into.`,
+        );
     }
     const styleOf = new Map<string, number>();
     columns.forEach((values, dc) => {
@@ -704,6 +792,42 @@ export class CellsModel {
   }
 
   /**
+   * A sheet's data source (C7-03): its binding and zone, the contribution
+   * when an enabled plugin provides it with the bound shape, else the
+   * sentence its cells show; `undefined` for a sheet bound to none.
+   */
+  dataSource(sheet: string): ResolvedDataSource | undefined {
+    return this.#sourceStore.resolve(sheet);
+  }
+
+  /** The ids of the data sources plugins contribute, sorted. */
+  dataSourceIds(): string[] {
+    return [...this.#dataSources.keys()].sort();
+  }
+
+  /** A data source by its id, or `undefined`. */
+  dataSourceOf(id: string): Resolved<DataSource> | undefined {
+    return this.#dataSources.get(id);
+  }
+
+  /** The page cache: pages resident, loading and failed, fetches and evictions so far, and the capacity. */
+  dataSourceStats(): DataSourceStats & { capacity: number } {
+    return { ...this.#sourceStore.stats, capacity: this.#sourceStore.capacity };
+  }
+
+  /** Drop a sheet's pages, failed ones included: they are read again on demand. */
+  refreshDataSource(sheet: string): void {
+    this.workbook.sheet(sheet);
+    this.#sourceStore.forget(sheet);
+  }
+
+  /** Called when a data source's page fails (`onDataSourceError`); returns the unsubscriber. */
+  subscribeDataSourceErrors(listener: (error: DataSourceError) => void): () => void {
+    this.#sourceErrorListeners.add(listener);
+    return () => this.#sourceErrorListeners.delete(listener);
+  }
+
+  /**
    * How many times a chart's data settled (§3.12): what a drawing memoises
    * on, with the spec. It moves once per recalculation slice at most, after
    * the slice the chart's cells settled in; a change with no formula pending
@@ -806,6 +930,7 @@ export class CellsModel {
         const op = this.#patchOps.get(p.op);
         if (op === undefined) throw new Error(`No plugin registers the patch op '${p.op}'.`);
         this.#engine.willApply(p);
+        this.#sourceStore.willApply(p);
         op.value.apply(this.workbook, p);
         this.#engine.applied(p);
         applied.push(p);

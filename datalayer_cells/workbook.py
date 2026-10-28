@@ -170,7 +170,7 @@ class Workbook:
                     out["s"] = used[s]
                 rows.setdefault(str(r), {"cells": {}})["cells"][str(c)] = out
             item: dict[str, Any] = {"id": sheet["id"], "name": sheet["name"], "rows": rows}
-            for key in ("sizes", "hidden", "merges", "frozen", "charts"):
+            for key in ("sizes", "hidden", "merges", "frozen", "charts", "dataSource"):
                 if key in sheet and sheet[key]:
                     if key == "frozen" and sheet[key] == {"rows": 0, "cols": 0}:
                         continue

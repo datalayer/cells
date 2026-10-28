@@ -247,6 +247,7 @@ export class CanvasRenderer {
       locale: this.#locale,
       value: (row: number, col: number) => this.#model.value(sheet.id, row, col),
       cellType: (id: string) => this.#model.cellTypeOf(id)?.value,
+      bound: this.#model.dataSource(sheet.id)?.zone,
     };
     let painted = { cells: 0, texts: 0 };
     const main = vp.panes.find((p) => p.name === 'main')!;
@@ -371,7 +372,10 @@ export class CanvasRenderer {
     this.#viewport = null;
     if (!this.#model.workbook.hasSheet(this.#sheet)) this.#sheet = this.#model.selection.sheet;
     let rows =
-      tx.origin === 'load' || tx.origin === 'plugins' || tx.origin === 'async'
+      tx.origin === 'load' ||
+      tx.origin === 'plugins' ||
+      tx.origin === 'async' ||
+      tx.origin === 'source'
         ? 'all'
         : rowsTouched(tx.patches, this.#sheet);
     // A changed cell may change any formula: the whole view, until the dependency graph says which.

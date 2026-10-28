@@ -40,6 +40,7 @@ import {
   useState,
 } from 'react';
 import type { Command, CommandResult } from '../core/commands.js';
+import type { DataSourceError } from '../core/dataSources.js';
 import type { CellsWorkbook } from '../core/format.js';
 import {
   type CellsModel,
@@ -143,6 +144,8 @@ export interface SpreadsheetProps {
   readonly onChange?: (transaction: Transaction) => void;
   readonly onSelectionChange?: (selection: SelectionState) => void;
   readonly onCommandRejected?: (result: CommandResult & { ok: false }) => void;
+  /** A data source's page failed (C7-03): which source, which rows, and the error; its cells show `#N/A`. */
+  readonly onDataSourceError?: (error: DataSourceError) => void;
   readonly onCellClick?: (cell: CellRef, event: React.PointerEvent) => void;
   readonly onContextMenu?: (cell: CellRef, event: React.MouseEvent) => void;
   readonly onViewportChange?: (view: {
@@ -175,7 +178,14 @@ function errorMeaning(code: string): string {
 /** The accessible name of a cell: what it shows, then its formula, then what an error means. */
 export function accessibleName(model: CellsModel, sheet: string, row: number, col: number): string {
   const content = model.content(sheet, row, col);
-  if (content === null) return '';
+  if (content === null) {
+    // A bound cell whose page is away says so (`#BUSY!`), or is empty.
+    const bound = model.dataSource(sheet)?.zone;
+    if (bound === undefined || !zoneContains(bound, { row, col })) return '';
+    const away = model.value(sheet, row, col);
+    if (away === null) return '';
+    return isCellError(away) ? `${away.error}, ${errorMeaning(away.error)}` : display(away).text;
+  }
   const value: CellValue = model.value(sheet, row, col);
   const style = model.style(sheet, row, col);
   const type = model.cellType(sheet, row, col)?.value;
@@ -414,6 +424,9 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
         props_.current.onChange?.(tx);
         syncView();
       });
+      const c = model.subscribeDataSourceErrors((error) => {
+        props_.current.onDataSourceError?.(error);
+      });
       const b = model.subscribeSelection((s) => {
         setRevision((n) => n + 1);
         props_.current.onSelectionChange?.(s);
@@ -425,6 +438,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
       return () => {
         a();
         b();
+        c();
       };
     }, [model, syncView]);
 

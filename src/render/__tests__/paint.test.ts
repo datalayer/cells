@@ -10,7 +10,14 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { type CellsModel, createCellsModel, type Style } from '../../core/index.js';
+import { contribution, definePlugin } from '@datalayer/reactor';
+import {
+  type CellsModel,
+  CellsDataSources,
+  createCellsModel,
+  type DataSource,
+  type Style,
+} from '../../core/index.js';
 import { exportPortableTheme } from '@datalayer/primer-addons/lib/theme/portable';
 import { themeFromVariables } from '../../react/theme.js';
 import { DARK_THEME, FORCED_COLORS_THEME } from '../theme.js';
@@ -143,6 +150,48 @@ describe('the paint rules', async () => {
       }),
       'cell-types-forced',
     );
+  });
+
+  it('draws a data source: #BUSY! in a page on its way, the values once it arrived, plain cells around', async () => {
+    const orders: DataSource = {
+      id: 'orders',
+      rowCount: 2_000,
+      columns: [{ name: 'id' }, { name: 'name' }],
+      fetch: ({ from, to }) =>
+        new Promise((resolve) =>
+          setTimeout(
+            () =>
+              resolve([
+                Array.from({ length: to - from + 1 }, (_, i) => from + i + 1),
+                Array.from({ length: to - from + 1 }, (_, i) => `Order ${from + i + 1}`),
+              ]),
+            10,
+          ),
+        ),
+    };
+    const m = createCellsModel({
+      plugins: [
+        definePlugin({
+          name: '@acme/orders',
+          contributes: [contribution(CellsDataSources, orders, { id: 'orders' })],
+        }),
+      ],
+      limits: { rows: 5_000, cols: 30 },
+    });
+    m.dispatch({
+      type: 'SET_CELLS',
+      sheet: 's1',
+      at: { row: 0, col: 0 },
+      cells: [['Orders', 'Id', 'Name']],
+    });
+    m.dispatch({ type: 'BIND_DATA_SOURCE', sheet: 's1', source: 'orders', at: { row: 1, col: 1 } });
+    // Painted before the page arrives: the bound cells say #BUSY!, and the paint asked for the page.
+    const busy = paint(m, { width: 320, height: 120 });
+    expect(m.dataSourceStats()).toMatchObject({ loading: 1, fetches: 1 });
+    await expectSnapshot(busy, 'data-source-busy');
+    await new Promise((r) => setTimeout(r, 50));
+    await expectSnapshot(paint(m, { width: 320, height: 120 }), 'data-source');
+    expect(m.dataSourceStats()).toMatchObject({ resident: 1, fetches: 1 });
   });
 
   it('splits frozen panes, scrolls only the main pane, and draws the frozen edges', async () => {

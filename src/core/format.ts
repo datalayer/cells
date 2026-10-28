@@ -18,7 +18,8 @@ import { type ChartSpec, checkChart } from './charts.js';
 import { checkStyle, type Style } from './styles.js';
 import { type CellValue, cellError, isCellError, isErrorCode } from './values.js';
 import { DEFAULT_LIMITS, type Limits, type Workbook } from './workbook.js';
-import type { Zone } from './zone.js';
+import { type Zone, zoneContains } from './zone.js';
+import { boundZone } from './dataSources.js';
 
 export const FORMAT_VERSION = 1;
 
@@ -47,6 +48,14 @@ export interface CellsSheet {
   readonly frozen?: { readonly rows: number; readonly cols: number };
   /** Charts by id (§3.12). */
   readonly charts?: Readonly<Record<string, ChartSpec>>;
+  /** The data source bound to the sheet (C7-03): which, where its first cell lands, and its shape; its rows are not in the file. */
+  readonly dataSource?: {
+    readonly id: string;
+    readonly row: number;
+    readonly col: number;
+    readonly rows: number;
+    readonly cols: number;
+  };
 }
 
 export interface CellsWorkbook {
@@ -189,6 +198,22 @@ export function validateWorkbook(data: unknown, limits: Limits = DEFAULT_LIMITS)
           fail(`${cp}.id`, `the chart is filed under '${id}' and says '${spec.id}'`);
       }
     }
+    if (sheet.dataSource !== undefined) {
+      const d = sheet.dataSource as Record<string, unknown>;
+      const dp = `${p}.dataSource`;
+      if (!isObject(d)) fail(dp, '{ id, row, col, rows, cols }');
+      if (typeof d.id !== 'string' || d.id === '') fail(`${dp}.id`, 'the id of a data source');
+      for (const k of ['row', 'col', 'rows', 'cols'] as const)
+        if (!Number.isInteger(d[k]) || (d[k] as number) < 0)
+          fail(`${dp}.${k}`, 'a non-negative integer');
+      for (const k of ['rows', 'cols'] as const)
+        if ((d[k] as number) < 1) fail(`${dp}.${k}`, 'at least 1');
+      if (
+        (d.row as number) + (d.rows as number) > limits.rows ||
+        (d.col as number) + (d.cols as number) > limits.cols
+      )
+        fail(dp, 'reaches outside the sheet');
+    }
     if (sheet.frozen !== undefined) {
       const f = sheet.frozen;
       if (
@@ -238,6 +263,14 @@ export function loadInto(workbook: Workbook, data: unknown): void {
     sheet.merges = (s.merges ?? []).map((z) => ({ ...z }));
     for (const [id, chart] of Object.entries(s.charts ?? {})) sheet.charts.set(id, chart);
     sheet.frozen = s.frozen ? { rows: s.frozen.rows, cols: s.frozen.cols } : { rows: 0, cols: 0 };
+    sheet.dataSource = s.dataSource
+      ? {
+          id: s.dataSource.id,
+          at: { row: s.dataSource.row, col: s.dataSource.col },
+          rows: s.dataSource.rows,
+          cols: s.dataSource.cols,
+        }
+      : null;
     workbook.sheets.push(sheet);
   }
 }
@@ -257,7 +290,11 @@ export function toJSON(workbook: Workbook): CellsWorkbook {
   };
   const sheets = workbook.sheets.map((sheet): CellsSheet => {
     const rows: Record<string, { cells: Record<string, CellsCell> }> = {};
-    const entries = [...sheet.cells.entries()].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    // A data source's rows are read, never saved: the cells of its zone stay out of the file.
+    const bound = boundZone(sheet);
+    const entries = [...sheet.cells.entries()]
+      .filter(([row, col]) => bound === undefined || !zoneContains(bound, { row, col }))
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
     for (const [row, col, c] of entries) {
       const cell: { v?: JsonValue; f?: string; s?: number } = {};
       if (c.value !== null) cell.v = toJsonValue(c.value);
@@ -283,6 +320,14 @@ export function toJSON(workbook: Workbook): CellsWorkbook {
     if (sheet.merges.length > 0) out.merges = sheet.merges.map((z) => ({ ...z }));
     if (sheet.frozen.rows > 0 || sheet.frozen.cols > 0) out.frozen = { ...sheet.frozen };
     if (sheet.charts.size > 0) out.charts = Object.fromEntries(sheet.charts);
+    if (sheet.dataSource !== null)
+      out.dataSource = {
+        id: sheet.dataSource.id,
+        row: sheet.dataSource.at.row,
+        col: sheet.dataSource.at.col,
+        rows: sheet.dataSource.rows,
+        cols: sheet.dataSource.cols,
+      };
     return out;
   });
   return { version: FORMAT_VERSION, sheets, styles };

@@ -21,6 +21,7 @@ import Collaboration from './examples/09-collaboration';
 import Chrome from './examples/10-chrome';
 import Charts from './examples/11-charts';
 import CellTypes from './examples/12-cell-types';
+import DataSources from './examples/13-data-sources';
 
 const SOURCES = import.meta.glob('./examples/*.tsx', {
   query: '?raw',
@@ -78,6 +79,12 @@ export const EXAMPLES: readonly Example[] = [
   },
   { id: 'charts', title: 'Charts', file: '11-charts.tsx', Component: Charts },
   { id: 'cell-types', title: 'Cell types', file: '12-cell-types.tsx', Component: CellTypes },
+  {
+    id: 'data-sources',
+    title: 'Data sources',
+    file: '13-data-sources.tsx',
+    Component: DataSources,
+  },
 ];
 
 function useRoute(): string {

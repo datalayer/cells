@@ -39,6 +39,7 @@ export interface PresenceIds {
 import type { CellsPatch, Patch } from '../core/patches.js';
 import { snapshotEntries } from '../core/patches.js';
 import type { Style } from '../core/styles.js';
+import type { DataSourceBinding, DataSourcePatch } from '../core/dataSources.js';
 import { isCellError } from '../core/values.js';
 import type { Zone } from '../core/zone.js';
 import { tokenize } from '../formula/tokens.js';
@@ -316,6 +317,19 @@ export class LoroBinding {
     map.set('frozen', sheet.frozen ?? { rows: 0, cols: 0 });
     this.#axisMap(sheet.id, 'rows');
     this.#axisMap(sheet.id, 'cols');
+    if (sheet.dataSource !== undefined)
+      map.set(
+        'dataSource',
+        this.#dataSourceToIds(
+          {
+            id: sheet.dataSource.id,
+            at: { row: sheet.dataSource.row, col: sheet.dataSource.col },
+            rows: sheet.dataSource.rows,
+            cols: sheet.dataSource.cols,
+          },
+          sheet.id,
+        ),
+      );
     const cells = this.#cells(sheet.id);
     for (const [r, row] of Object.entries(sheet.rows))
       for (const [c, cell] of Object.entries(row.cells)) {
@@ -352,6 +366,30 @@ export class LoroBinding {
     if (s.axis !== undefined) out.axis = s.axis;
     if (s.color !== undefined) out.color = s.color;
     return out;
+  }
+
+  #dataSourceToIds(b: DataSourceBinding, sheet: string): Record<string, string | number> {
+    return {
+      id: b.id,
+      r: this.#order(sheet, 'rows').idAt(b.at.row)!,
+      c: this.#order(sheet, 'cols').idAt(b.at.col)!,
+      rows: b.rows,
+      cols: b.cols,
+    };
+  }
+
+  /** A sheet's data source binding at the current positions; dropped when its anchor's row or column is gone. */
+  #readDataSource(sheet: string): CellsSheet['dataSource'] | undefined {
+    const raw = this.#sheetMap(sheet).get('dataSource') as
+      { id: string; r: string; c: string; rows: number; cols: number } | undefined;
+    if (raw === undefined || typeof raw !== 'object' || typeof raw.id !== 'string')
+      return undefined;
+    const row = this.#order(sheet, 'rows').positionOf(raw.r);
+    const col = this.#order(sheet, 'cols').positionOf(raw.c);
+    if (row === undefined || col === undefined) return undefined;
+    if (row + raw.rows > this.#count('rows') || col + raw.cols > this.#count('cols'))
+      return undefined;
+    return { id: raw.id, row, col, rows: raw.rows, cols: raw.cols };
   }
 
   #anchorToIds(a: ChartAnchor, sheet: string): Record<string, unknown> {
@@ -618,6 +656,13 @@ export class LoroBinding {
         this.#sheetMap(a.sheet).set('frozen', a.after);
         return;
       }
+      case 'dataSource': {
+        // The binding on ids: a peer's insert above the anchor leaves it on the same cell.
+        const a = p as unknown as DataSourcePatch;
+        if (a.after === null) this.#sheetMap(a.sheet).delete('dataSource');
+        else this.#sheetMap(a.sheet).set('dataSource', this.#dataSourceToIds(a.after, a.sheet));
+        return;
+      }
       case 'chart': {
         const a = p as unknown as ChartPatch;
         // A delete wins over a concurrent edit: the map goes, and an edit of a gone chart recreates nothing.
@@ -763,6 +808,7 @@ export class LoroBinding {
         if (inside && (zone.top !== zone.bottom || zone.left !== zone.right)) merges.push(zone);
       }
       const charts = this.#readCharts(id);
+      const dataSource = this.#readDataSource(id);
       return {
         id,
         name: names.get(id) ?? id,
@@ -771,6 +817,7 @@ export class LoroBinding {
         hidden,
         merges: disjoint(merges),
         ...(Object.keys(charts).length > 0 ? { charts } : {}),
+        ...(dataSource !== undefined ? { dataSource } : {}),
         frozen: (map.get('frozen') as { rows: number; cols: number } | undefined) ?? {
           rows: 0,
           cols: 0,

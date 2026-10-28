@@ -47,6 +47,11 @@ export interface PaintInput {
   readonly value: (row: number, col: number) => CellValue;
   /** The cell type of that id (§3.11), when a plugin contributes it; a cell whose style names one is drawn by it. */
   readonly cellType?: (id: string) => CellType | undefined;
+  /**
+   * The zone a data source is bound to (C7-03): its empty cells are read through `value`, which
+   * requests their page and shows `#BUSY!` meanwhile (or `#N/A` once it failed).
+   */
+  readonly bound?: Zone;
   /** Decimal and group separators, month and day names; en-US by default. */
   readonly locale?: NumberLocale;
   /** Only this rectangle (view px) is repainted; the whole canvas by default. */
@@ -257,9 +262,18 @@ function paintPane(input: PaintInput, pane: Pane, stats: PaintStats): void {
       if (sheet.cols.effectiveSizeOf(c) > 0) lookback.unshift(c);
     }
     const scan = [...lookback, ...cols];
+    const bound = input.bound;
+    const inBound = bound !== undefined && r >= bound.top && r <= bound.bottom;
     for (let k = 0; k < scan.length; k += 1) {
       const c = scan[k];
-      const content = sheet.cells.get(r, c);
+      let content = sheet.cells.get(r, c);
+      if (content === null && inBound && c >= bound.left && c <= bound.right) {
+        // A bound cell whose page is away: read it (which asks for the page) and show what it says.
+        const away = input.value(r, c);
+        if (away === null) continue;
+        content = { value: away, style: 0 };
+        stats.cells += 1;
+      }
       if (content === null || isEmpty(content) || inMerge(r, c)) continue;
       const style = styles.get(content.style);
       const cell = rect(r, c);

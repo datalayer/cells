@@ -57,6 +57,10 @@ export const CORE_EXPORTS: Readonly<Record<string, Surface>> = {
   firstContribution: hook('useSingleContribution'),
   optionalContribution: hook('useSingleContribution'),
   CellsFunctionsPlugin: hook('useCellsReactor'),
+  // Data sources (§3.11, C7-03): a sheet's binding and pages through useDataSource
+  bindingZone: hook('useDataSource'),
+  DEFAULT_RESIDENT_PAGES: reexport,
+  PAGE_ROWS: reexport,
   // Cell types (§3.11): resolved per cell through useCellType
   CellsCellTypesPlugin: hook('useCellsReactor'),
   CELLS_CELL_TYPES_PLUGIN: hook('usePlugin'),
@@ -190,6 +194,12 @@ export const MODEL_MEMBERS: Readonly<Record<string, Surface>> = {
   cellType: hook('useCellType'),
   cellTypeOf: hook('useCellType'),
   cellTypeIds: hook('useContributions'),
+  dataSource: hook('useDataSource'),
+  dataSourceIds: hook('useContributions'),
+  dataSourceOf: hook('useContributions'),
+  dataSourceStats: hook('useDataSource'),
+  refreshDataSource: hook('useDataSource'),
+  subscribeDataSourceErrors: hook('useDataSource'),
   toJSON: hook('useExport'),
   toRows: hook('useExport'),
   loadColumns: hook('useLoad'),

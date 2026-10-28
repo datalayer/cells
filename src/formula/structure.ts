@@ -170,6 +170,19 @@ export function formulaPatches(
     }
   }
   out.push(...chartPatches(workbook, sheet, axis, change));
+  const binding = workbook.sheet(sheet).dataSource;
+  if (binding !== null) {
+    // A data source's anchor follows rows and columns inserted or deleted before it (a change inside its zone is refused).
+    const field = axis === 'rows' ? 'row' : 'col';
+    const placed = placeIndex(change, binding.at[field]);
+    if (placed !== undefined && placed !== binding.at[field])
+      out.push({
+        op: 'dataSource',
+        sheet,
+        before: binding,
+        after: { ...binding, at: { ...binding.at, [field]: placed } },
+      } as unknown as Patch);
+  }
   return out;
 }
 

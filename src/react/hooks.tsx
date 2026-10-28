@@ -20,6 +20,7 @@ import {
   type ReactNode,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -66,6 +67,7 @@ import {
   optionalContribution,
   firstContribution,
 } from '../points/index.js';
+import type { DataSourceError, DataSourceStats, ResolvedDataSource } from '../core/dataSources.js';
 
 const CellsContext = createContext<CellsModel | null>(null);
 
@@ -206,6 +208,41 @@ export function useCellType(ref: string): Resolved<CellType> | undefined {
     },
     [ref, revision],
   );
+}
+
+/**
+ * A sheet's data source (C7-03; the selection's sheet by default): its
+ * binding resolved against the plugins, the page cache's counters, the last
+ * page failure, and `bind` / `unbind` / `refresh`. Read again as pages arrive.
+ */
+export function useDataSource(sheet?: string): {
+  source: ResolvedDataSource | undefined;
+  stats: DataSourceStats & { capacity: number };
+  lastError: DataSourceError | undefined;
+  bind: (id: string, at?: Position) => CommandResult;
+  unbind: () => CommandResult;
+  refresh: () => void;
+} {
+  const model = useCells();
+  const revision = useReactorRevision();
+  const [lastError, setLastError] = useState<DataSourceError | undefined>(undefined);
+  useEffect(() => model.subscribeDataSourceErrors(setLastError), [model]);
+  const id = sheet ?? model.selection.sheet;
+  const read = useDerived(
+    (m) => ({ source: m.dataSource(id), stats: m.dataSourceStats() }),
+    [id, revision],
+  );
+  const bind = useCallback(
+    (source: string, at?: Position) =>
+      model.dispatch({ type: 'BIND_DATA_SOURCE', sheet: id, source, at }),
+    [model, id],
+  );
+  const unbind = useCallback(
+    () => model.dispatch({ type: 'BIND_DATA_SOURCE', sheet: id, source: null }),
+    [model, id],
+  );
+  const refresh = useCallback(() => model.refreshDataSource(id), [model, id]);
+  return { ...read, lastError, bind, unbind, refresh };
 }
 
 /** Run commands of a type: `useCommand('INSERT_AXIS')(args)`. Returns the result, refusals and all. */

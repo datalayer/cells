@@ -30,8 +30,9 @@ import type { FormulaEntry } from '../core/cells.js';
 import type { CellValue } from '../core/values.js';
 import type { Patch } from '../core/patches.js';
 import type { Workbook } from '../core/workbook.js';
-import type { Zone } from '../core/zone.js';
+import { type Zone, zonesOverlap } from '../core/zone.js';
 import type { FormulaFunction, FunctionContext } from '../points/index.js';
+import type { SourceReads } from '../core/dataSources.js';
 import type { Ast } from './ast.js';
 import { type Compiled, compile, type Evaluation, scalar } from './compile.js';
 import { shapeOf } from './normal.js';
@@ -265,6 +266,7 @@ export class FormulaEngine {
   readonly #chartRevisions = new Map<string, number>();
   readonly #chartRanges: (sheet: string, spec: unknown) => readonly ChartRange[];
   readonly #onCharts: (charts: readonly { sheet: string; id: string }[]) => void;
+  readonly #sources: SourceReads | undefined;
 
   constructor(
     workbook: Workbook,
@@ -276,6 +278,8 @@ export class FormulaEngine {
       chartRanges?: (sheet: string, spec: unknown) => readonly ChartRange[];
       /** Charts whose data settled: rebuilt once, after the slice their cells settled in. */
       onCharts?: (charts: readonly { sheet: string; id: string }[]) => void;
+      /** Data sources (C7-03): what a cell in a bound zone shows while its page is away, and the pages a range needs. */
+      sources?: SourceReads;
     } = {},
   ) {
     this.#workbook = workbook;
@@ -285,6 +289,20 @@ export class FormulaEngine {
     this.#onSettled = options.onSettled ?? (() => undefined);
     this.#chartRanges = options.chartRanges ?? (() => []);
     this.#onCharts = options.onCharts ?? (() => undefined);
+    this.#sources = options.sources;
+  }
+
+  /**
+   * A data source wrote (or emptied) a zone of cells outside any patch: the
+   * formulas reading it recalculate, as after a change. Nothing to do when
+   * a structural reset is pending (everything recalculates then).
+   */
+  written(sheet: string, zone: Zone): void {
+    if (this.#mustReset) return;
+    const dirty: number[] = [];
+    this.#zoneWritten(this.#sheetNumber(sheet), zone, dirty);
+    this.#propagate(dirty);
+    if (this.#next >= this.#pending.length) this.#settleCharts(true);
   }
 
   // ------------------------------------------------------------ charts
@@ -653,6 +671,11 @@ export class FormulaEngine {
     const cells = this.#workbook.sheet(sheet).cells;
     const f = cells.formulaAt(row, col);
     if (f === undefined) {
+      // A cell of a bound zone: its page is away (`#BUSY!`), failed (`#N/A`), or resident (the value).
+      if (this.#sources !== undefined) {
+        const away = this.#sources.missing(sheet, row, col);
+        if (away !== undefined) return away;
+      }
       const n = cells.numberAt(row, col);
       if (n !== undefined) return n;
       return cells.get(row, col)?.value ?? null;
@@ -675,9 +698,14 @@ export class FormulaEngine {
   /** A reference's values as rows, bounded by the last row holding something in its columns. */
   read(ref: Reference): CellValue[][] {
     const cells = this.#workbook.sheet(ref.sheet).cells;
+    const blocked = this.#sources?.ensureZone(ref.sheet, ref.zone);
+    if (blocked !== undefined) return [[blocked]];
     let last = -1;
     for (let c = ref.zone.left; c <= ref.zone.right; c += 1)
       last = Math.max(last, cells.lastRowIn(c));
+    const bound = this.#sources?.zoneOf(ref.sheet);
+    if (bound !== undefined && bound.left <= ref.zone.right && bound.right >= ref.zone.left)
+      last = Math.max(last, Math.min(bound.bottom, ref.zone.bottom));
     const bottom = Math.min(ref.zone.bottom, Math.max(last, ref.zone.top));
     const rows: CellValue[][] = [];
     for (let r = ref.zone.top; r <= bottom; r += 1) {
@@ -701,6 +729,12 @@ export class FormulaEngine {
     for (const c of cells.columnIndexes()) if (c <= z.right && c > lastCol) lastCol = c;
     let lastRow = z.top;
     for (let c = z.left; c <= lastCol; c += 1) lastRow = Math.max(lastRow, cells.lastRowIn(c));
+    // A bound zone holds rows whether or not their pages are resident.
+    const bound = this.#sources?.zoneOf(ref.sheet);
+    if (bound !== undefined && isReference(ref) && zonesOverlap(bound, z)) {
+      lastRow = Math.max(lastRow, Math.min(bound.bottom, z.bottom));
+      lastCol = Math.max(lastCol, Math.min(bound.right, z.right));
+    }
     const bottom = Math.min(z.bottom, lastRow);
     const right = Math.min(z.right, lastCol);
     if (bottom === z.bottom && right === z.right) return ref;
@@ -713,6 +747,8 @@ export class FormulaEngine {
   }
 
   #referenceValues(ref: Reference): CellValue[] {
+    const blocked = this.#sources?.ensureZone(ref.sheet, ref.zone);
+    if (blocked !== undefined) return [blocked];
     const out: CellValue[] = [];
     this.#workbook.sheet(ref.sheet).cells.scan(ref.zone, (row, col, value, formula) => {
       const v = formula ? this.value(ref.sheet, row, col) : value;

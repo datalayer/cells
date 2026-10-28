@@ -14,6 +14,7 @@
 
 import { Axis } from './axis.js';
 import type { ChartSpec } from './charts.js';
+import type { DataSourceBinding } from './dataSources.js';
 import { FormulaTable, SheetCells } from './cells.js';
 import { StringPool } from './strings.js';
 import { StyleTable } from './styles.js';
@@ -50,6 +51,8 @@ export class Sheet {
   frozen: Frozen = { rows: 0, cols: 0 };
   /** Charts, by id (§3.12): data, like merges; drawing them is `./charts`. */
   readonly charts = new Map<string, ChartSpec>();
+  /** The data source bound to the sheet (§3.11, C7-03), or none; its rows are read in pages, not stored. */
+  dataSource: DataSourceBinding | null = null;
 
   constructor(id: string, name: string, limits: Limits, cells: SheetCells) {
     this.id = id;

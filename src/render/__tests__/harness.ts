@@ -71,6 +71,7 @@ export function paint(model: CellsModel, shot: Shot = {}): Canvas {
     showGridlines: shot.showGridlines ?? true,
     value: (row, col) => model.value(sheet.id, row, col),
     cellType: (id) => model.cellTypeOf(id)?.value,
+    bound: model.dataSource(sheet.id)?.zone,
   });
   if (shot.overlay) {
     const overlay = createCanvas(width * dpr, height * dpr);

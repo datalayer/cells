@@ -74,3 +74,20 @@ def test_a_cell_type_is_a_style_property():
     assert Workbook(wb.to_json()).to_json() == wb.to_json()
     with pytest.raises(Exception, match=r"style\.type: the id of a cell type, a non-empty string"):
         wb.style("A1", {"type": ""})
+
+
+def test_a_data_source_binding_is_carried_and_validated():
+    wb = Workbook.from_rows([["Orders"]])
+    data = wb.to_json()
+    data["sheets"][0]["dataSource"] = {"id": "orders", "row": 2, "col": 1, "rows": 100, "cols": 3}
+    again = Workbook(data)
+    assert again.to_json()["sheets"][0]["dataSource"] == {"id": "orders", "row": 2, "col": 1, "rows": 100, "cols": 3}
+    for bad, message in [
+        ({"id": "", "row": 0, "col": 0, "rows": 1, "cols": 1}, r"sheets\[0\]\.dataSource\.id: the id of a data source"),
+        ({"id": "x", "row": -1, "col": 0, "rows": 1, "cols": 1}, r"sheets\[0\]\.dataSource\.row: a non-negative integer"),
+        ({"id": "x", "row": 0, "col": 0, "rows": 0, "cols": 1}, r"sheets\[0\]\.dataSource\.rows: at least 1"),
+        ({"id": "x", "row": 0, "col": 0, "rows": 2_000_000, "cols": 1}, r"sheets\[0\]\.dataSource: reaches outside the sheet"),
+    ]:
+        data["sheets"][0]["dataSource"] = bad
+        with pytest.raises(Exception, match=message):
+            Workbook(data)

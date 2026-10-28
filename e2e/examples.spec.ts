@@ -19,6 +19,7 @@ const EXAMPLES = [
   ['chrome', 'Toolbar, formula bar and sheet tabs'],
   ['charts', 'Charts'],
   ['cell-types', 'Cell types'],
+  ['data-sources', 'Data sources'],
 ] as const;
 
 test.describe('the examples', () => {
@@ -67,6 +68,39 @@ test.describe('the examples', () => {
     await expect(page.getByText('3 of 6 tasks done')).toBeVisible();
     await page.keyboard.press(' ');
     await expect(grid.getByRole('gridcell', { name: 'checked', exact: true })).toHaveCount(2);
+  });
+
+  test('a data source shows #BUSY! then its rows, its SUM settles, and a failed page is said', async ({
+    page,
+  }) => {
+    await page.goto('/#/data-sources');
+    const grid = page.getByRole('grid', { name: 'Orders' });
+    await expect(grid.getByRole('gridcell', { name: 'Widget', exact: true }).first()).toBeVisible();
+    await expect(page.getByText(/2 resident of 64/)).toBeVisible();
+    // The SUM over two pages settled into a number.
+    const status = page.locator('[data-source-status]').locator('..');
+    await expect(status.locator('strong').first()).not.toHaveText(/BUSY|N\/A|^0$/);
+    await expect(status.locator('strong').nth(1)).toHaveText('2048');
+    // Scrolled to the far end, a page of the last rows arrives on demand.
+    await page
+      .locator('[data-cells-scroller]')
+      .evaluate((el) => el.scrollTo({ top: el.scrollHeight }));
+    await expect(grid.getByRole('gridcell', { name: '10000000', exact: true })).toHaveCount(1);
+    // The bound cells refuse edits: a letter typed into the last order is refused with the sentence.
+    await grid.focus();
+    await page.keyboard.press('Control+End');
+    await page.keyboard.type('x');
+    await page.keyboard.press('Enter');
+    await expect(grid.locator('[data-cells-editor]')).toHaveAttribute('aria-describedby', /.+/);
+    await expect(
+      grid.getByText(/shows the data source 'orders' and cannot be changed/),
+    ).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'Fail the next page' }).click();
+    await expect(page.getByRole('list', { name: 'Data source errors' })).toContainText(
+      'did not answer',
+    );
+    await expect(grid.getByRole('gridcell', { name: /#N\/A/ }).first()).toBeVisible();
   });
 
   test('an asynchronous plugin function resolves into the grid, its dependent follows', async ({
