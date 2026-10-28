@@ -40,10 +40,14 @@ export default defineConfig({
     // runs on React 18 (its peer range); the menu under React 18 is checked in a React 18 host
     // (JupyterLab), not here.
     // The plugin page test mounts Primer's ThemeProvider and the chrome's Toolbar: the same.
+    // The command palette page mounts `@datalayer/reactor-commands`, installed from npm on CI,
+    // whose React import meets the hoisted React 19 there in the same way; the grid it holds is
+    // run under React 18 by the other tests.
     exclude: [
       '**/node_modules/**',
       'src/react/__tests__/menu.test.tsx',
       'src/react/__tests__/pluginPage.test.tsx',
+      'src/react/__tests__/commandPalette.test.tsx',
     ],
     pool: 'forks',
     poolOptions: { forks: { execArgv: ['--preserve-symlinks'] } },
@@ -54,8 +58,6 @@ export default defineConfig({
   resolve: {
     preserveSymlinks: true,
     alias: [
-      // An example page a test mounts imports `@datalayer/cells`: the source, as in the main config.
-      { find: /^@datalayer\/cells$/, replacement: join(root, 'src', 'index.ts') },
       { find: /^react-dom\/client$/, replacement: at('react-dom/client.js') },
       { find: /^react-dom$/, replacement: at('react-dom/index.js') },
       { find: /^react\/jsx-runtime$/, replacement: at('react/jsx-runtime.js') },
