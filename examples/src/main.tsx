@@ -53,7 +53,7 @@ export const EXAMPLES: readonly Example[] = [
   { id: 'large', title: 'A million rows', file: '04-large.tsx', Component: Large },
   {
     id: 'theming',
-    title: 'Theming (Primer light and dark)',
+    title: 'Theming',
     file: '05-theming.tsx',
     Component: Theming,
   },

@@ -11,7 +11,7 @@ const EXAMPLES = [
   ['formulas', 'Formulas and recalculation'],
   ['editing', 'Editing, clipboard, fill and sort'],
   ['large', 'A million rows'],
-  ['theming', 'Theming (Primer light and dark)'],
+  ['theming', 'Theming'],
   ['import-export', 'Import and export'],
   ['react-api', 'The React API'],
   ['plugin', 'A Reactor plugin'],
