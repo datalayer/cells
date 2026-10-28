@@ -33,6 +33,14 @@ export default defineConfig({
     poolOptions: { forks: { execArgv: ['--expose-gc'] } },
     maxWorkers: 2,
     minWorkers: 1,
+    // Reactor's Primer plugins, installed from npm on CI (linked from the
+    // workspace here), import Primer, whose ESM build imports its .css files:
+    // run through Vite, which stubs CSS, not plain Node, which refuses it.
+    server: {
+      deps: {
+        inline: [/@datalayer\/reactor-(commands|manager)/, /@primer\/react/],
+      },
+    },
     benchmark: {
       include: ['bench/node/**/*.bench.ts'],
     },
