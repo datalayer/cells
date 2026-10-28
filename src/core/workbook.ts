@@ -13,6 +13,7 @@
  */
 
 import { Axis } from './axis.js';
+import type { ChartSpec } from './charts.js';
 import { FormulaTable, SheetCells } from './cells.js';
 import { StringPool } from './strings.js';
 import { StyleTable } from './styles.js';
@@ -47,6 +48,8 @@ export class Sheet {
   /** Merged zones, disjoint. */
   merges: Zone[] = [];
   frozen: Frozen = { rows: 0, cols: 0 };
+  /** Charts, by id (§3.12): data, like merges; drawing them is `./charts`. */
+  readonly charts = new Map<string, ChartSpec>();
 
   constructor(id: string, name: string, limits: Limits, cells: SheetCells) {
     this.id = id;

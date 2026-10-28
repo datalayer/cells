@@ -22,6 +22,7 @@ import { snapshotOf } from '../core/patches.js';
 import type { Workbook } from '../core/workbook.js';
 import type { Ast, RefPart } from './ast.js';
 import { printFormula } from './normal.js';
+import { type ChartAnchor, type ChartSpec, refAst } from '../core/charts.js';
 import { parseFormula } from './parser.js';
 
 /** What happened on one axis of a sheet. */
@@ -166,6 +167,76 @@ export function formulaPatches(
         before: snapshotOf([[r, c, content]]),
         after: snapshotOf([[r, c, after]]),
       } as Patch);
+    }
+  }
+  out.push(...chartPatches(workbook, sheet, axis, change));
+  return out;
+}
+
+/** An anchor corner after an axis change: deleted, it goes to the next row (or column) kept. */
+function placeCorner(change: AxisChange, i: number, end: boolean): number {
+  const placed = placeIndex(change, i);
+  if (placed !== undefined) return placed;
+  // Inside a deleted run: a start moves to the first index after it, an end to the last before.
+  return end ? Math.max(0, change.at - 1) : change.at;
+}
+
+/**
+ * The `chart` patches moving charts' ranges and anchors across an axis
+ * change: their ranges as formulas' references move (`#REF!` when deleted),
+ * and an anchor on cells follows them, collapsing onto the next row kept
+ * when every row under it goes, as Excel does.
+ */
+function chartPatches(
+  workbook: Workbook,
+  sheet: string,
+  axis: 'rows' | 'cols',
+  change: AxisChange,
+): Patch[] {
+  const name = workbook.sheet(sheet).name.toLowerCase();
+  const out: Patch[] = [];
+  for (const s of workbook.sheets) {
+    const own = s.id === sheet;
+    const affected = (ref: string | undefined) =>
+      ref === undefined ? own : ref.toLowerCase() === name;
+    for (const [id, spec] of s.charts) {
+      let moved = false;
+      const ref = (text: string | undefined): string | undefined => {
+        if (text === undefined) return undefined;
+        const ast = refAst(text);
+        if (ast === undefined || ast.type === 'error') return text;
+        const adjusted = adjustAst(ast, affected, axis, change);
+        if (adjusted === ast) return text;
+        moved = true;
+        return printFormula(adjusted);
+      };
+      const series = spec.data.series.map((x) => {
+        const values = ref(x.values)!;
+        const categories = ref(x.categories);
+        const xs = ref(x.x);
+        const nameRef = x.name !== undefined && refAst(x.name) !== undefined ? ref(x.name) : x.name;
+        return {
+          ...x,
+          values,
+          ...(categories !== undefined ? { categories } : {}),
+          ...(xs !== undefined ? { x: xs } : {}),
+          ...(nameRef !== undefined ? { name: nameRef } : {}),
+        };
+      });
+      let anchor: ChartAnchor = spec.anchor;
+      if (own && anchor.kind !== 'absolute') {
+        const field = axis === 'rows' ? 'row' : 'col';
+        const from = { ...anchor.from, [field]: placeCorner(change, anchor.from[field], false) };
+        if (anchor.kind === 'cells') {
+          let to = { ...anchor.to, [field]: placeCorner(change, anchor.to[field], true) };
+          if (to[field] < from[field]) to = { ...to, [field]: from[field] };
+          anchor = { ...anchor, from, to };
+        } else anchor = { ...anchor, from };
+        if (JSON.stringify(anchor) !== JSON.stringify(spec.anchor)) moved = true;
+      }
+      if (!moved) continue;
+      const after: ChartSpec = { ...spec, anchor, data: { ...spec.data, series } };
+      out.push({ op: 'chart', sheet: s.id, id, before: spec, after } as unknown as Patch);
     }
   }
   return out;

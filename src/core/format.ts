@@ -14,6 +14,7 @@
  */
 
 import type { CellContent } from './cells.js';
+import { type ChartSpec, checkChart } from './charts.js';
 import { checkStyle, type Style } from './styles.js';
 import { type CellValue, cellError, isCellError, isErrorCode } from './values.js';
 import { DEFAULT_LIMITS, type Limits, type Workbook } from './workbook.js';
@@ -44,6 +45,8 @@ export interface CellsSheet {
   readonly hidden?: { readonly rows?: readonly number[]; readonly cols?: readonly number[] };
   readonly merges?: readonly Zone[];
   readonly frozen?: { readonly rows: number; readonly cols: number };
+  /** Charts by id (§3.12). */
+  readonly charts?: Readonly<Record<string, ChartSpec>>;
 }
 
 export interface CellsWorkbook {
@@ -177,6 +180,15 @@ export function validateWorkbook(data: unknown, limits: Limits = DEFAULT_LIMITS)
       if (!Array.isArray(sheet.merges)) fail(`${p}.merges`, 'a list of zones');
       sheet.merges.forEach((z: unknown, j: number) => checkZone(z, `${p}.merges[${j}]`, limits));
     }
+    if (sheet.charts !== undefined) {
+      if (!isObject(sheet.charts)) fail(`${p}.charts`, 'an object of charts by id');
+      for (const [id, chart] of Object.entries(sheet.charts)) {
+        const cp = `${p}.charts["${id}"]`;
+        const spec = checkChart(chart, cp, limits);
+        if (spec.id !== id)
+          fail(`${cp}.id`, `the chart is filed under '${id}' and says '${spec.id}'`);
+      }
+    }
     if (sheet.frozen !== undefined) {
       const f = sheet.frozen;
       if (
@@ -224,6 +236,7 @@ export function loadInto(workbook: Workbook, data: unknown): void {
       for (const i of s.hidden?.[axis] ?? []) a.setHidden(i, true);
     }
     sheet.merges = (s.merges ?? []).map((z) => ({ ...z }));
+    for (const [id, chart] of Object.entries(s.charts ?? {})) sheet.charts.set(id, chart);
     sheet.frozen = s.frozen ? { rows: s.frozen.rows, cols: s.frozen.cols } : { rows: 0, cols: 0 };
     workbook.sheets.push(sheet);
   }
@@ -269,6 +282,7 @@ export function toJSON(workbook: Workbook): CellsWorkbook {
     if (Object.keys(hidden).length > 0) out.hidden = hidden;
     if (sheet.merges.length > 0) out.merges = sheet.merges.map((z) => ({ ...z }));
     if (sheet.frozen.rows > 0 || sheet.frozen.cols > 0) out.frozen = { ...sheet.frozen };
+    if (sheet.charts.size > 0) out.charts = Object.fromEntries(sheet.charts);
     return out;
   });
   return { version: FORMAT_VERSION, sheets, styles };

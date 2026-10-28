@@ -57,6 +57,16 @@ export const CORE_EXPORTS: Readonly<Record<string, Surface>> = {
   firstContribution: hook('useSingleContribution'),
   optionalContribution: hook('useSingleContribution'),
   CellsFunctionsPlugin: hook('useCellsReactor'),
+  // Charts (§3.12): the commands through useCharts, one chart through useChart
+  inferChartData: hook('useCharts'),
+  chartPoints: hook('useChart'),
+  refZone: hook('useChart'),
+  checkChart: hook('useCharts'),
+  chartProblem: hook('useCharts'),
+  zoneRef: hook('useCharts'),
+  BUILTIN_CHART_TYPES: reexport,
+  CHART_VARIANTS: reexport,
+  MAX_CHART_POINTS: reexport,
   CELLS_FUNCTIONS_PLUGIN: hook('usePlugin'),
   // Formulas: pure functions, for function authors and hosts handling formula text
   numbers: reexport,

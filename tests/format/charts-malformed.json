@@ -1,0 +1,842 @@
+{
+  "note": "Charts a CellsWorkbook refuses, each with the path of its bad field (C10-01). Each chart is filed under \"c1\" on Sheet1.",
+  "good": {
+    "id": "c1",
+    "type": "column",
+    "anchor": {
+      "kind": "cells",
+      "from": {
+        "row": 1,
+        "col": 4,
+        "dx": 0,
+        "dy": 0
+      },
+      "to": {
+        "row": 10,
+        "col": 9,
+        "dx": 0,
+        "dy": 0
+      }
+    },
+    "data": {
+      "series": [
+        {
+          "values": "Sheet1!$B$2:$B$5"
+        }
+      ],
+      "by": "columns",
+      "headers": {
+        "row": false,
+        "column": false
+      },
+      "blanks": "gap"
+    },
+    "legend": "bottom"
+  },
+  "cases": [
+    {
+      "name": "not an object",
+      "path": "sheets[0].charts[\"c1\"]",
+      "chart": 42
+    },
+    {
+      "name": "unknown field",
+      "path": "sheets[0].charts[\"c1\"].colour",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": 1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 10,
+            "col": 9,
+            "dx": 0,
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom",
+        "colour": "red"
+      }
+    },
+    {
+      "name": "type",
+      "path": "sheets[0].charts[\"c1\"].type",
+      "chart": {
+        "id": "c1",
+        "type": "Bad Type",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": 1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 10,
+            "col": 9,
+            "dx": 0,
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom"
+      }
+    },
+    {
+      "name": "variant",
+      "path": "sheets[0].charts[\"c1\"].variant",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": 1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 10,
+            "col": 9,
+            "dx": 0,
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom",
+        "variant": "exploded"
+      }
+    },
+    {
+      "name": "anchor kind",
+      "path": "sheets[0].charts[\"c1\"].anchor.kind",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "floating"
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom"
+      }
+    },
+    {
+      "name": "anchor row",
+      "path": "sheets[0].charts[\"c1\"].anchor.from.row",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": -1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 10,
+            "col": 9,
+            "dx": 0,
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom"
+      }
+    },
+    {
+      "name": "anchor dx",
+      "path": "sheets[0].charts[\"c1\"].anchor.to.dx",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": 1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 10,
+            "col": 9,
+            "dx": "2",
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom"
+      }
+    },
+    {
+      "name": "anchor order",
+      "path": "sheets[0].charts[\"c1\"].anchor",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": 1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 0,
+            "col": 9,
+            "dx": 0,
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom"
+      }
+    },
+    {
+      "name": "cell anchor width",
+      "path": "sheets[0].charts[\"c1\"].anchor.width",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "cell",
+          "from": {
+            "row": 0,
+            "col": 0,
+            "dx": 0,
+            "dy": 0
+          },
+          "width": 0,
+          "height": 100
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom"
+      }
+    },
+    {
+      "name": "absolute x",
+      "path": "sheets[0].charts[\"c1\"].anchor.x",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "absolute",
+          "x": -5,
+          "y": 0,
+          "width": 10,
+          "height": 10
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom"
+      }
+    },
+    {
+      "name": "no series",
+      "path": "sheets[0].charts[\"c1\"].data.series",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": 1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 10,
+            "col": 9,
+            "dx": 0,
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom"
+      }
+    },
+    {
+      "name": "values not a range",
+      "path": "sheets[0].charts[\"c1\"].data.series[0].values",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": 1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 10,
+            "col": 9,
+            "dx": 0,
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [
+            {
+              "values": "SUM(A1)"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom"
+      }
+    },
+    {
+      "name": "categories not a range",
+      "path": "sheets[0].charts[\"c1\"].data.series[0].categories",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": 1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 10,
+            "col": 9,
+            "dx": 0,
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5",
+              "categories": 7
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom"
+      }
+    },
+    {
+      "name": "series colour",
+      "path": "sheets[0].charts[\"c1\"].data.series[0].color",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": 1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 10,
+            "col": 9,
+            "dx": 0,
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5",
+              "color": "blue"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom"
+      }
+    },
+    {
+      "name": "series type",
+      "path": "sheets[0].charts[\"c1\"].data.series[0].type",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": 1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 10,
+            "col": 9,
+            "dx": 0,
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5",
+              "type": "pie"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom"
+      }
+    },
+    {
+      "name": "by",
+      "path": "sheets[0].charts[\"c1\"].data.by",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": 1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 10,
+            "col": 9,
+            "dx": 0,
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5"
+            }
+          ],
+          "by": "diagonal",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom"
+      }
+    },
+    {
+      "name": "headers",
+      "path": "sheets[0].charts[\"c1\"].data.headers",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": 1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 10,
+            "col": 9,
+            "dx": 0,
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": true
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom"
+      }
+    },
+    {
+      "name": "blanks",
+      "path": "sheets[0].charts[\"c1\"].data.blanks",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": 1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 10,
+            "col": 9,
+            "dx": 0,
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "skip"
+        },
+        "legend": "bottom"
+      }
+    },
+    {
+      "name": "legend",
+      "path": "sheets[0].charts[\"c1\"].legend",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": 1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 10,
+            "col": 9,
+            "dx": 0,
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "middle"
+      }
+    },
+    {
+      "name": "axis name",
+      "path": "sheets[0].charts[\"c1\"].axes.z",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": 1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 10,
+            "col": 9,
+            "dx": 0,
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom",
+        "axes": {
+          "z": {}
+        }
+      }
+    },
+    {
+      "name": "axis min",
+      "path": "sheets[0].charts[\"c1\"].axes.y.min",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": 1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 10,
+            "col": 9,
+            "dx": 0,
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom",
+        "axes": {
+          "y": {
+            "min": "0"
+          }
+        }
+      }
+    },
+    {
+      "name": "labels",
+      "path": "sheets[0].charts[\"c1\"].labels",
+      "chart": {
+        "id": "c1",
+        "type": "column",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": 1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 10,
+            "col": 9,
+            "dx": 0,
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom",
+        "labels": "yes"
+      }
+    },
+    {
+      "name": "filed under another id",
+      "path": "sheets[0].charts[\"c1\"].id",
+      "chart": {
+        "id": "c2",
+        "type": "column",
+        "anchor": {
+          "kind": "cells",
+          "from": {
+            "row": 1,
+            "col": 4,
+            "dx": 0,
+            "dy": 0
+          },
+          "to": {
+            "row": 10,
+            "col": 9,
+            "dx": 0,
+            "dy": 0
+          }
+        },
+        "data": {
+          "series": [
+            {
+              "values": "Sheet1!$B$2:$B$5"
+            }
+          ],
+          "by": "columns",
+          "headers": {
+            "row": false,
+            "column": false
+          },
+          "blanks": "gap"
+        },
+        "legend": "bottom"
+      }
+    }
+  ]
+}

@@ -21,6 +21,8 @@ import {
   useCells,
   useCellsFromRows,
   useCellsStats,
+  useChart,
+  useCharts,
   useCommand,
   useContributions,
   useHistory,
@@ -198,5 +200,47 @@ describe(`the React hooks (React ${reactVersion})`, () => {
     }
     const root = createRoot(document.createElement('div'));
     expect(() => act(() => root.render(<Lost />))).toThrow(/<CellsProvider> or a <Spreadsheet>/);
+  });
+
+  it('charts: inserted from a selection, updated, moved, read one by one, removed', () => {
+    const model = createCellsModel({ limits: { rows: 50, cols: 12 } });
+    model.dispatch({
+      type: 'SET_CELLS',
+      sheet: 's1',
+      at: { row: 0, col: 0 },
+      cells: [
+        ['Month', 'Sales'],
+        ['Jan', 4],
+        ['Feb', 7],
+      ],
+    });
+    const read = renderHook(model, () => ({ charts: useCharts(), one: useChart('chart1') }));
+    const anchor = {
+      kind: 'cells' as const,
+      from: { row: 0, col: 3, dx: 0, dy: 0 },
+      to: { row: 10, col: 8, dx: 0, dy: 0 },
+    };
+    act(() => {
+      expect(
+        read().charts.insert({ type: 'column', from: 'A1:B3', anchor, title: 'Sales' }),
+      ).toEqual({ ok: true });
+    });
+    expect(read().charts.charts.map((c) => c.data.series)).toEqual([
+      [{ name: 'Sheet1!$B$1', values: 'Sheet1!$B$2:$B$3', categories: 'Sheet1!$A$2:$A$3' }],
+    ]);
+    expect(read().one.points).toBe(2);
+    act(() => {
+      read().one.update({ type: 'line' });
+      read().charts.move('chart1', { row: 5, col: 4 });
+    });
+    expect(read().one.spec).toMatchObject({ type: 'line', anchor: { from: { row: 5, col: 4 } } });
+    act(() => {
+      expect(read().charts.insert({ type: 'pie', from: 'A1:A3', anchor })).toMatchObject({
+        ok: false,
+        refusals: [{ reason: 'NoNumericData' }],
+      });
+      read().charts.remove('chart1');
+    });
+    expect(read().one.spec).toBeUndefined();
   });
 });

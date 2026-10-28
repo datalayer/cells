@@ -141,6 +141,50 @@ const command: fc.Arbitrary<Command> = fc.oneof(
     zone: fc.constant({ top: 0, left: 0, bottom: ROWS - 1, right: COLS - 1 }),
   }),
   fc.record({ type: fc.constant('ADD_SHEET') }),
+  // Charts (C10-01): inserted over column A, updated, moved, resized, deleted; refusals are fine.
+  fc.record({
+    type: fc.constant('INSERT_CHART'),
+    sheet: fc.constant('s1'),
+    chart: fc.record({
+      id: fc.constantFrom('c1', 'c2'),
+      type: fc.constantFrom('column', 'line', 'pie'),
+      anchor: fc.constant({
+        kind: 'cells' as const,
+        from: { row: 1, col: 4, dx: 0, dy: 0 },
+        to: { row: 8, col: 7, dx: 0, dy: 0 },
+      }),
+      data: fc.constant({
+        series: [{ values: 'Sheet1!$A$1:$A$12', categories: 'Sheet1!$B$1:$B$12' }],
+        by: 'columns' as const,
+        headers: { row: false, column: false },
+        blanks: 'gap' as const,
+      }),
+      legend: fc.constantFrom('bottom' as const, 'none' as const),
+    }),
+  }),
+  fc.record({
+    type: fc.constant('UPDATE_CHART'),
+    sheet: fc.constant('s1'),
+    id: fc.constantFrom('c1', 'c2'),
+    changes: fc.constantFrom({ type: 'area' }, { title: 'T' }, { labels: true }),
+  }),
+  fc.record({
+    type: fc.constant('MOVE_CHART'),
+    sheet: fc.constant('s1'),
+    id: fc.constantFrom('c1', 'c2'),
+    to: fc.record({ row: fc.nat(10), col: fc.nat(3) }),
+  }),
+  fc.record({
+    type: fc.constant('RESIZE_CHART'),
+    sheet: fc.constant('s1'),
+    id: fc.constantFrom('c1', 'c2'),
+    to: fc.record({ row: fc.integer({ min: 12, max: 20 }), col: fc.integer({ min: 5, max: 7 }) }),
+  }),
+  fc.record({
+    type: fc.constant('DELETE_CHART'),
+    sheet: fc.constant('s1'),
+    id: fc.constantFrom('c1', 'c2'),
+  }),
   fc.record({
     type: fc.constant('RENAME_SHEET'),
     sheet: fc.constant('s1'),

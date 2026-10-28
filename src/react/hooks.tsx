@@ -26,6 +26,15 @@ import {
   useSyncExternalStore,
 } from 'react';
 import type { CellContent } from '../core/cells.js';
+import {
+  type ChartAnchor,
+  type ChartSpec,
+  chartPoints,
+  inferChartData,
+  type MoveChartCommand,
+  type ResizeChartCommand,
+  type UpdateChartCommand,
+} from '../core/charts.js';
 import type { Command, CommandResult } from '../core/commands.js';
 import { type CellsWorkbook, fromRows, validateWorkbook } from '../core/format.js';
 import {
@@ -538,5 +547,97 @@ export function useOnChange(listener: Parameters<CellsModel['subscribe']>[0]): v
     ),
     () => model.revision,
     () => model.revision,
+  );
+}
+
+/** What `useCharts().insert` takes: a full chart, or a type and a selection to infer its data from. */
+export type ChartInsert =
+  | (Omit<ChartSpec, 'id'> & { readonly id?: string })
+  | {
+      readonly type: string;
+      /** The selection the data is inferred from (`A1:C13`, `Sheet2!B2:D9`). */
+      readonly from: string;
+      readonly anchor: ChartAnchor;
+      readonly title?: string;
+      readonly legend?: ChartSpec['legend'];
+    };
+
+/** The charts of a sheet (the active one by default), and the commands on them. */
+export function useCharts(sheet?: string): {
+  charts: ChartSpec[];
+  insert: (chart: ChartInsert) => CommandResult;
+  update: (id: string, changes: UpdateChartCommand['changes']) => CommandResult;
+  move: (id: string, to: MoveChartCommand['to']) => CommandResult;
+  resize: (id: string, to: ResizeChartCommand['to']) => CommandResult;
+  remove: (id: string) => CommandResult;
+} {
+  const model = useCells();
+  return useDerived(
+    (m) => {
+      const id = sheet ?? m.selection.sheet;
+      return {
+        charts: [...m.sheet(id).charts.values()],
+        insert: (chart: ChartInsert) => {
+          if ('from' in chart) {
+            const { sheet: source, zone } = resolveRange(model, chart.from);
+            const inferred = inferChartData(
+              (r, c) => model.value(source, r, c),
+              model.sheet(source).name,
+              zone,
+            );
+            if (!inferred.ok)
+              return {
+                ok: false,
+                refusals: [{ reason: inferred.reason, message: inferred.message }],
+              };
+            return model.dispatch({
+              type: 'INSERT_CHART',
+              sheet: id,
+              chart: {
+                type: chart.type,
+                anchor: chart.anchor,
+                data: inferred.data,
+                legend: chart.legend ?? 'bottom',
+                ...(chart.title !== undefined ? { title: chart.title } : {}),
+              },
+            });
+          }
+          return model.dispatch({ type: 'INSERT_CHART', sheet: id, chart });
+        },
+        update: (chart: string, changes: UpdateChartCommand['changes']) =>
+          model.dispatch({ type: 'UPDATE_CHART', sheet: id, id: chart, changes }),
+        move: (chart: string, to: MoveChartCommand['to']) =>
+          model.dispatch({ type: 'MOVE_CHART', sheet: id, id: chart, to }),
+        resize: (chart: string, to: ResizeChartCommand['to']) =>
+          model.dispatch({ type: 'RESIZE_CHART', sheet: id, id: chart, to }),
+        remove: (chart: string) => model.dispatch({ type: 'DELETE_CHART', sheet: id, id: chart }),
+      };
+    },
+    [sheet],
+  );
+}
+
+/** One chart: its spec (`undefined` once deleted), its point count, and its update. */
+export function useChart(
+  id: string,
+  sheet?: string,
+): {
+  spec: ChartSpec | undefined;
+  points: number;
+  update: (changes: UpdateChartCommand['changes']) => CommandResult;
+} {
+  const model = useCells();
+  return useDerived(
+    (m) => {
+      const s = sheet ?? m.selection.sheet;
+      const spec = m.sheet(s).charts.get(id);
+      return {
+        spec,
+        points: spec === undefined ? 0 : chartPoints(m.workbook, s, spec),
+        update: (changes: UpdateChartCommand['changes']) =>
+          model.dispatch({ type: 'UPDATE_CHART', sheet: s, id, changes }),
+      };
+    },
+    [id, sheet],
   );
 }
