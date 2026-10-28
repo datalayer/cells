@@ -1886,13 +1886,12 @@ function ContextMenu(props: {
             // arrows, Home and End; Escape is handled here, since the event stops before Primer's
             // document listener.
             e.stopPropagation();
-            if (e.key === 'Escape') {
+            // No blur-close: Primer's open-focus effect returns focus to the grid on its cleanup
+            // (StrictMode re-runs it), which a blur handler would take for leaving the menu.
+            if (e.key === 'Escape' || e.key === 'Tab') {
               e.preventDefault();
               props.onClose();
             }
-          }}
-          onBlur={(e) => {
-            if (!e.currentTarget.contains(e.relatedTarget)) props.onClose();
           }}
         >
           <ActionList role="menu">
