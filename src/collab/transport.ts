@@ -19,10 +19,11 @@
  */
 
 import { contribution, definePlugin } from '@datalayer/reactor';
-import type { LoroDoc } from 'loro-crdt';
+import { EphemeralStore, type LoroDoc } from 'loro-crdt';
 import type { CellsModel } from '../core/model.js';
 import { CellsCollabProvider } from '../points/index.js';
-import { type BindingOptions, LoroBinding } from './binding.js';
+import { type BindingOptions, LoroBinding, type PresenceIds } from './binding.js';
+import type { RemotePeer } from '../core/model.js';
 
 /** What a peer says about itself, as the awareness carries it. */
 export interface RoomUser {
@@ -76,12 +77,18 @@ async function transport() {
  */
 export async function joinRoom(options: RoomOptions): Promise<Room> {
   const { WebsocketProvider } = await transport();
+  // An ephemeral store of this room's own: the provider's default is one store shared by every
+  // provider of the process, which makes two peers in one page share one presence.
   const provider = new WebsocketProvider(options.url, options.room, options.doc, {
+    ephemeralStore: new EphemeralStore(300_000),
     ...(options.WebSocketPolyfill !== undefined
       ? { WebSocketPolyfill: options.WebSocketPolyfill as typeof WebSocket }
       : {}),
   }) as unknown as RoomProvider;
   if (options.user !== undefined && provider.awareness !== null) {
+    // lexical-loro's UserState keeps name and color at the top level; `user` is Cells' own field.
+    provider.awareness.setLocalStateField('name', options.user.name);
+    provider.awareness.setLocalStateField('color', options.user.color);
     provider.awareness.setLocalStateField('user', options.user);
   }
   const timeout = options.timeout ?? 10_000;
@@ -106,14 +113,94 @@ export async function joinRoom(options: RoomOptions): Promise<Room> {
   };
 }
 
-/** A model bound to a room: joined, synced, then bound. */
+/**
+ * Presence (§3.9): the local selection, the cell being edited and the
+ * selected chart go into the awareness as the `cells` field, in id form;
+ * the other peers' states come back as the model's `remotePresence`, at
+ * this peer's positions. Returns the function that stops it.
+ */
+export function publishPresence(model: CellsModel, room: Room, binding: LoroBinding): () => void {
+  const awareness = room.provider.awareness;
+  if (awareness === null) return () => undefined;
+  let last = '';
+  const local = () => {
+    const edit = model.edit;
+    const ids = binding.selectionToIds(model.selection);
+    const state = {
+      ...ids,
+      ...(edit !== null && edit.sheet === model.selection.sheet
+        ? {
+            editing: binding.selectionToIds({
+              ...model.selection,
+              active: { row: edit.row, col: edit.col },
+            }).active,
+          }
+        : {}),
+      ...(model.selectedChart !== null ? { chart: model.selectedChart } : {}),
+    };
+    const key = JSON.stringify(state);
+    if (key === last) return;
+    last = key;
+    awareness.setLocalStateField('cells', state);
+  };
+  const remote = () => {
+    const peers: RemotePeer[] = [];
+    const localId = (awareness as unknown as { localClientId?: number }).localClientId;
+    for (const [id, state] of awareness.getStates()) {
+      if (localId !== undefined && id === localId) continue;
+      const cells = state.cells as
+        (PresenceIds & { editing?: readonly [string, string]; chart?: string }) | undefined;
+      const user = (state.user as { name?: string; color?: string } | undefined) ?? {
+        name: typeof state.name === 'string' ? state.name : undefined,
+        color: typeof state.color === 'string' ? state.color : undefined,
+      };
+      if (cells === undefined) continue;
+      const selection = binding.selectionFromIds(cells);
+      if (selection === undefined) continue;
+      const editing =
+        cells.editing === undefined
+          ? undefined
+          : binding.selectionFromIds({
+              sheet: cells.sheet,
+              zones: cells.zones,
+              active: cells.editing,
+            })?.active;
+      peers.push({
+        id: String(id),
+        user: { name: user?.name ?? `Peer ${id}`, color: user?.color ?? '#8250df' },
+        sheet: selection.sheet,
+        zones: selection.zones,
+        active: selection.active,
+        ...(editing !== undefined ? { editing } : {}),
+        ...(cells.chart !== undefined ? { chart: cells.chart } : {}),
+      });
+    }
+    model.setRemotePresence(peers);
+  };
+  local();
+  const stops = [
+    model.subscribeSelection(local),
+    model.subscribeEdit(local),
+    model.subscribe(remote),
+  ];
+  awareness.on('update', remote);
+  remote();
+  return () => {
+    for (const s of stops) s();
+    awareness.off('update', remote);
+    model.setRemotePresence([]);
+  };
+}
+
+/** A model bound to a room: joined, synced, then bound, its presence published. */
 export async function bindRoom(
   model: CellsModel,
   options: RoomOptions & Pick<BindingOptions, 'peer'>,
-): Promise<{ room: Room; binding: LoroBinding }> {
+): Promise<{ room: Room; binding: LoroBinding; stopPresence: () => void }> {
   const room = await joinRoom(options);
   const binding = new LoroBinding(model, options.doc, { peer: options.peer });
-  return { room, binding };
+  const stopPresence = publishPresence(model, room, binding);
+  return { room, binding, stopPresence };
 }
 
 export const CELLS_WS_COLLAB_PLUGIN = '@datalayer/cells-collab-ws';

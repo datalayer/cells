@@ -73,6 +73,7 @@ export {
   type EditListener,
   type EditState,
   type Origin,
+  type RemotePeer,
   type SelectionListener,
   type Transaction,
 } from './model.js';

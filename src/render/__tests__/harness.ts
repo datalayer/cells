@@ -80,6 +80,7 @@ export function paint(model: CellsModel, shot: Shot = {}): Canvas {
       sheet,
       theme,
       selection: model.selection,
+      remote: model.remotePresence,
     });
     (ctx as unknown as { drawImage(c: Canvas, x: number, y: number): void }).drawImage(
       overlay,

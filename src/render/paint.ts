@@ -463,6 +463,14 @@ export interface OverlayInput {
   readonly selection: SelectionState;
   /** The zone last copied or cut, drawn dashed (the marching ants). */
   readonly mark?: { readonly sheet: string; readonly zone: Zone } | null;
+  /** The other peers' selections (§3.9), each in its colour with a name tag on its active cell. */
+  readonly remote?: readonly {
+    readonly user: { readonly name: string; readonly color: string };
+    readonly sheet: string;
+    readonly zones: readonly Zone[];
+    readonly active: { readonly row: number; readonly col: number };
+    readonly editing?: { readonly row: number; readonly col: number };
+  }[];
 }
 
 /** The selection fill's opacity: themes give opaque colours (Primer's accent-muted), the overlay thins them. */
@@ -552,6 +560,38 @@ export function paintOverlay(input: OverlayInput): void {
       ctx.setLineDash([4, 3]);
       ctx.strokeRect(m.x + 1, m.y + 1, m.width - 2, m.height - 2);
       ctx.restore();
+    }
+    // Remote peers on this sheet: their zones outlined in their colour, a name tag on the active cell.
+    for (const peer of input.remote ?? []) {
+      if (peer.sheet !== sheet.id) continue;
+      const color = theme.forcedColors ? theme.remoteUserColors[0] : peer.user.color;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      for (const zone of peer.zones) {
+        const r = zoneRect(pane, zone);
+        ctx.strokeRect(r.x + 1, r.y + 1, r.width - 2, r.height - 2);
+      }
+      const at = zoneRect(pane, {
+        top: peer.active.row,
+        left: peer.active.col,
+        bottom: peer.active.row,
+        right: peer.active.col,
+      });
+      if (peer.editing !== undefined) {
+        ctx.setLineDash([3, 2]);
+        ctx.strokeRect(at.x + 1, at.y + 1, at.width - 2, at.height - 2);
+        ctx.setLineDash([]);
+      }
+      ctx.font = `${Math.max(9, theme.headerFontSize - 2) * z}px ${theme.fontFamily}`;
+      const label = peer.editing !== undefined ? `${peer.user.name} (editing)` : peer.user.name;
+      const w = ctx.measureText(label).width + 8;
+      const h = 14 * z;
+      const tagY = at.y - h >= pane.y ? at.y - h : at.y + at.height;
+      ctx.fillStyle = color;
+      ctx.fillRect(at.x, tagY, w, h);
+      ctx.fillStyle = theme.forcedColors ? 'Canvas' : '#ffffff';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, at.x + 4, tagY + h / 2);
     }
     const lr = zoneRect(pane, last);
     ctx.fillStyle = theme.fillHandle;

@@ -27,6 +27,15 @@
 import { LoroDoc, LoroMap, LoroMovableList, UndoManager } from 'loro-crdt';
 import type { CellsSheet, CellsWorkbook, JsonValue } from '../core/format.js';
 import type { CellsModel, Transaction } from '../core/model.js';
+import type { SelectionState } from '../core/selection.js';
+
+/** A selection in id form, as the awareness carries it. */
+export interface PresenceIds {
+  readonly sheet: string;
+  /** Each zone's corners: [rowId, colId, rowId, colId]. */
+  readonly zones: readonly (readonly [string, string, string, string])[];
+  readonly active: readonly [string, string];
+}
 import type { CellsPatch, Patch } from '../core/patches.js';
 import { snapshotEntries } from '../core/patches.js';
 import type { Style } from '../core/styles.js';
@@ -120,6 +129,51 @@ export class LoroBinding {
 
   dispose(): void {
     for (const u of this.#unsubscribe) u();
+  }
+
+  // ------------------------------------------------------------ presence (§3.9)
+
+  /** A selection in id form, for the awareness: the sheet's id, zones and cells by row and column ids. */
+  selectionToIds(selection: SelectionState): PresenceIds {
+    const rows = this.#order(selection.sheet, 'rows');
+    const cols = this.#order(selection.sheet, 'cols');
+    const cell = (p: { row: number; col: number }) =>
+      [rows.idAt(p.row)!, cols.idAt(p.col)!] as [string, string];
+    return {
+      sheet: selection.sheet,
+      zones: selection.zones.map((z) => [
+        ...cell({ row: z.top, col: z.left }),
+        ...cell({ row: z.bottom, col: z.right }),
+      ]),
+      active: cell(selection.active),
+    };
+  }
+
+  /** A selection from id form at this peer's current positions; `undefined` once its sheet or cells are gone. */
+  selectionFromIds(ids: PresenceIds): SelectionState | undefined {
+    if (!(this.#sheetsList().toJSON() as string[]).includes(ids.sheet)) return undefined;
+    const rows = this.#order(ids.sheet, 'rows');
+    const cols = this.#order(ids.sheet, 'cols');
+    const at = (r: string, c: string) => {
+      const row = rows.positionOf(r);
+      const col = cols.positionOf(c);
+      return row === undefined || col === undefined ? undefined : { row, col };
+    };
+    const zones: Zone[] = [];
+    for (const [r0, c0, r1, c1] of ids.zones) {
+      const a = at(r0, c0);
+      const b = at(r1, c1);
+      if (a === undefined || b === undefined) continue;
+      zones.push({
+        top: Math.min(a.row, b.row),
+        left: Math.min(a.col, b.col),
+        bottom: Math.max(a.row, b.row),
+        right: Math.max(a.col, b.col),
+      });
+    }
+    const active = at(ids.active[0], ids.active[1]);
+    if (zones.length === 0 || active === undefined) return undefined;
+    return { sheet: ids.sheet, zones, anchor: active, active };
   }
 
   // ------------------------------------------------------------ the document

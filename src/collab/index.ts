@@ -19,13 +19,14 @@ export {
   move,
   remove,
 } from './axis.js';
-export { type BindingOptions, LoroBinding } from './binding.js';
+export { type BindingOptions, LoroBinding, type PresenceIds } from './binding.js';
 export {
   bindRoom,
   bridgeDocs,
   CELLS_WS_COLLAB_PLUGIN,
   cellsWsCollabPlugin,
   joinRoom,
+  publishPresence,
   type Room,
   type RoomOptions,
   type RoomProvider,

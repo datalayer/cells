@@ -101,6 +101,20 @@ export interface ClipboardMark {
 }
 export type SelectionListener = (selection: SelectionState) => void;
 
+/** A remote peer's presence (§3.9): who, where, and what it is doing; view state the overlay draws. */
+export interface RemotePeer {
+  /** The peer's client id in the room. */
+  readonly id: string;
+  readonly user: { readonly name: string; readonly color: string };
+  readonly sheet: string;
+  readonly zones: readonly Zone[];
+  readonly active: Position;
+  /** The cell the peer is editing, if any. */
+  readonly editing?: Position;
+  /** The chart the peer selected, if any. */
+  readonly chart?: string;
+}
+
 export class CellsModel {
   readonly reactor: ReactorPlatform;
   readonly workbook: Workbook;
@@ -112,11 +126,14 @@ export class CellsModel {
   readonly #history: LocalHistory<SelectionState>;
   readonly #listeners = new Set<ChangeListener>();
   readonly #selectionListeners = new Set<SelectionListener>();
+  readonly #presenceListeners = new Set<(peers: readonly RemotePeer[]) => void>();
   readonly #editListeners = new Set<EditListener>();
   #edit: EditState | null = null;
   #mark: ClipboardMark | null = null;
   /** The selected chart's id (§3.12), view state beside the cell selection; selecting cells clears it. */
   #selectedChart: string | null = null;
+  /** The other peers of the room, as the collaboration provider reports them (§3.9). */
+  #remotePresence: readonly RemotePeer[] = [];
   #revision = 0;
   #selection: SelectionState;
   /** Charts settled while patches were being applied: announced with the change that applied them. */
@@ -398,6 +415,24 @@ export class CellsModel {
       throw new Error(`No sheet '${selection.sheet}' to select in.`);
     if (selection.zones.length === 0) throw new Error('A selection holds at least one zone.');
     this.#setSelection(selection);
+  }
+
+  /** The remote peers' presence: view state, drawn on the overlay, never undone. */
+  get remotePresence(): readonly RemotePeer[] {
+    return this.#remotePresence;
+  }
+
+  /** What the collaboration provider reports of the other peers; the presence listeners (the overlay) hear it. */
+  setRemotePresence(peers: readonly RemotePeer[]): void {
+    this.#remotePresence = peers;
+    this.#revision += 1;
+    for (const l of [...this.#presenceListeners]) l(peers);
+  }
+
+  /** Called when the remote peers' presence changes; returns the unsubscriber. */
+  subscribePresence(listener: (peers: readonly RemotePeer[]) => void): () => void {
+    this.#presenceListeners.add(listener);
+    return () => this.#presenceListeners.delete(listener);
   }
 
   /** The selected chart's id on the selection's sheet, or `null`: view state, never synced. */

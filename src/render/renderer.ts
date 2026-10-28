@@ -112,9 +112,15 @@ export class CanvasRenderer {
     this.#sheet = this.#model.selection.sheet;
     const a = this.#model.subscribe((tx) => this.#onChange(tx));
     const b = this.#model.subscribeSelection((s) => this.#onSelection(s));
+    // Remote presence (§3.9) is drawn on the overlay: repaint it when the peers move.
+    const c = this.#model.subscribePresence(() => {
+      this.#overlayDirty = true;
+      this.#request();
+    });
     this.#unsubscribe = () => {
       a();
       b();
+      c();
     };
   }
 
@@ -282,6 +288,7 @@ export class CanvasRenderer {
         theme: this.#theme,
         selection: this.#model.selection,
         mark: this.#model.clipboardMark,
+        remote: this.#model.remotePresence,
       });
       this.counters.overlay += 1;
     }

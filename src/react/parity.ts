@@ -204,6 +204,9 @@ export const MODEL_MEMBERS: Readonly<Record<string, Surface>> = {
   chartData: hook('useChart'),
   chartsPending: hook('useCharts'),
   selectedChart: hook('useCharts'),
+  remotePresence: hook('usePresence'),
+  setRemotePresence: hook('usePresence'),
+  subscribePresence: hook('usePresence'),
   selectChart: hook('useCharts'),
 };
 

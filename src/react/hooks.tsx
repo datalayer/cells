@@ -41,6 +41,7 @@ import { type CellsWorkbook, fromRows, validateWorkbook } from '../core/format.j
 import {
   type CellsModel,
   type CellsModelOptions,
+  type RemotePeer,
   type ClipboardMark,
   createCellsModel,
   type EditState,
@@ -548,6 +549,16 @@ export function useOnChange(listener: Parameters<CellsModel['subscribe']>[0]): v
     ),
     () => model.revision,
     () => model.revision,
+  );
+}
+
+/** The other peers of the room (§3.9): who, where, and what they edit; empty with no collaboration. */
+export function usePresence(): readonly RemotePeer[] {
+  const model = useCells();
+  return useSyncExternalStore(
+    useCallback((notify: () => void) => model.subscribePresence(() => notify()), [model]),
+    () => model.remotePresence,
+    () => model.remotePresence,
   );
 }
 

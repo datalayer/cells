@@ -81,7 +81,7 @@ export default function Collaboration() {
     } else {
       setStatus(`joining ${target}/${ROOM}…`);
       const join = async (model: CellsModel, peer: string): Promise<Room> => {
-        const { room, binding } = await bindRoom(model, {
+        const { room, binding, stopPresence } = await bindRoom(model, {
           url: target,
           room: ROOM,
           doc: new LoroDoc(),
@@ -89,6 +89,7 @@ export default function Collaboration() {
           user: { name: peer, color: peer === 'left' ? '#0969da' : '#bf3989' },
         });
         disposers.push(
+          stopPresence,
           () => binding.dispose(),
           () => room.leave(),
         );
