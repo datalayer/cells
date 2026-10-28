@@ -34,45 +34,65 @@ import {
 } from 'react';
 import { Frame } from '../shared';
 
-/** Where the code runs: the browser's Pyodide, or an anonymous Jupyter server on prod1. */
-export type KernelTarget = 'browser' | 'jupyter';
+/** Where the code runs: an anonymous Jupyter server on prod1, a Jupyter server on this machine, or the browser's Pyodide. */
+export type KernelTarget = 'jupyter' | 'local' | 'browser';
 
-/** The two kernels of this page, with what each is. */
-export const KERNEL_TARGETS: readonly { id: KernelTarget; label: string; hint: string }[] = [
-  {
-    id: 'browser',
-    label: 'Browser',
-    hint: 'Python in this page (Pyodide through JupyterLite): nothing to install, nobody signed in; the first run downloads it.',
-  },
+/** The kernels of this page, with what each is; prod1 first, the default. */
+export const KERNEL_TARGETS: readonly {
+  id: KernelTarget;
+  label: string;
+  hint: string;
+  /** Shown, not chosen: the browser kernel is off for now. */
+  disabled?: boolean;
+}[] = [
   {
     id: 'jupyter',
     label: 'Jupyter (prod1)',
-    hint: 'An anonymous Jupyter server on prod1.datalayer.run. Sandbox only — no agent, no account.',
+    hint: 'An anonymous Jupyter server on prod1.datalayer.run. Sandbox only — no agent, no account; no datalayer_cells there, so a run reads the values it names.',
+  },
+  {
+    id: 'local',
+    label: 'Jupyter (local)',
+    hint: 'A Jupyter server on this machine, http://localhost:8888/api/jupyter-server (`make jupyter-server`), with datalayer_cells installed: Python reads and writes the sheet live.',
+  },
+  {
+    id: 'browser',
+    label: 'Browser',
+    hint: 'Python in this page (Pyodide through JupyterLite). Off for now: Pyodide is slow to start.',
+    disabled: true,
   },
 ];
 
 /** Where the choice is kept between visits. */
 export const KERNEL_TARGET_KEY = 'cells-examples-kernel';
 
-/** The kept choice, Browser by default. */
+/** The kept choice when it can be chosen, prod1 by default. */
 export function readKernelTarget(): KernelTarget {
   try {
     const v = window.localStorage.getItem(KERNEL_TARGET_KEY);
-    return v === 'jupyter' ? 'jupyter' : 'browser';
+    const kept = KERNEL_TARGETS.find((t) => t.id === v);
+    return kept !== undefined && kept.disabled !== true ? kept.id : 'jupyter';
   } catch {
-    return 'browser';
+    return 'jupyter';
   }
 }
 
-/** The names of the two plugins, one per kernel; one is enabled at a time. */
+/** The names of the kernel plugins, one per kernel; one is enabled at a time. */
 export const KERNEL_PLUGIN: Record<KernelTarget, string> = {
-  browser: '@datalayer/cells-jupyter',
   jupyter: '@datalayer/cells-examples-jupyter-prod1',
+  local: '@datalayer/cells-examples-jupyter-local',
+  browser: '@datalayer/cells-jupyter',
 };
+
+/** The kernel providers of the page, one per target. */
+export type KernelProviders = Record<KernelTarget, KernelProvider>;
 
 const PROD1_URL = 'https://prod1.datalayer.run/api/jupyter-server';
 // An anonymous public sandbox (the one the jupyter-react examples use): no agent, no account.
 const PROD1_TOKEN = '60c1661cc408f978c309d04157af55c9588ff9557c9380e4fb50785750703da6';
+// The local server of `make jupyter-server`, as agent-runtimes' examples reach theirs: the same development token.
+export const LOCAL_URL = 'http://localhost:8888/api/jupyter-server';
+const LOCAL_TOKEN = PROD1_TOKEN;
 
 /** The `./jupyter` entry, fetched once (it carries jupyter-react; JupyterLite and Pyodide come with the first run). */
 const jupyter = () => {
@@ -111,27 +131,43 @@ export function browserKernel(binding?: PageBinding): KernelProvider {
   };
 }
 
-/** The prod1 kernel: a `ServiceManager` on the anonymous server, built on the first run. */
-export function prod1Kernel(binding?: PageBinding): KernelProvider {
+/** A kernel on a Jupyter server: a `ServiceManager` on it, built on the first run. */
+function serverKernel(
+  id: string,
+  label: string,
+  url: string,
+  token: string,
+  binding?: PageBinding,
+): KernelProvider {
   return {
-    id: 'prod1',
-    label: 'Jupyter on prod1 (anonymous)',
+    id,
+    label,
     async connect() {
       const [{ serviceManagerKernel }, core, { ServiceManager }] = await Promise.all([
         jupyter(),
         import('@datalayer/jupyter-react/core'),
         import('@jupyterlab/services'),
       ]);
-      core.setJupyterServerUrl(PROD1_URL);
-      core.setJupyterServerToken(PROD1_TOKEN);
-      const serverSettings = core.createServerSettings(PROD1_URL, PROD1_TOKEN);
+      core.setJupyterServerUrl(url);
+      core.setJupyterServerToken(token);
+      const serverSettings = core.createServerSettings(url, token);
       return serviceManagerKernel(new ServiceManager({ serverSettings }), {
-        id: 'prod1',
-        label: 'Jupyter on prod1 (anonymous)',
+        id,
+        label,
         binding,
       }).connect();
     },
   };
+}
+
+/** The prod1 kernel: the anonymous server. */
+export function prod1Kernel(binding?: PageBinding): KernelProvider {
+  return serverKernel('prod1', 'Jupyter on prod1 (anonymous)', PROD1_URL, PROD1_TOKEN, binding);
+}
+
+/** The local kernel: the Jupyter server on this machine. */
+export function localKernel(binding?: PageBinding): KernelProvider {
+  return serverKernel('local', 'Jupyter on this machine', LOCAL_URL, LOCAL_TOKEN, binding);
 }
 
 /**
@@ -151,17 +187,10 @@ export function lazyCodeRenderer(): CodeRenderer {
 
 const LazyKernelStatus = lazy(() => jupyter().then((m) => ({ default: m.KernelStatus })));
 
-/** The kernel's state beside the chooser: *not started* until the runner connects one (jupyter-react loads then), the indicator after. */
+/** The kernel's state beside the chooser: jupyter-react's indicator, in its no-kernel state until the runner connects one. */
 function KernelBadge({ model }: { readonly model: CellsModel }) {
-  const runner = codeRunner(model);
-  const kernel = useSyncExternalStore(
-    useCallback((notify: () => void) => runner.onKernel(notify), [runner]),
-    () => runner.kernel(),
-    () => runner.kernel(),
-  );
-  if (kernel === undefined) return <span data-kernel-badge="not-started">Kernel: not started</span>;
   return (
-    <Suspense fallback={<span data-kernel-badge="loading">Kernel: …</span>}>
+    <Suspense fallback={null}>
       <LazyKernelStatus model={model} />
     </Suspense>
   );
@@ -170,12 +199,9 @@ function KernelBadge({ model }: { readonly model: CellsModel }) {
 /** The name of the renderer plugin, always enabled. */
 export const RENDERER_PLUGIN = '@datalayer/cells-examples-jupyter-renderer';
 
-/** The two kernel plugins, and the renderer's (jupyter-react's `Output` and `Cell`, lazily). */
+/** The kernel plugins, and the renderer's (jupyter-react's `Output` and `Cell`, lazily). */
 export function kernelPlugins(
-  providers: {
-    browser: KernelProvider;
-    jupyter: KernelProvider;
-  },
+  providers: KernelProviders,
   renderer: CodeRenderer = lazyCodeRenderer(),
 ): PlatformInput[] {
   return [
@@ -187,20 +213,15 @@ export function kernelPlugins(
       octicon: 'code',
       contributes: [contribution(CellsCodeRenderer, renderer, { id: renderer.id, order: 100 })],
     }),
-    definePlugin({
-      name: KERNEL_PLUGIN.browser,
-      displayName: 'Jupyter (browser)',
-      description: KERNEL_TARGETS[0].hint,
-      octicon: 'browser',
-      contributes: [contribution(CellsKernels, providers.browser, { id: providers.browser.id })],
-    }),
-    definePlugin({
-      name: KERNEL_PLUGIN.jupyter,
-      displayName: 'Jupyter (prod1)',
-      description: KERNEL_TARGETS[1].hint,
-      octicon: 'server',
-      contributes: [contribution(CellsKernels, providers.jupyter, { id: providers.jupyter.id })],
-    }),
+    ...KERNEL_TARGETS.map((t) =>
+      definePlugin({
+        name: KERNEL_PLUGIN[t.id],
+        displayName: `Kernel: ${t.label}`,
+        description: t.hint,
+        octicon: t.id === 'browser' ? 'browser' : 'server',
+        contributes: [contribution(CellsKernels, providers[t.id], { id: providers[t.id].id })],
+      }),
+    ),
   ];
 }
 
@@ -227,23 +248,18 @@ plt.close(fig)
 Image(buf.getvalue())`;
 
 /** The page's grid: a small table, a code cell summing it (C2), one plotting it beside the cells (C4); bound to its document, the kernels bound to it. */
-export function codeCellsModel(
-  providers?: {
-    browser: KernelProvider;
-    jupyter: KernelProvider;
-  },
-  renderer?: CodeRenderer,
-): CellsModel {
+export function codeCellsModel(providers?: KernelProviders, renderer?: CodeRenderer): CellsModel {
   // The document's binding comes after the model; the kernels, made on the first run, bind to it then.
   const later: { binding?: PageBinding } = {};
   const reactor = buildCellsReactor(
     kernelPlugins(
       providers ?? {
-        browser: lazyProvider('lite', 'Python in the browser (Pyodide)', () =>
-          browserKernel(later.binding),
-        ),
         jupyter: lazyProvider('prod1', 'Jupyter on prod1 (anonymous)', () =>
           prod1Kernel(later.binding),
+        ),
+        local: lazyProvider('local', 'Jupyter on this machine', () => localKernel(later.binding)),
+        browser: lazyProvider('lite', 'Python in the browser (Pyodide)', () =>
+          browserKernel(later.binding),
         ),
       },
       renderer,
@@ -337,11 +353,12 @@ function Status({ model }: { model: CellsModel }) {
  * kernel, its result is a value the formulas read, and its rich outputs (a
  * figure) show in a frame beside the cells, drawn by jupyter-react's
  * `Output`. F4 opens the source in jupyter-react's `Cell`, on the same
- * kernel. The kernel is the browser's Pyodide (no account) or an anonymous
- * Jupyter server on prod1; the choice is kept between visits.
+ * kernel. The kernel is an anonymous Jupyter server on prod1 (the default),
+ * a Jupyter server on this machine with `datalayer_cells` (the live sheet),
+ * or the browser's Pyodide (off for now); the choice is kept between visits.
  */
 export default function CodeCells(props: {
-  readonly providers?: { browser: KernelProvider; jupyter: KernelProvider };
+  readonly providers?: KernelProviders;
   /** A test's renderer in place of jupyter-react's lazy one. */
   readonly renderer?: CodeRenderer;
 }) {
@@ -383,7 +400,11 @@ export default function CodeCells(props: {
               key={t.id}
               selected={target === t.id}
               title={t.hint}
-              onClick={() => setTarget(t.id)}
+              disabled={t.disabled}
+              aria-disabled={t.disabled}
+              onClick={() => {
+                if (t.disabled !== true) setTarget(t.id);
+              }}
             >
               {t.label}
             </SegmentedControl.Button>

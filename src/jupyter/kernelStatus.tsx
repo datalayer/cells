@@ -56,7 +56,7 @@ export function useRunnerKernel(model: CellsModel): CellsKernel | undefined {
 /**
  * The kernel's state, as jupyter-react's `KernelIndicator` shows it on the
  * runner's kernel connection, with *Interrupt* and *Restart* in a menu;
- * *not started* before the first connect.
+ * before the first connect, the indicator alone, in its no-kernel state.
  */
 export function KernelStatus({ model, menu = true }: KernelStatusProps) {
   const kernel = useRunnerKernel(model);
@@ -67,11 +67,8 @@ export function KernelStatus({ model, menu = true }: KernelStatusProps) {
         data-cells-kernel-status={kernel === undefined ? 'not-started' : 'connected'}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
       >
-        {kernel === undefined ? (
-          <span>Kernel: not started</span>
-        ) : (
-          <KernelIndicator kernel={connection} />
-        )}
+        {/* Before the first connect, the indicator shows no kernel: no sentence beside it. */}
+        <KernelIndicator kernel={connection} />
         {menu && kernel !== undefined && (
           <ActionMenu>
             <ActionMenu.Button size="small" variant="invisible" aria-label="Kernel actions">

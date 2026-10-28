@@ -43,10 +43,15 @@ import {
 import { Button } from '@primer/react';
 import type { IOutput } from '@jupyterlab/nbformat';
 import type { ServiceManager } from '@jupyterlab/services';
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { type CodeOutput as CodeOutputData, codeRef } from '../core/code.js';
 import { Themed } from './theme.js';
-import { CODE_EDITOR_MIN_WIDTH, PlainEditor, safeOutputs } from '../react/CodeLayer.js';
+import {
+  CODE_EDITOR_MIN_WIDTH,
+  PlainEditor,
+  safeOutputs,
+  shownOutputs,
+} from '../react/CodeLayer.js';
 import { type CellsBinding, type CellsComm, openCellsComm } from './comm.js';
 
 export { type CellsBinding, type CellsComm, type LoroDocLike, openCellsComm } from './comm.js';
@@ -85,8 +90,17 @@ export function jupyterKernel(kernel: Kernel, binding?: CellsBinding): JupyterCe
     await kernel.ready;
     const connection = kernel.connection;
     if (connection === null) throw new Error('The kernel is not connected.');
+    // `datalayer_cells` registers the comm's target when imported: import it
+    // first, quietly (an ImportError where it is not installed says nothing),
+    // or the kernel would close the comm as an unknown target.
+    await kernel.execute('try:\n    import datalayer_cells\nexcept ImportError:\n    pass', {
+      silent: true,
+      storeHistory: false,
+    })?.done;
     comm = openCellsComm(connection, binding);
-    await comm.mode;
+    // A kernel without `datalayer_cells` (closed comm, or no answer) still
+    // runs: the preamble binds `cells` to the values the run sends.
+    await comm.mode.catch(() => undefined);
   };
   return {
     kernel,
@@ -285,6 +299,28 @@ export function CodeCellEditor({
   const id = `cells-code-${useId()}`;
   const code = model.code(sheet, row, col);
   const kernel = useEditorKernel(model);
+  // The overlay follows the model: a run's outputs show under the editor as they are written.
+  const [, setRevision] = useState(0);
+  useEffect(() => model.subscribe(() => setRevision((r) => r + 1)), [model]);
+  const [running, setRunning] = useState(false);
+  const [runError, setRunError] = useState<string>();
+  // Shift/Ctrl+Enter runs through the grid's runner. jupyter-react's Cell
+  // listens on the document, in the capture phase, and would send the raw
+  // source (no `cells`): the window's capture phase comes before it.
+  const dialog = useRef<HTMLDivElement>(null);
+  const runLatest = useRef<() => Promise<void>>(async () => undefined);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Enter' || !(event.shiftKey || event.ctrlKey || event.metaKey)) return;
+      const focused = document.activeElement;
+      if (dialog.current === null || focused === null || !dialog.current.contains(focused)) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      void runLatest.current();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, []);
   const write = () => {
     const current = model.code(sheet, row, col);
     const source = cellsStore.getState().getSource(id);
@@ -297,11 +333,28 @@ export function CodeCellEditor({
     write();
     onClose();
   };
+  // Run is the grid's run, never the raw source on the kernel: the runner's
+  // preamble binds `cells`, and the result is written back to the cell.
+  const run = async () => {
+    write();
+    setRunError(undefined);
+    setRunning(true);
+    try {
+      await codeRunner(model).run({ sheet, row, col });
+    } catch (error) {
+      setRunError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setRunning(false);
+    }
+  };
+  runLatest.current = run;
   const ref = codeRef(row, col);
-  const outputs = code.outputs.length > 0 && (
+  // The last run's outputs, or the value it returned when it displayed nothing.
+  const shown = shownOutputs(code);
+  const outputs = shown.length > 0 && (
     <div data-cells-code-editor-outputs="" style={{ marginTop: 8 }}>
       <CodeOutput
-        outputs={model.codeTrusted(sheet, row, col) ? code.outputs : safeOutputs(code.outputs)}
+        outputs={model.codeTrusted(sheet, row, col) ? shown : safeOutputs(shown)}
         trusted={model.codeTrusted(sheet, row, col)}
         cell={ref}
         width={CODE_EDITOR_MIN_WIDTH - 16}
@@ -335,18 +388,27 @@ export function CodeCellEditor({
   }
   return (
     <Themed>
-      <div data-cells-code-editor="" role="dialog" aria-label={`Code of ${ref}`}>
+      <div data-cells-code-editor="" role="dialog" aria-label={`Code of ${ref}`} ref={dialog}>
         <Cell
           id={id}
           source={code.source}
-          outputs={code.outputs as unknown as IOutput[]}
+          // The outputs show once, below, from the model: a run writes them there.
+          outputs={[] as IOutput[]}
           startDefaultKernel={false}
           autoStart={false}
           kernel={kernel.kernel}
           showToolbar={false}
         />
         {outputs}
+        {runError !== undefined && (
+          <p data-cells-code-editor-error="" style={{ margin: '8px 0 0', fontSize: 12 }}>
+            {runError}
+          </p>
+        )}
         <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+          <Button size="small" onClick={() => void run()} disabled={running}>
+            {running ? 'Running…' : 'Run'}
+          </Button>
           <Button size="small" variant="primary" onClick={save}>
             Save
           </Button>

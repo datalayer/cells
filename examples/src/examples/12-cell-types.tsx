@@ -48,7 +48,7 @@ export default function CellTypes() {
           { formula: 'COUNTIF(A2:A7, TRUE)' },
           { formula: 'COUNTA(B2:B7)' },
         ],
-        [true, 'Write the plan', 'https://datalayer.io', 1],
+        [true, 'Write the plan', 'https://datalayer.ai', 1],
         [true, 'Build the model', 'https://github.com/datalayer/cells', 1],
         [false, 'Draw the grid', 'cells.datalayer.tech', 0.8],
         [false, 'Ship the chrome', 'mailto:hello@datalayer.io', 0.35],

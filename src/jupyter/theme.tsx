@@ -21,8 +21,11 @@ export function useHostColorMode(): 'light' | 'dark' {
   const { resolvedColorMode } = useTheme();
   const fromDocument =
     typeof document === 'undefined' ? undefined : document.documentElement.dataset.colorMode;
+  // Primer resolves `auto` to `day`/`night` and keeps an explicit `light`/`dark` as given.
   const dark =
-    resolvedColorMode === 'night' || (resolvedColorMode === undefined && fromDocument === 'dark');
+    resolvedColorMode === 'night' ||
+    resolvedColorMode === 'dark' ||
+    (resolvedColorMode === undefined && fromDocument === 'dark');
   return dark ? 'dark' : 'light';
 }
 

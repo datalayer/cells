@@ -32,11 +32,14 @@ bench-browser: ## run the Node and the browser benches (system Chrome, headless)
 bench-reference: ## the reference figures: the browser benches in a headed Chrome with its GPU (close other work first)
 	CELLS_BENCH_HEADED=1 node scripts/bench.mjs --browser
 
-.PHONY: start examples
+.PHONY: start examples jupyter-server
 start: examples ## start the examples (the same as make examples)
 
 examples: ## start the examples on http://127.0.0.1:3077 (installs nothing; Ctrl+C stops)
 	npm run examples
+
+jupyter-server: ## a local Jupyter server for the Code cells example's "Jupyter (local)" kernel (needs `pip install -e ".[live]"` here)
+	jupyter server --config=dev/jupyter_server_config.py
 
 .PHONY: build-examples deploy-examples
 build-examples: ## build the examples site into examples/dist

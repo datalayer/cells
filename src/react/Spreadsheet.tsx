@@ -69,7 +69,7 @@ import { type CellsTheme, checkTheme } from '../render/theme.js';
 import { cellAt, cellRect, headerAt, paneAt, type Viewport } from '../render/viewport.js';
 import { fontOf } from '../render/paint.js';
 import { ChartsLayer } from './ChartsLayer.js';
-import { CodeLayer } from './CodeLayer.js';
+import { CodeLayer, shownOutputs } from './CodeLayer.js';
 import { codeRef } from '../core/code.js';
 import { ActionList, Overlay, registerPortalRoot, ThemeProvider } from '@primer/react';
 import {
@@ -606,7 +606,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
           const r = rendererRef.current;
           if (r === null) return false;
           const code = model.code(r.sheet, row, col);
-          if (code === undefined || code.outputs.length === 0) return false;
+          if (code === undefined || shownOutputs(code).length === 0) return false;
           const sheetNow = model.sheet(r.sheet);
           const pane = r.viewport.panes.find((p) => p.name === 'main')!;
           const rect = cellRect(pane, r.viewport.zoom, sheetNow.rows, sheetNow.cols, row, col);
@@ -1093,7 +1093,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
       }
       if (cell === undefined || r === null) return;
       const code = model.code(r.sheet, cell.row, cell.col);
-      if (code === undefined || code.outputs.length === 0) return;
+      if (code === undefined || shownOutputs(code).length === 0) return;
       if (shown !== null && shown.row === cell.row && shown.col === cell.col) return;
       hover.current = {
         row: cell.row,

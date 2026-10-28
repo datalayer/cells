@@ -118,7 +118,7 @@ describe('the code cells page', () => {
     act(() =>
       root!.render(
         <CodeCells
-          providers={{ browser: fake('lite'), jupyter: fake('prod1') }}
+          providers={{ jupyter: fake('prod1'), local: fake('local'), browser: fake('lite') }}
           renderer={MOCK_RENDERER}
         />,
       ),
@@ -140,7 +140,11 @@ describe('the code cells page', () => {
   });
 
   it('holds the table, the two code cells and the formula over C2', () => {
-    const m = codeCellsModel({ browser: fake('lite'), jupyter: fake('prod1') });
+    const m = codeCellsModel({
+      jupyter: fake('prod1'),
+      local: fake('local'),
+      browser: fake('lite'),
+    });
     expect(m.code('s1', 1, 2)?.source).toContain('cells["B2:B7"]');
     expect(m.code('s1', 3, 2)?.source).toContain('matplotlib');
     expect(m.code('s1', 3, 2)?.frame).toBeNull();
@@ -149,8 +153,9 @@ describe('the code cells page', () => {
     expect(m.cellTypeIds()).toContain('code');
   });
 
-  it('the toggle switches the kernel provider of the point, and keeps the choice', async () => {
-    const fakes = { browser: fake('lite'), jupyter: fake('prod1') };
+  it('prod1 by default; the toggle switches the kernel provider of the point and keeps the choice; Browser is off', async () => {
+    window.localStorage.removeItem(KERNEL_TARGET_KEY);
+    const fakes = { jupyter: fake('prod1'), local: fake('local'), browser: fake('lite') };
     const div = document.createElement('div');
     document.body.append(div);
     root = createRoot(div);
@@ -158,24 +163,32 @@ describe('the code cells page', () => {
     const grid = div.querySelector<HTMLElement>('[role="grid"]')!;
     const model = (await import('../../builtins/target.js')).currentCellsCommandTarget()!.model;
     const providers = () => model.reactor.getContributions(CellsKernels).map((c) => c.value.id);
-    expect(providers()).toEqual(['lite']);
-    expect(div.querySelector('[data-kernel-hint]')!.textContent).toContain('Pyodide');
-    const button = (label: string) =>
-      [...div.querySelectorAll('button')].find((b) => b.textContent === label)!;
-    act(() => button('Jupyter (prod1)').click());
     expect(providers()).toEqual(['prod1']);
     expect(div.querySelector('[data-kernel-hint]')!.textContent).toContain('prod1.datalayer.run');
-    expect(window.localStorage.getItem(KERNEL_TARGET_KEY)).toBe('jupyter');
-    expect(readKernelTarget()).toBe('jupyter');
+    const button = (label: string) =>
+      [...div.querySelectorAll('button')].find((b) => b.textContent === label)!;
+    expect(
+      [...div.querySelectorAll('[aria-labelledby="kernel-label"] button')].map(
+        (b) => b.textContent,
+      ),
+    ).toEqual(['Jupyter (prod1)', 'Jupyter (local)', 'Browser']);
+    act(() => button('Jupyter (local)').click());
+    expect(providers()).toEqual(['local']);
+    expect(div.querySelector('[data-kernel-hint]')!.textContent).toContain('localhost:8888');
+    expect(window.localStorage.getItem(KERNEL_TARGET_KEY)).toBe('local');
+    expect(readKernelTarget()).toBe('local');
     // A run goes to the kernel chosen.
     act(() => grid.focus());
     await act(async () => {
       await model.reactor.executeCommand('cells.code.run', { model });
     });
     expect(model.code('s1', 1, 2)?.outputs).toEqual([
-      { output_type: 'stream', name: 'stdout', text: 'ran on prod1' },
+      { output_type: 'stream', name: 'stdout', text: 'ran on local' },
     ]);
+    // Browser is shown, not chosen; a kept 'browser' reads as prod1.
     act(() => button('Browser').click());
-    expect(providers()).toEqual(['lite']);
+    expect(providers()).toEqual(['local']);
+    window.localStorage.setItem(KERNEL_TARGET_KEY, 'browser');
+    expect(readKernelTarget()).toBe('jupyter');
   });
 });

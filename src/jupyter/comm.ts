@@ -43,6 +43,12 @@ const unb64 = (text: string) => Uint8Array.from(atob(text), (c) => c.charCodeAt(
 
 /** An open `datalayer.cells` comm: how to stop it, and what the kernel said it holds. */
 export interface CellsComm {
+  /**
+   * What the kernel holds, once its `datalayer_cells` answers. Rejected when
+   * the kernel closes the comm (no `datalayer_cells` there: a Jupyter kernel
+   * closes a comm whose target it does not know) or does not answer within
+   * `COMM_READY_MS`: the runs then send their values, as before C11-09.
+   */
   readonly mode: Promise<'loro' | 'json'>;
   close(): void;
 }
@@ -54,6 +60,9 @@ export interface CellsComm {
  * update, and takes the kernel's updates (Loro bytes merged into the
  * document) or writes (`SET_CELLS`, labelled with the cell that wrote).
  */
+/** How long a kernel has to answer the comm before the runs go on without the live workbook. */
+export const COMM_READY_MS = 5000;
+
 export function openCellsComm(
   connection: JupyterKernel.IKernelConnection,
   binding: CellsBinding,
@@ -62,9 +71,24 @@ export function openCellsComm(
   const comm = connection.createComm('datalayer.cells');
   let mode: 'loro' | 'json' | undefined;
   let resolveMode: (m: 'loro' | 'json') => void = () => undefined;
-  const modePromise = new Promise<'loro' | 'json'>((r) => {
-    resolveMode = r;
+  let rejectMode: (error: Error) => void = () => undefined;
+  const modePromise = new Promise<'loro' | 'json'>((resolve, reject) => {
+    resolveMode = resolve;
+    rejectMode = reject;
   });
+  // Handled here too: a run that never asks is no unhandled rejection.
+  modePromise.catch(() => undefined);
+  const unanswered = setTimeout(
+    () => rejectMode(new Error('The kernel has no datalayer_cells: the runs send their values.')),
+    COMM_READY_MS,
+  );
+  void modePromise.then(
+    () => clearTimeout(unanswered),
+    () => clearTimeout(unanswered),
+  );
+  comm.onClose = () => {
+    rejectMode(new Error('The kernel closed the datalayer.cells comm: no datalayer_cells there.'));
+  };
   const stops: (() => void)[] = [];
   let timer: ReturnType<typeof setTimeout> | undefined;
   const sendJson = () => {

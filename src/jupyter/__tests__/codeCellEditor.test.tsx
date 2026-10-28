@@ -12,7 +12,7 @@
  * still connecting (the plain editor, editable, the outputs under it), the
  * `Cell` takes over once the kernel is connected, and a kernel that fails
  * to connect leaves the editor with the error said. The kernel indicator
- * says *not started*, then follows the connection's `statusChanged` from
+ * shows no kernel, then follows the connection's `statusChanged` from
  * idle to busy and back, and the model hears the state.
  */
 
@@ -45,11 +45,13 @@ vi.mock('@datalayer/jupyter-react/kernel-indicator', async () => {
     KernelIndicator: ({
       kernel,
     }: {
-      kernel: { status: string; statusChanged: Signal<unknown, string> } | null;
+      kernel: { status: string; statusChanged: Signal<unknown, string> } | null | undefined;
     }) => {
       const [status, setStatus] = React.useState(kernel?.status);
       React.useEffect(() => {
-        if (kernel === null) return undefined;
+        // As jupyter-react's: the status read again whenever the kernel changes.
+        setStatus(kernel?.status);
+        if (kernel === null || kernel === undefined) return undefined;
         const on = (_c: unknown, s: string) => setStatus(s);
         kernel.statusChanged.connect(on);
         return () => {
@@ -179,7 +181,7 @@ describe('the code editor of ./jupyter', () => {
     expect(div.querySelector('textarea[aria-label="Source"]')).not.toBeNull();
   });
 
-  it('the kernel indicator says not started, then follows the connection from idle to busy and back, and the model hears it', async () => {
+  it('the kernel indicator shows no kernel, with no sentence, then follows the connection from idle to busy and back, and the model hears it', async () => {
     const { KernelStatus } = await import('../kernelStatus.js');
     const { connection, setStatus } = fakeConnection();
     const m = modelWith(async () => fakeKernel(connection));
@@ -187,7 +189,7 @@ describe('the code editor of ./jupyter', () => {
     expect(
       div.querySelector('[data-cells-kernel-status]')!.getAttribute('data-cells-kernel-status'),
     ).toBe('not-started');
-    expect(div.textContent).toContain('Kernel: not started');
+    expect(div.textContent).not.toContain('Kernel: not started');
     expect(m.kernelStatus).toBeUndefined();
     await act(async () => {
       await codeRunner(m).connect();
@@ -205,7 +207,7 @@ describe('the code editor of ./jupyter', () => {
     expect(div.textContent).toContain('Idle');
     expect(m.kernelStatus).toBe('idle');
     act(() => codeRunner(m).reset());
-    expect(div.textContent).toContain('Kernel: not started');
+    expect(div.textContent).not.toContain('Kernel: not started');
     expect(m.kernelStatus).toBeUndefined();
   });
 });

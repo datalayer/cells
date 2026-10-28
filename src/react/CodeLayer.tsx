@@ -77,6 +77,35 @@ export interface CodeLayerProps {
 }
 
 /** The `text/plain` of a code cell's outputs, as the fallback frame and the frame's description show it. */
+/**
+ * What a code cell shows as its outputs: its last run's, or, when the run
+ * displayed nothing but returned a value (the value went to the cell), that
+ * value as a plain-text result, so the hover and the editor still show it.
+ */
+export function shownOutputs(code: CodeCell): readonly CodeOutput[] {
+  if (code.outputs.length > 0) return code.outputs;
+  // One array per code cell value: a renderer handed a new array on every
+  // render (jupyter-react's Output) would draw the result again each time.
+  const cached = SHOWN.get(code);
+  if (cached !== undefined) return cached;
+  const result = code.result;
+  const shown: readonly CodeOutput[] =
+    result === undefined || result === null || typeof result === 'object'
+      ? NO_OUTPUTS
+      : [
+          {
+            output_type: 'execute_result',
+            data: { 'text/plain': String(result) },
+            metadata: {},
+            execution_count: code.executionCount ?? null,
+          } as unknown as CodeOutput,
+        ];
+  SHOWN.set(code, shown);
+  return shown;
+}
+const SHOWN = new WeakMap<CodeCell, readonly CodeOutput[]>();
+const NO_OUTPUTS: readonly CodeOutput[] = [];
+
 export function outputsText(outputs: readonly CodeOutput[]): string {
   const parts: string[] = [];
   for (const o of outputs) {
@@ -363,11 +392,11 @@ export function CodeLayer(props: CodeLayerProps) {
           onClose={() => props.onCloseEditor?.()}
         />
       )}
-      {preview !== null && previewed !== undefined && previewed.outputs.length > 0 && (
+      {preview !== null && previewed !== undefined && shownOutputs(previewed).length > 0 && (
         <CodeOutputPreview
           key={`preview:${sheet.id}:${preview.row},${preview.col}`}
           cell={codeRef(preview.row, preview.col)}
-          outputs={previewed.outputs}
+          outputs={shownOutputs(previewed)}
           trusted={model.codeTrusted(sheet.id, preview.row, preview.col)}
           x={preview.x}
           y={preview.y}
@@ -587,7 +616,7 @@ export function CodeEditorOverlay(props: CodeEditorOverlayProps) {
           >
             <strong>{codeRef(row, col)}</strong>
             {Status !== undefined && (
-              <Suspense fallback={<span>Kernel: …</span>}>
+              <Suspense fallback={null}>
                 <Status model={model} />
               </Suspense>
             )}
