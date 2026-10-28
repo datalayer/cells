@@ -83,8 +83,8 @@ test.describe('the examples', () => {
 
   test('two grids on one model show the same cells', async ({ page }) => {
     await page.goto('/#/collaboration');
-    await page.getByLabel(/Write into A1/).fill('shared');
-    await page.getByLabel(/Write into A1/).press('Enter');
+    await page.getByLabel(/^Write into A1$/).fill('shared');
+    await page.getByLabel(/^Write into A1$/).press('Enter');
     for (const name of ['Left pane', 'Right pane']) {
       await expect(
         page.getByRole('grid', { name }).getByRole('gridcell', { name: 'shared', exact: true }),
