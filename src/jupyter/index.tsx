@@ -34,10 +34,12 @@ import {
   cellsStore,
   createLiteServiceManager,
   jupyterReactStore,
+  JupyterReactTheme,
   Kernel,
   Output,
   ServiceManagerLess,
 } from '@datalayer/jupyter-react';
+import { Button, useTheme } from '@primer/react';
 import type { IOutput } from '@jupyterlab/nbformat';
 import type { ServiceManager } from '@jupyterlab/services';
 import { useEffect, useId, useState } from 'react';
@@ -154,6 +156,26 @@ export function liteKernel(options: JupyterKernelOptions = {}): KernelProvider {
 }
 
 /**
+ * jupyter-react's theme around its components (`JupyterReactTheme`: the
+ * JupyterLab CSS and variables, Primer's primitives), in the host's colour
+ * mode: Primer's resolved one when a `ThemeProvider` is above (the examples'
+ * appearance menu), else the document's `data-color-mode`, else light.
+ * Without it CodeMirror and the outputs render as plain text.
+ */
+export function Themed({ children }: { readonly children: React.ReactNode }) {
+  const { resolvedColorMode } = useTheme();
+  const fromDocument =
+    typeof document === 'undefined' ? undefined : document.documentElement.dataset.colorMode;
+  const dark =
+    resolvedColorMode === 'night' || (resolvedColorMode === undefined && fromDocument === 'dark');
+  return (
+    <JupyterReactTheme colormode={dark ? 'dark' : 'light'}>
+      <div data-cells-jupyter-theme={dark ? 'dark' : 'light'}>{children}</div>
+    </JupyterReactTheme>
+  );
+}
+
+/**
  * A code cell's outputs, rendered by jupyter-react's `Output` from what the
  * model stores, with no kernel (remounting never re-runs). A `ServiceManagerLess`
  * is published for it when nothing was: an `Output` with no manager would
@@ -168,18 +190,20 @@ export function CodeOutput({ outputs, cell, width, height }: CodeOutputRendererP
   }, []);
   if (!ready) return null;
   return (
-    <div data-cells-jupyter-output={cell} style={{ width, height, overflow: 'auto' }}>
-      <Output
-        id={`cells-output-${cell}`}
-        outputs={outputs as unknown as IOutput[]}
-        showEditor={false}
-        showControl={false}
-        showKernelProgressBar={false}
-        autoRun={false}
-        disableRun
-        toolbarPosition="none"
-      />
-    </div>
+    <Themed>
+      <div data-cells-jupyter-output={cell} style={{ width, height, overflow: 'auto' }}>
+        <Output
+          id={`cells-output-${cell}`}
+          outputs={outputs as unknown as IOutput[]}
+          showEditor={false}
+          showControl={false}
+          showKernelProgressBar={false}
+          autoRun={false}
+          disableRun
+          toolbarPosition="none"
+        />
+      </div>
+    </Themed>
   );
 }
 
@@ -226,25 +250,27 @@ export function CodeCellEditor({
     onClose();
   };
   return (
-    <div data-cells-code-editor="" role="dialog" aria-label={`Code of ${codeRef(row, col)}`}>
-      <Cell
-        id={id}
-        source={code.source}
-        outputs={code.outputs as unknown as IOutput[]}
-        startDefaultKernel={false}
-        autoStart={false}
-        kernel={kernel}
-        showToolbar={false}
-      />
-      <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-        <button type="button" onClick={save}>
-          Save
-        </button>
-        <button type="button" onClick={onClose}>
-          Cancel
-        </button>
+    <Themed>
+      <div data-cells-code-editor="" role="dialog" aria-label={`Code of ${codeRef(row, col)}`}>
+        <Cell
+          id={id}
+          source={code.source}
+          outputs={code.outputs as unknown as IOutput[]}
+          startDefaultKernel={false}
+          autoStart={false}
+          kernel={kernel}
+          showToolbar={false}
+        />
+        <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+          <Button size="small" variant="primary" onClick={save}>
+            Save
+          </Button>
+          <Button size="small" onClick={onClose}>
+            Cancel
+          </Button>
+        </div>
       </div>
-    </div>
+    </Themed>
   );
 }
 

@@ -62,7 +62,9 @@ Runs go to the first `datalayer.cells.kernel` contribution (a
 offers `liteKernel()` (JupyterLite's Pyodide, in the page, no server) and
 `serviceManagerKernel(manager)` (a Jupyter server or a Datalayer runtime),
 and `CellsJupyterPlugin(provider)` contributes one with jupyter-react's
-`Output` and `Cell` as the code renderer. With no kernel, a run says *No
+`Output` and `Cell` as the code renderer, each under jupyter-react's theme
+(`JupyterReactTheme`: the JupyterLab CSS and variables) in the host's colour
+mode, Primer's resolved one or the document's `data-color-mode`. With no kernel, a run says *No
 kernel*. A kernel that is not Python gets the program too: `programParts`
 gives it the source and the values read, and it answers with a
 `display_data` output under `RESULT_MIME` (the plugin guide shows one).
