@@ -87,6 +87,41 @@ describe('the Loro binding, two in-memory peers', () => {
     expect(p.a.model.sheets.map((s) => s.name)).toEqual(['Sheet1']);
   });
 
+  it('a row moved or deleted is what the other peer sees: the local view and the document agree', () => {
+    // Found by the monkey party with a Python peer: the move's cells patch moved the cells a second
+    // time on ids, and a delete's merges were written on the order before the delete.
+    const p = pair();
+    p.a.model.dispatch({ type: 'SET_CELLS', sheet: 's1', at: { row: 3, col: 0 }, cells: [['x']] });
+    p.a.model.dispatch({ type: 'MERGE', sheet: 's1', zone: z(18, 0, 19, 1) });
+    p.sync();
+    p.a.model.dispatch({ type: 'MOVE_AXIS', sheet: 's1', axis: 'rows', at: 0, n: 1, to: 6 });
+    expect(p.a.model.value('s1', 2, 0)).toBe('x');
+    p.a.model.dispatch({ type: 'DELETE_AXIS', sheet: 's1', axis: 'rows', at: 0, n: 1 });
+    expect(p.a.model.sheet('s1').merges).toEqual([z(17, 0, 18, 1)]);
+    p.sync();
+    // b projects the document: it shows what a shows.
+    same(p);
+    expect(p.b.model.value('s1', 1, 0)).toBe('x');
+    expect(p.b.model.sheet('s1').merges).toEqual([z(17, 0, 18, 1)]);
+  });
+
+  it('both sheets deleted concurrently, then a sheet added: the empty sheet goes back first', () => {
+    const p = pair();
+    p.a.model.dispatch({ type: 'ADD_SHEET', name: 'Two' });
+    p.sync();
+    p.a.model.dispatch({ type: 'DELETE_SHEET', sheet: p.a.model.sheets[0].id });
+    p.b.model.dispatch({ type: 'DELETE_SHEET', sheet: p.b.model.sheets[1].id });
+    p.sync();
+    // The document lists no sheet: both peers show the same empty one.
+    expect(p.a.doc.getMovableList('sheets').toJSON()).toEqual([]);
+    expect(p.a.model.sheets.map((s) => s.id)).toEqual(['empty']);
+    // Adding a sheet then (found by the monkey party with a Python peer) used to insert at 1 into an empty list.
+    expect(p.a.model.dispatch({ type: 'ADD_SHEET', name: 'Three' }).ok).toBe(true);
+    p.sync();
+    same(p);
+    expect(p.b.model.sheets.map((s) => s.name)).toEqual(['Sheet1', 'Three']);
+  });
+
   it('a merge while the other writes inside it: both see one merge and the same cells', () => {
     const p = pair();
     p.a.model.dispatch({ type: 'MERGE', sheet: 's1', zone: z(0, 0, 1, 1) });

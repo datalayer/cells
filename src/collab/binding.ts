@@ -562,22 +562,34 @@ export class LoroBinding {
   }
 
   /** Merges keyed by their top-left corner's ids: those gone are deleted, those new set. */
-  #writeMerges(sheet: string, before: readonly Zone[], after: readonly Zone[]): void {
-    const m = this.#merges(sheet);
+  #mergeCorners(sheet: string): (z: Zone) => { r0: string; c0: string; r1: string; c1: string } {
     const rows = this.#order(sheet, 'rows');
     const cols = this.#order(sheet, 'cols');
-    const corners = (z: Zone) => ({
+    return (z: Zone) => ({
       r0: rows.idAt(z.top)!,
       c0: cols.idAt(z.left)!,
       r1: rows.idAt(z.bottom)!,
       c1: cols.idAt(z.right)!,
     });
+  }
+
+  /**
+   * `before`'s keys are read on the order as it is now, unless given: a merges
+   * patch a delete made reads its `before` on the order before the delete and
+   * its `after` on the order after it.
+   */
+  #writeMerges(
+    sheet: string,
+    before: readonly Zone[],
+    after: readonly Zone[],
+    beforeKeys?: readonly string[],
+  ): void {
+    const m = this.#merges(sheet);
+    const corners = this.#mergeCorners(sheet);
     const keyOf = (c: { r0: string; c0: string }) => `${c.r0}.${c.c0}`;
     const kept = new Set(after.map((z) => keyOf(corners(z))));
-    for (const z of before) {
-      const k = keyOf(corners(z));
+    for (const k of beforeKeys ?? before.map((z) => keyOf(corners(z))))
       if (!kept.has(k)) m.delete(k);
-    }
     for (const z of after) {
       const c = corners(z);
       m.set(keyOf(c), c);
@@ -587,12 +599,60 @@ export class LoroBinding {
   #local(tx: Transaction): void {
     if (this.#projecting) return;
     if (tx.origin !== 'local' && tx.origin !== 'undo' && tx.origin !== 'redo') return;
-    for (const p of tx.patches) {
+    const patches = tx.patches;
+    // What runs right after the patch at an index: the second half of a merges patch a delete made.
+    const after = new Map<number, () => void>();
+    for (let i = 0; i < patches.length; i += 1) {
+      const p = patches[i];
       const sheet = (p as { sheet?: unknown }).sheet;
       if (typeof sheet === 'string' && p.op !== 'sheet-add') this.#ensureSheet(sheet);
+      if (p.op === 'cells' && this.#movedCells(p, patches)) continue;
+      const j = p.op === 'merges' ? this.#axisDeleteAfter(patches, i) : -1;
+      if (j >= 0) {
+        // The model's `after` is on the positions after the delete, its `before` on those before it.
+        const a = p as Patch & { sheet: string; before: readonly Zone[]; after: readonly Zone[] };
+        const corners = this.#mergeCorners(a.sheet);
+        const keys = a.before.map((z) => {
+          const c = corners(z);
+          return `${c.r0}.${c.c0}`;
+        });
+        after.set(j, () => this.#writeMerges(a.sheet, a.before, a.after, keys));
+        continue;
+      }
       this.#patch(p);
+      after.get(i)?.();
     }
     this.doc.commit({ origin: LOCAL });
+  }
+
+  /**
+   * A move's cells patch, which only carries the cells to their new positions:
+   * on ids the move itself carries them (the rows keep their ids), so writing
+   * it would move them a second time.
+   */
+  #movedCells(p: Patch, patches: readonly Patch[]): boolean {
+    const c = p as CellsPatch;
+    return patches.some((q) => {
+      if (q.op !== 'axis-move') return false;
+      const a = q as Patch & { sheet: string; axis: AxisName; at: number; n: number; to: number };
+      if (a.sheet !== c.sheet) return false;
+      const sheet = this.model.sheet(a.sheet);
+      const lo = Math.min(a.at, a.to);
+      const hi = Math.max(a.at + a.n, a.to) - 1;
+      const z = c.zone;
+      return a.axis === 'rows'
+        ? z.top === lo && z.bottom === hi && z.left === 0 && z.right === sheet.cols.count - 1
+        : z.left === lo && z.right === hi && z.top === 0 && z.bottom === sheet.rows.count - 1;
+    });
+  }
+
+  /** The index of an axis delete on the same sheet after a merges patch, or -1. */
+  #axisDeleteAfter(patches: readonly Patch[], i: number): number {
+    const sheet = (patches[i] as { sheet?: unknown }).sheet;
+    for (let j = i + 1; j < patches.length; j += 1)
+      if (patches[j].op === 'axis-delete' && (patches[j] as { sheet?: unknown }).sheet === sheet)
+        return j;
+    return -1;
   }
 
   #patch(p: Patch): void {
@@ -697,6 +757,9 @@ export class LoroBinding {
       }
       case 'sheet-add': {
         const a = p as Patch & { index: number; sheet: { id: string } };
+        // The sheets before it that the document lacks (the empty sheet two concurrent deletes
+        // left) go back first, so the index the model gave is one the list has.
+        for (const s of m.sheets.slice(0, a.index)) this.#ensureSheet(s.id);
         this.#sheetsList().insert(a.index, a.sheet.id);
         const json = m.toJSON();
         this.#writeSheet(
