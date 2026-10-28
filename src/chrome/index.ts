@@ -17,3 +17,5 @@
 export { FormulaBar, type FormulaBarProps } from './FormulaBar.js';
 export { SheetTabs, type SheetTabsProps } from './SheetTabs.js';
 export { Toolbar, type ToolbarProps } from './Toolbar.js';
+export { ChartPanel, type ChartPanelProps, chartTypeChoices } from './ChartPanel.js';
+export { ChartTypePicker, type ChartTypePickerProps } from './ChartTypePicker.js';

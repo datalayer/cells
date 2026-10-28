@@ -33,6 +33,7 @@ import {
 import { Button, IconButton } from '@primer/react';
 import { type KeyboardEvent, useCallback, useRef, useState } from 'react';
 import { CellsToolbarItems } from '../points/index.js';
+import { ChartTypePicker } from './ChartTypePicker.js';
 import type { Style } from '../core/styles.js';
 import {
   useCells,
@@ -71,6 +72,8 @@ export interface ToolbarProps {
   readonly 'aria-label'?: string;
   /** Told when a command fails, with its message (the grid announces it too). */
   readonly onError?: (message: string) => void;
+  /** The *Insert chart* picker at the end of the toolbar; on by default. */
+  readonly charts?: boolean;
 }
 
 export function Toolbar(props: ToolbarProps) {
@@ -180,6 +183,11 @@ export function Toolbar(props: ToolbarProps) {
           })}
         </div>
       ))}
+      {props.charts !== false && (
+        <div role="group" aria-label="charts" data-cells-toolbar-group="charts">
+          <ChartTypePicker onError={props.onError} />
+        </div>
+      )}
     </div>
   );
 }

@@ -97,7 +97,7 @@ describe('the toolbar', () => {
     const groups = [...bar.querySelectorAll('[role="group"]')].map((g) =>
       g.getAttribute('aria-label'),
     );
-    expect(groups).toEqual(['history', 'text', 'number', 'cells', 'view', 'sort']);
+    expect(groups).toEqual(['history', 'text', 'number', 'cells', 'view', 'sort', 'charts']);
     const bold = bar.querySelector('[data-command="cells.bold"]') as HTMLButtonElement;
     expect(nameOf(bold)).toMatch(/^Bold \(/);
     expect(bold.getAttribute('aria-pressed')).toBe('false');

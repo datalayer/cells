@@ -654,7 +654,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
         // The editor's own copy and paste stay native; anything else inside the grid is the grid's.
         if (
           (e.target as Element).closest?.(
-            '[data-cells-editor], [data-cells-menu], [data-cells-chart]',
+            '[data-cells-editor], [data-cells-menu], [data-cells-chart], [data-cells-chart-holder]',
           )
         )
           return;
@@ -673,7 +673,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
         // The editor's own copy and paste stay native; anything else inside the grid is the grid's.
         if (
           (e.target as Element).closest?.(
-            '[data-cells-editor], [data-cells-menu], [data-cells-chart]',
+            '[data-cells-editor], [data-cells-menu], [data-cells-chart], [data-cells-chart-holder]',
           )
         )
           return;
@@ -836,7 +836,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
       (e: React.PointerEvent) => {
         if (
           (e.target as Element).closest(
-            '[data-cells-editor], [data-cells-popup], [data-cells-chart]',
+            '[data-cells-editor], [data-cells-popup], [data-cells-chart], [data-cells-chart-holder]',
           )
         )
           return;
@@ -1089,7 +1089,12 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
       (e: React.MouseEvent) => {
         const r = rendererRef.current;
         if (r === null || model.readOnly || e.button !== 0) return;
-        if ((e.target as Element).closest('[data-cells-editor], [data-cells-chart]')) return;
+        if (
+          (e.target as Element).closest(
+            '[data-cells-editor], [data-cells-chart], [data-cells-chart-holder]',
+          )
+        )
+          return;
         const header = headerAtPoint(e);
         if (header === undefined) {
           const cell = pointToCell(e);

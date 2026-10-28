@@ -23,7 +23,8 @@ import {
   type CommandResult,
 } from '../core/index.js';
 import type { CellsModel } from '../core/model.js';
-import { CellsMenuItems } from '../points/index.js';
+import { CellsClipboard, CellsMenuItems, type ClipboardHandler } from '../points/index.js';
+import type { Patch } from '../core/patches.js';
 import type { Zone } from '../core/zone.js';
 import type { CellsCommandArgument } from './editing.js';
 
@@ -79,7 +80,8 @@ export function anchorBeside(m: CellsModel, zone: Zone): ChartSpec['anchor'] {
 /** Insert a chart of `type` from the last selected zone; the inserted chart is selected. */
 export const insertChart =
   (type: string): Action =>
-  ({ model: m }) => {
+  ({ model: m, chartType }) => {
+    type = chartType ?? type;
     const sheet = m.selection.sheet;
     const zone = m.selection.zones[m.selection.zones.length - 1];
     const inferred = inferChartData(
@@ -212,6 +214,72 @@ export const CHART_COMMANDS_LIST: readonly ReactorCommand<CellsCommandArgument, 
   command('shrinkLeft', 'Make chart narrower', resize(0, -1)),
 ];
 
+/**
+ * The `charts` clipboard handler (§3.5, §3.12): the charts whose anchor's
+ * top-left cell lies in the copied zone travel with it, and paste puts them
+ * at the same offset from the target, their ranges still pointing at the
+ * source cells, as Excel does within a workbook.
+ */
+export const chartsHandler: ClipboardHandler = {
+  id: 'charts',
+  copy: (context, sheet, zone) => {
+    const specs = [...context.workbook.sheet(sheet).charts.values()].filter(
+      (c) =>
+        c.anchor.kind !== 'absolute' &&
+        c.anchor.from.row >= zone.top &&
+        c.anchor.from.row <= zone.bottom &&
+        c.anchor.from.col >= zone.left &&
+        c.anchor.from.col <= zone.right,
+    );
+    if (specs.length === 0) return undefined;
+    return specs.map((c) => {
+      const a = c.anchor as Exclude<ChartSpec['anchor'], { kind: 'absolute' }>;
+      const shift = (p: { row: number; col: number }) => ({
+        row: p.row - zone.top,
+        col: p.col - zone.left,
+      });
+      return {
+        ...c,
+        anchor:
+          a.kind === 'cells'
+            ? { ...a, from: { ...a.from, ...shift(a.from) }, to: { ...a.to, ...shift(a.to) } }
+            : { ...a, from: { ...a.from, ...shift(a.from) } },
+      };
+    });
+  },
+  paste: (context, sheet, part, target, options) => {
+    if (
+      options.special === 'values' ||
+      options.special === 'formulas' ||
+      options.special === 'formats'
+    )
+      return [];
+    const s = context.workbook.sheet(sheet);
+    const patches: Patch[] = [];
+    let n = s.charts.size;
+    for (const c of part as ChartSpec[]) {
+      const a = c.anchor as Exclude<ChartSpec['anchor'], { kind: 'absolute' }>;
+      const place = (p: { row: number; col: number }) => ({
+        row: Math.min(p.row + target.top, s.rows.count - 1),
+        col: Math.min(p.col + target.left, s.cols.count - 1),
+      });
+      let id: string;
+      do id = `chart${(n += 1)}`;
+      while (s.charts.has(id));
+      const spec: ChartSpec = {
+        ...c,
+        id,
+        anchor:
+          a.kind === 'cells'
+            ? { ...a, from: { ...a.from, ...place(a.from) }, to: { ...a.to, ...place(a.to) } }
+            : { ...a, from: { ...a.from, ...place(a.from) } },
+      };
+      patches.push({ op: 'chart', sheet, id, before: null, after: spec } as unknown as Patch);
+    }
+    return patches;
+  },
+};
+
 export const CellsChartCommandsPlugin = definePlugin({
   name: CELLS_CHART_COMMANDS_PLUGIN,
   displayName: 'Cells chart commands',
@@ -222,5 +290,6 @@ export const CellsChartCommandsPlugin = definePlugin({
     ...['insert', 'delete', 'showData', 'focusNext'].map((id) =>
       contribution(CellsMenuItems, { command: `cells.chart.${id}`, group: 'charts' }, { id }),
     ),
+    contribution(CellsClipboard, chartsHandler, { id: 'charts', order: 130 }),
   ],
 });

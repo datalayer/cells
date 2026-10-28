@@ -207,6 +207,35 @@ describe('the chart commands', () => {
     expect(m.selectedChart).toBeNull();
   });
 
+  it('the charts clipboard handler: a chart anchored in the copied zone is pasted at the target, its ranges still on the source cells', async () => {
+    const m = model();
+    selectA1C5(m);
+    await run(m, 'insert'); // anchored at E1:K13
+    const chart1 = m.sheet('s1').charts.get('chart1')!;
+    // Copy E1:F2 (the chart's anchor cell is E1) and paste at E20.
+    const slice = m.copy({ top: 0, left: 4, bottom: 1, right: 5 }, { sheet: 's1' });
+    expect(slice.parts.charts).toHaveLength(1);
+    expect(m.paste(slice, { row: 19, col: 4 })).toEqual({ ok: true });
+    const ids = [...m.sheet('s1').charts.keys()];
+    expect(ids).toEqual(['chart1', 'chart2']);
+    const pasted = m.sheet('s1').charts.get('chart2')!;
+    expect(pasted.anchor).toEqual({
+      kind: 'cells',
+      from: { row: 19, col: 4, dx: 0, dy: 0 },
+      to: { row: 31, col: 10, dx: 0, dy: 0 },
+    });
+    expect(pasted.data).toEqual(chart1.data); // the same source cells
+    // A zone without a chart's anchor cell carries none; paste of values only carries none either.
+    expect(
+      m.copy({ top: 5, left: 5, bottom: 6, right: 6 }, { sheet: 's1' }).parts.charts,
+    ).toBeUndefined();
+    expect(m.paste(slice, { row: 40, col: 4 }, { special: 'values' })).toEqual({ ok: true });
+    expect(m.sheet('s1').charts.size).toBe(2);
+    m.undo();
+    m.undo();
+    expect(m.sheet('s1').charts.size).toBe(1);
+  });
+
   it('go to chart cycles through the sheet’s charts, and is refused on a sheet without one', async () => {
     const m = model();
     await expect(run(m, 'focusNext')).rejects.toThrow(/no chart/);

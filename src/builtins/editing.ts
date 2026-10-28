@@ -26,6 +26,8 @@ export interface CellsCommandArgument {
   readonly model: CellsModel;
   /** The width of a text in a cell's style, CSS px; the grid supplies it. */
   readonly measure?: (text: string, style: Style) => number;
+  /** The chart type `cells.chart.insert` makes (the toolbar's picker); column by default. */
+  readonly chartType?: string;
 }
 
 export const CELLS_EDITING_PLUGIN = '@datalayer/cells-editing';
