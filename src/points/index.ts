@@ -21,6 +21,7 @@ import type { Patch, PatchOp } from '../core/patches.js';
 import type { PasteOptions, Slice } from '../core/clipboard.js';
 import type { Style } from '../core/styles.js';
 import type { CellValue } from '../core/values.js';
+import type { CodeOutput } from '../core/code.js';
 import type { Zone } from '../core/zone.js';
 import type { Reference, Value } from '../formula/values.js';
 import type { ChartData, ChartSpec } from '../core/charts.js';
@@ -265,6 +266,29 @@ export interface CollabProvider {
   connect(doc: unknown, room: string): unknown;
 }
 
+/** What a kernel's run gives back (§3.13): nbformat outputs, and the execution count when the kernel says it. */
+export interface KernelRun {
+  readonly outputs: readonly CodeOutput[];
+  readonly executionCount?: number;
+}
+
+/**
+ * A kernel a code cell runs on (§3.13): Python code in, nbformat outputs out.
+ * `./jupyter` adapts jupyter-react's kernels to it; a host may write its own.
+ */
+export interface CellsKernel {
+  execute(code: string): Promise<KernelRun>;
+  /** Stop the run in flight. */
+  interrupt?(): Promise<void>;
+}
+
+/** A kernel provider (`datalayer.cells.kernel`): an id, a label, and how to connect, once, on a first run. */
+export interface KernelProvider {
+  readonly id: string;
+  readonly label: string;
+  connect(): Promise<CellsKernel>;
+}
+
 /** An ECharts option, typed loosely: the core never imports ECharts (§3.12). */
 export type ChartOption = Record<string, unknown>;
 
@@ -348,6 +372,8 @@ export const CellsDataSources = defineContributionPoint<DataSource>('datalayer.c
 export const CellsCollabProvider = defineContributionPoint<CollabProvider>(
   'datalayer.cells.collabProvider',
 );
+/** `datalayer.cells.kernel`: the kernels code cells run on, by id (the first unless the host names one). */
+export const CellsKernels = defineContributionPoint<KernelProvider>('datalayer.cells.kernel');
 /** `datalayer.cells.toolbarItem`: the toolbar's entries, naming Reactor commands. */
 export const CellsToolbarItems = defineContributionPoint<CommandItem>(
   'datalayer.cells.toolbarItem',
@@ -393,6 +419,7 @@ export const CELLS_POINTS = [
   CellsChartOptions,
   CellsChartRenderer,
   CellsEditGate,
+  CellsKernels,
 ] as const;
 
 export {

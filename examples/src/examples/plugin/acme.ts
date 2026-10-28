@@ -31,11 +31,14 @@ import {
   CellsFillRules,
   CellsFunctions,
   CellsImporters,
+  CellsKernels,
   CellsMenuItems,
   CellsPatchOps,
   CellsRenderLayers,
   CellsToolbarItems,
   type CellsCommandArgument,
+  programParts,
+  RESULT_MIME,
   type CellsModel,
   type CellsWorkbook,
   type CellType,
@@ -572,6 +575,28 @@ const commands: ReactorCommand[] = [
 
 // ----------------------------------------------------------------- the plugin
 
+/**
+ * A kernel (`datalayer.cells.kernel`) that runs no Python: it counts the
+ * words of a code cell's source, the result, and echoes the source as a
+ * stream output. A host's kernel needs only `execute` (and `interrupt`).
+ */
+export const wordCount = {
+  id: 'acme.words',
+  label: 'Acme word count',
+  connect: async () => ({
+    async execute(code: string) {
+      const source = programParts(code)?.source ?? '';
+      const words = source.split(/\s+/).filter((w) => w !== '').length;
+      return {
+        outputs: [
+          { output_type: 'stream' as const, name: 'stdout', text: source },
+          { output_type: 'display_data' as const, data: { [RESULT_MIME]: { result: words } } },
+        ],
+      };
+    },
+  }),
+};
+
 export const AcmePlugin = definePlugin({
   name: ACME_PLUGIN,
   displayName: 'Acme',
@@ -637,6 +662,7 @@ export const AcmePlugin = definePlugin({
       { id: 'acme.text', order: 500 },
     ),
     contribution(CellsEditGate, headerLocked as never, { id: 'acme.headerLocked' }),
+    contribution(CellsKernels, wordCount, { id: 'acme.words' }),
   ],
 });
 

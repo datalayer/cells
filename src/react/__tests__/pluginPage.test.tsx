@@ -88,7 +88,7 @@ describe(`the plugin example page (React ${reactVersion})`, () => {
     });
     await tick();
     const rows = [...div.querySelectorAll('table[aria-label="Contribution points"] tbody tr')];
-    expect(rows).toHaveLength(17);
+    expect(rows).toHaveLength(18);
     const empty = rows
       .filter((r) => r.querySelectorAll('td')[1].textContent === 'none')
       .map((r) => r.querySelector('code')!.textContent);

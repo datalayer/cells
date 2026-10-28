@@ -254,6 +254,36 @@ contribution(CellsEditGate, {
 }, { id: 'acme.headerLocked' });
 ```
 
+### `kernel` — `KernelProvider`
+
+The kernels code cells run on (§ code cells): `{ id, label, connect() }`,
+where `connect` resolves, once, on the first run, to a `CellsKernel` whose
+`execute(code)` gives back nbformat outputs. Runs go to the first kernel
+contributed. `@datalayer/cells/jupyter` contributes jupyter-react's (the
+browser's Pyodide, a Jupyter server, a Datalayer runtime); with none, a run
+says *No kernel*. A kernel that is not Python reads the cell's source and
+the values it reads with `programParts(code)` and answers with a
+`display_data` output under `RESULT_MIME`:
+
+```ts
+export const wordCount = {
+  id: 'acme.words',
+  label: 'Acme word count',
+  connect: async () => ({
+    async execute(code: string) {
+      const source = programParts(code)?.source ?? '';
+      const words = source.split(/\s+/).filter((w) => w !== '').length;
+      return {
+        outputs: [
+          { output_type: 'stream' as const, name: 'stdout', text: source },
+          { output_type: 'display_data' as const, data: { [RESULT_MIME]: { result: words } } },
+        ],
+      };
+    },
+  }),
+};
+```
+
 ## From React
 
 `useContributions(point)` lists a point's contributions with their plugins,

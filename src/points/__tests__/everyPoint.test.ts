@@ -33,6 +33,8 @@ import {
   type CellsModel,
   chartOption,
   chartTransformTable,
+  codeCell,
+  codeRunner,
   createCellsModel,
   resolveChartType,
   type ChartSpec,
@@ -65,7 +67,7 @@ describe('the plugin reaches every point', () => {
           .some((c) => c.plugin === ACME_PLUGIN),
     ).map((p) => p.id);
     expect(missing).toEqual([]);
-    expect(CELLS_POINTS.length).toBe(17);
+    expect(CELLS_POINTS.length).toBe(18);
     expect(m.reactor.hasPlugin('@datalayer/cells-core')).toBe(true);
     expect(m.reactor.hasPlugin(ACME_PLUGIN)).toBe(true);
     expect(m.reactor.hasPlugin('@datalayer/cells-functions')).toBe(false);
@@ -348,5 +350,21 @@ describe('each contribution, on the bare grid', () => {
     expect(type!.value.describe(spec, data as never)).toBe(
       'A radar chart of 1 series over 3 axes.',
     );
+  });
+
+  it('the kernel runs a code cell: the word count is its result, the source its stream', async () => {
+    const m = bare();
+    m.dispatch({
+      type: 'SET_CODE',
+      sheet: 's1',
+      row: 20,
+      col: 2,
+      code: codeCell('three words here'),
+    });
+    await codeRunner(m).run({ sheet: 's1', row: 20, col: 2 });
+    expect(m.value('s1', 20, 2)).toBe(3);
+    expect(m.code('s1', 20, 2)?.outputs).toEqual([
+      { output_type: 'stream', name: 'stdout', text: 'three words here' },
+    ]);
   });
 });

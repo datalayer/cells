@@ -29,6 +29,7 @@ import { CellsClipboardPlugin } from '../builtins/clipboard.js';
 import { CellsEditingPlugin } from '../builtins/editing.js';
 import { CellsFillPlugin } from '../builtins/fill.js';
 import { CellsNavigationPlugin } from '../builtins/navigation.js';
+import { CellsCodePlugin } from '../builtins/code.js';
 import { CellsChartCommandsPlugin } from '../builtins/charts.js';
 import { CellsCellTypesPlugin } from '../builtins/cellTypes.js';
 import { CellsFunctionsPlugin } from '../builtins/functions/index.js';
@@ -67,6 +68,7 @@ export function cellsBuiltins(): PlatformInput[] {
     CellsFunctionsPlugin,
     CellsChartCommandsPlugin,
     CellsCellTypesPlugin,
+    CellsCodePlugin,
   ];
 }
 

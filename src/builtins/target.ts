@@ -28,6 +28,11 @@ export function clearCellsCommandTarget(target: CellsCommandArgument): void {
   if (current === target) current = undefined;
 }
 
+/** The grid a command run with no argument acts on, if any. */
+export function currentCellsCommandTarget(): CellsCommandArgument | undefined {
+  return current;
+}
+
 /** A command's argument, or the target grid's when none is given; a sentence when there is neither. */
 export function cellsArgument(id: string, argument: CellsCommandArgument | undefined) {
   if (argument !== undefined && argument.model !== undefined) return argument;

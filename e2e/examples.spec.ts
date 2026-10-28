@@ -57,7 +57,7 @@ test.describe('the examples', () => {
   }) => {
     await page.goto('/#/plugin');
     const table = page.getByRole('table', { name: 'Contribution points' });
-    await expect(table.locator('tbody tr')).toHaveCount(17);
+    await expect(table.locator('tbody tr')).toHaveCount(18);
     await expect(table.locator('tbody td:nth-child(2)')).not.toContainText(['none']);
     await page.getByRole('button', { name: 'Write into row 1' }).click();
     await expect(page.locator('[data-message]')).toHaveText(

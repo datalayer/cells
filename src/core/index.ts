@@ -267,6 +267,20 @@ export {
   type SetCodeCommand,
 } from './code.js';
 export {
+  AUTO_DEBOUNCE_MS,
+  type CodePlace,
+  codeProgram,
+  CodeRunner,
+  codeRunner,
+  NO_KERNEL,
+  programParts,
+  rangesRead,
+  readOutputs,
+  readValues,
+  RESULT_MIME,
+} from './codeRun.js';
+export { CELLS_CODE_PLUGIN, CellsCodePlugin, CODE_COMMANDS } from '../builtins/code.js';
+export {
   CELLS_NAVIGATION_PLUGIN,
   CellsNavigationPlugin,
   NAVIGATION_COMMANDS,

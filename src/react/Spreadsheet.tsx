@@ -1951,6 +1951,8 @@ function commandFor(
 ): string | undefined {
   for (const c of model.reactor.listCommands()) {
     if (c.category !== 'Cells') continue;
+    // A command unavailable here (Run on a cell that is not code) leaves the key to the next.
+    if (c.isEnabled !== undefined && !c.isEnabled()) continue;
     for (const binding of bindingsOf(c, keymap)) {
       const parsed = parseKeybinding(binding);
       if (parsed !== null && matchesKeybinding(event, parsed)) return c.id;

@@ -13,7 +13,7 @@
 
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   CellsProvider,
   codeCell,
@@ -123,5 +123,43 @@ describe('code cells in the mirror', () => {
     expect(m.value('s1', 1, 2)).toBe(42);
     act(() => seen!.setState('stale'));
     expect(seen!.state).toBe('stale');
+  });
+
+  it('Shift+Enter runs a code cell, and moves up anywhere else', () => {
+    const m = createCellsModel({ limits: { rows: 50, cols: 10 } });
+    m.dispatch({ type: 'SET_CODE', sheet: 's1', row: 3, col: 1, code: codeCell('1') });
+    const div = document.createElement('div');
+    document.body.append(div);
+    root = createRoot(div);
+    act(() => root!.render(<Spreadsheet model={m} />));
+    const grid = div.querySelector<HTMLElement>('[role="grid"]')!;
+    act(() => grid.focus());
+    const spy = vi.spyOn(m.reactor, 'executeCommand').mockResolvedValue(undefined);
+    const shiftEnter = () =>
+      act(() => {
+        grid.dispatchEvent(
+          new KeyboardEvent('keydown', {
+            key: 'Enter',
+            shiftKey: true,
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+      });
+    m.select({
+      sheet: 's1',
+      zones: [{ top: 3, left: 1, bottom: 3, right: 1 }],
+      anchor: { row: 3, col: 1 },
+      active: { row: 3, col: 1 },
+    });
+    shiftEnter();
+    m.select({
+      sheet: 's1',
+      zones: [{ top: 5, left: 1, bottom: 5, right: 1 }],
+      anchor: { row: 5, col: 1 },
+      active: { row: 5, col: 1 },
+    });
+    shiftEnter();
+    expect(spy.mock.calls.map((c) => c[0])).toEqual(['cells.code.run', 'cells.nextUp']);
   });
 });
