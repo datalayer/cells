@@ -273,7 +273,12 @@ export function codeCellsModel(providers?: KernelProviders, renderer?: CodeRende
       ['Feb', 15],
       ['Mar', 19, null, 'C4 plots the table: hover it, or Alt+Down, for the figure'],
       ['Apr', 24],
-      ['May', 28, null, 'C6 doubles the units: its table stays pinned beside the cells'],
+      [
+        'May',
+        28,
+        null,
+        'C6 doubles the units, pinned beside the cells; it runs by itself when they change',
+      ],
       ['Jun', 31],
     ]),
   });
@@ -297,7 +302,8 @@ export function codeCellsModel(providers?: KernelProviders, renderer?: CodeRende
     sheet: 's1',
     row: 5,
     col: 2,
-    code: codeCell(TABLE, { frame: { width: 380, height: 180 } }),
+    // `auto`: once run, it runs again by itself when the units it read change.
+    code: codeCell(TABLE, { frame: { width: 380, height: 180 }, run: 'auto' }),
   });
   m.dispatch({
     type: 'RESIZE_AXIS',

@@ -109,7 +109,9 @@ export function jupyterKernel(kernel: Kernel, binding?: CellsBinding): JupyterCe
       const executor = kernel.execute(code, { storeHistory: false });
       if (executor === undefined) throw new Error('The kernel is not connected.');
       await executor.done;
-      return { outputs: executor.outputs as unknown as CodeOutputData[] };
+      // The output model's nbformat outputs: jupyter-react's `executor.outputs`
+      // (before 2.0.22) are the messages' contents, without their `output_type`.
+      return { outputs: executor.model.toJSON() as unknown as CodeOutputData[] };
     },
     interrupt: () => kernel.interrupt(),
     restart: () => kernel.restart(),
