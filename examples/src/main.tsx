@@ -147,7 +147,7 @@ function App() {
           <AppearanceMenuWithStore
             useStore={useAppearance}
             hoverOverlayPlacement="right-start"
-            themesPerLine={5}
+            themesPerLine={6}
           />
         </div>
         {/* Primer's ActionList, the examples as links; the current one marked. */}
