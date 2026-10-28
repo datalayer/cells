@@ -6,6 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { compare } from '../compare.mjs';
+import { inject } from '../inject.mjs';
 import budgets from '../budgets.json';
 
 const result = (value: number) => ({ figures: { 'harness.noop.ms': { value, unit: 'ms' } } });
@@ -50,5 +51,27 @@ describe('the bench comparison', () => {
 
   it('refuses an empty result', () => {
     expect(compare(null, { figures: {} }, budgets).ok).toBe(false);
+  });
+
+  it('fails on a result with a 20 % regression injected into every figure, and passes the real one against itself', () => {
+    const real = {
+      figures: {
+        'harness.noop.ms': { value: 0.5, unit: 'ms' },
+        'recalc.full.ms': { value: 700, unit: 'ms' },
+        'bundle.grid.kB': { value: 90, unit: 'kB' },
+      },
+    };
+    const worse = inject(real, 0.2);
+    expect(worse.figures['recalc.full.ms'].value).toBeCloseTo(840);
+    expect(worse.injected).toBe(0.2);
+    const { ok, failures } = compare(real, worse, budgets);
+    expect(ok).toBe(false);
+    expect(failures.map((f) => f.split(':')[0]).sort()).toEqual([
+      'bundle.grid.kB',
+      'harness.noop.ms',
+      'recalc.full.ms',
+    ]);
+    expect(compare(real, real, budgets).ok).toBe(true);
+    expect(() => inject(real, 0)).toThrow('inject takes a positive fraction');
   });
 });

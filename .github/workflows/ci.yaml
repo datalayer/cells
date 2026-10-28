@@ -21,6 +21,8 @@ concurrency:
 
 permissions:
   contents: read
+  # The bench step reads the last main run's result (an artifact) as its base.
+  actions: read
 
 jobs:
   typescript:
@@ -52,6 +54,13 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Build and test the Docusaurus integration (against lib/, built above)
+        working-directory: integrations/docusaurus
+        run: |
+          npm install --no-audit --no-fund --legacy-peer-deps
+          npm run build
+          npm test
+
       - name: The examples, opened in Chrome (the runner's /usr/bin/google-chrome)
         run: npm run e2e
 
@@ -66,12 +75,55 @@ jobs:
       - name: Bundle sizes against their budgets
         run: npm run size
 
-      - name: Bench, compared with the base
+      # The budgets (bench/budgets.json) hold every figure; the last main run's
+      # result is the base a regression of more than 15 % is measured against;
+      # and a copy of this run's result with 20 % injected into every figure
+      # must fail the same gate, so the gate is proven on every run.
+      - name: Bench, against the budgets, the last main run, and an injected regression
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           npm run bench
           current="$(ls -t bench/results/*.json | head -1)"
-          node scripts/bench-compare.mjs "$current"
+          node scripts/size.mjs --json > bench/results/sizes.json 2>/dev/null
+          node -e "
+            const fs = require('fs');
+            const current = JSON.parse(fs.readFileSync('$current'));
+            const sizes = JSON.parse(fs.readFileSync('bench/results/sizes.json'));
+            Object.assign(current.figures, sizes.figures);
+            fs.writeFileSync('bench/results/current.json', JSON.stringify(current, null, 2) + '\n');
+          "
+          base=""
+          run="$(gh run list --workflow ci.yaml --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId' || true)"
+          if [ -n "$run" ] && gh run download "$run" -n bench-result -D bench/base 2>/dev/null; then
+            # Gated against the base: the bundle sizes, which are exact. The timings of a shared
+            # runner move by more than 15 % between runs, so against the base they are reported
+            # (below), and gated by their budgets only.
+            node -e "
+              const fs = require('fs');
+              const base = JSON.parse(fs.readFileSync('bench/base/current.json'));
+              base.figures = Object.fromEntries(Object.entries(base.figures).filter(([k]) => k.startsWith('bundle.')));
+              fs.writeFileSync('bench/base/sizes.json', JSON.stringify(base));
+            "
+            base="bench/base/sizes.json"
+            echo "base: the result of main run $run"
+            node scripts/bench-compare.mjs bench/results/current.json bench/base/current.json --threshold 0.15 || true
+          else
+            echo "base: none (no earlier main run holds a result); budgets only"
+          fi
+          node scripts/bench-compare.mjs bench/results/current.json $base --threshold 0.15
+          node scripts/bench-inject.mjs bench/results/current.json bench/results/injected.json --fraction 0.2
+          if node scripts/bench-compare.mjs bench/results/injected.json bench/results/current.json --threshold 0.15; then
+            echo "the regression gate let a 20 % regression through"
+            exit 1
+          fi
+          echo "the regression gate refused the injected 20 % regression"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bench-result
+          path: bench/results/current.json
 
       - name: What npm would publish
         run: |
