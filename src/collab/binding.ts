@@ -34,6 +34,13 @@ import { isCellError } from '../core/values.js';
 import type { Zone } from '../core/zone.js';
 import { tokenize } from '../formula/tokens.js';
 import { AxisOrder, implicitId, insert, move, remove } from './axis.js';
+import {
+  type ChartAnchor,
+  type ChartPatch,
+  type ChartSeries,
+  type ChartSpec,
+  refAst,
+} from '../core/charts.js';
 
 /** The id of the sheet shown when the document has none left. */
 const EMPTY_SHEET = 'empty';
@@ -144,6 +151,11 @@ export class LoroBinding {
 
   #merges(sheet: string): LoroMap {
     return this.doc.getMap(`merges:${sheet}`);
+  }
+
+  /** The charts of a sheet (§3.12): chart id → a map of the spec's fields, ranges in id form, anchors on ids. */
+  #charts(sheet: string): LoroMap {
+    return this.doc.getMap(`charts:${sheet}`);
   }
 
   #count(axis: AxisName): number {
@@ -267,6 +279,179 @@ export class LoroBinding {
       for (const i of sheet.hidden?.[axis] ?? []) hidden.set(implicitId(i), true);
     }
     this.#writeMerges(sheet.id, [], sheet.merges ?? []);
+    for (const chart of Object.values(sheet.charts ?? {})) this.#writeChart(sheet.id, null, chart);
+  }
+
+  // ------------------------------------------------------------ charts
+
+  /** A reference of a chart in id form; a name that is text stays text. */
+  #refToIds(ref: string, sheet: string): string {
+    return refAst(ref) === undefined ? ref : this.#toIdForm(ref, sheet);
+  }
+
+  #seriesToIds(s: ChartSeries, sheet: string): Record<string, unknown> {
+    const out: Record<string, unknown> = { values: this.#toIdForm(s.values, sheet) };
+    if (s.name !== undefined) out.name = this.#refToIds(s.name, sheet);
+    if (s.categories !== undefined) out.categories = this.#toIdForm(s.categories, sheet);
+    if (s.x !== undefined) out.x = this.#toIdForm(s.x, sheet);
+    if (s.type !== undefined) out.type = s.type;
+    if (s.axis !== undefined) out.axis = s.axis;
+    if (s.color !== undefined) out.color = s.color;
+    return out;
+  }
+
+  #anchorToIds(a: ChartAnchor, sheet: string): Record<string, unknown> {
+    if (a.kind === 'absolute') return { ...a };
+    const rows = this.#order(sheet, 'rows');
+    const cols = this.#order(sheet, 'cols');
+    const corner = (c: { row: number; col: number; dx: number; dy: number }) => ({
+      r: rows.idAt(c.row)!,
+      c: cols.idAt(c.col)!,
+      dx: c.dx,
+      dy: c.dy,
+    });
+    if (a.kind === 'cell')
+      return { kind: 'cell', from: corner(a.from), width: a.width, height: a.height };
+    return { kind: 'cells', from: corner(a.from), to: corner(a.to) };
+  }
+
+  /**
+   * A chart's fields into its map, field by field, so two peers changing
+   * different fields both keep theirs; the series as a movable list, set
+   * where they differ, moved when only their order changed.
+   */
+  #writeChart(sheet: string, before: ChartSpec | null, after: ChartSpec): void {
+    const charts = this.#charts(sheet);
+    let map = before === null ? undefined : (charts.get(after.id) as LoroMap | undefined);
+    if (map === undefined || !(map instanceof LoroMap)) {
+      map = charts.setContainer(after.id, new LoroMap());
+      before = null;
+    }
+    const fields = ['type', 'variant', 'title', 'legend', 'axes', 'labels'] as const;
+    for (const f of fields) {
+      const value = after[f];
+      if (before !== null && JSON.stringify(before[f]) === JSON.stringify(value)) continue;
+      if (value === undefined) map.delete(f);
+      else map.set(f, value as JsonValue);
+    }
+    for (const f of ['by', 'headers', 'blanks'] as const) {
+      if (before !== null && JSON.stringify(before.data[f]) === JSON.stringify(after.data[f]))
+        continue;
+      map.set(f, after.data[f] as JsonValue);
+    }
+    if (before === null || JSON.stringify(before.anchor) !== JSON.stringify(after.anchor))
+      map.set('anchor', this.#anchorToIds(after.anchor, sheet) as JsonValue);
+    let list = map.get('series') as LoroMovableList | undefined;
+    if (list === undefined || !(list instanceof LoroMovableList)) {
+      list = map.setContainer('series', new LoroMovableList());
+      before = null;
+    }
+    const want = after.data.series.map((x) => this.#seriesToIds(x, sheet));
+    const have = list.toJSON() as Record<string, unknown>[];
+    const key = (x: unknown) => JSON.stringify(x);
+    const sameSet =
+      have.length === want.length &&
+      [...have.map(key)].sort().join('\n') === [...want.map(key)].sort().join('\n');
+    if (sameSet) {
+      // A permutation: move each series to its place, left to right.
+      const current = have.map(key);
+      for (let i = 0; i < want.length; i += 1) {
+        const k = key(want[i]);
+        const j = current.indexOf(k, i);
+        if (j === i || j < 0) continue;
+        list.move(j, i);
+        current.splice(i, 0, ...current.splice(j, 1));
+      }
+      return;
+    }
+    const n = Math.min(have.length, want.length);
+    for (let i = 0; i < n; i += 1)
+      if (key(have[i]) !== key(want[i])) list.set(i, want[i] as JsonValue);
+    for (let i = n; i < want.length; i += 1) list.insert(i, want[i] as JsonValue);
+    if (have.length > want.length) list.delete(want.length, have.length - want.length);
+  }
+
+  /** The charts of a sheet as specs at the current positions; a deleted id is `#REF!`, an anchor whose corner is gone collapses onto its other corner. */
+  #readCharts(sheet: string): Record<string, ChartSpec> {
+    const out: Record<string, ChartSpec> = {};
+    const rows = this.#order(sheet, 'rows');
+    const cols = this.#order(sheet, 'cols');
+    const rowCount = this.#count('rows');
+    const colCount = this.#count('cols');
+    const corner = (c: { r: string; c: string; dx: number; dy: number } | undefined) => {
+      if (c === undefined) return undefined;
+      const row = rows.positionOf(c.r);
+      const col = cols.positionOf(c.c);
+      if (row === undefined || col === undefined || row >= rowCount || col >= colCount)
+        return undefined;
+      return { row, col, dx: c.dx, dy: c.dy };
+    };
+    // A range with a deleted end is `#REF!` whole (a sheet prefix left over is dropped too).
+    const back = (ref: string) => {
+      const out = this.#fromIdForm(ref, sheet);
+      return out.includes('#REF!') ? '#REF!' : out;
+    };
+    for (const [id, raw] of Object.entries(this.#charts(sheet).toJSON() as Record<string, any>)) {
+      if (typeof raw !== 'object' || raw === null || typeof raw.type !== 'string') continue;
+      const a = raw.anchor ?? {};
+      let anchor: ChartAnchor | undefined;
+      if (a.kind === 'absolute') {
+        anchor = { kind: 'absolute', x: a.x, y: a.y, width: a.width, height: a.height };
+      } else if (a.kind === 'cell') {
+        const from = corner(a.from);
+        if (from !== undefined) anchor = { kind: 'cell', from, width: a.width, height: a.height };
+      } else if (a.kind === 'cells') {
+        const from = corner(a.from);
+        const to = corner(a.to);
+        if (from !== undefined && to !== undefined)
+          anchor = {
+            kind: 'cells',
+            from: {
+              row: Math.min(from.row, to.row),
+              col: Math.min(from.col, to.col),
+              dx: from.dx,
+              dy: from.dy,
+            },
+            to: {
+              row: Math.max(from.row, to.row),
+              col: Math.max(from.col, to.col),
+              dx: to.dx,
+              dy: to.dy,
+            },
+          };
+        else if (from !== undefined) anchor = { kind: 'cells', from, to: from };
+        else if (to !== undefined) anchor = { kind: 'cells', from: to, to };
+      }
+      if (anchor === undefined) continue; // the cells it sat on are gone
+      const series: ChartSeries[] = [];
+      for (const x of (Array.isArray(raw.series) ? raw.series : []) as Record<string, unknown>[]) {
+        if (typeof x?.values !== 'string') continue;
+        const sr: Record<string, unknown> = {};
+        if (typeof x.name === 'string') sr.name = x.name.includes('⟦') ? back(x.name) : x.name;
+        sr.values = back(x.values);
+        if (typeof x.categories === 'string') sr.categories = back(x.categories);
+        if (typeof x.x === 'string') sr.x = back(x.x);
+        for (const k of ['type', 'axis', 'color'] as const) if (x[k] !== undefined) sr[k] = x[k];
+        series.push(sr as unknown as ChartSeries);
+      }
+      if (series.length === 0) continue;
+      const spec: Record<string, unknown> = {
+        id,
+        type: raw.type,
+        anchor,
+        data: {
+          series,
+          by: raw.by ?? 'columns',
+          headers: raw.headers ?? { row: false, column: false },
+          blanks: raw.blanks ?? 'gap',
+        },
+        legend: raw.legend ?? 'bottom',
+      };
+      for (const f of ['variant', 'title', 'axes', 'labels'] as const)
+        if (raw[f] !== undefined) spec[f] = raw[f];
+      out[id] = spec as unknown as ChartSpec;
+    }
+    return out;
   }
 
   /** Merges keyed by their top-left corner's ids: those gone are deleted, those new set. */
@@ -377,6 +562,14 @@ export class LoroBinding {
       case 'frozen': {
         const a = p as Patch & { sheet: string; after: { rows: number; cols: number } };
         this.#sheetMap(a.sheet).set('frozen', a.after);
+        return;
+      }
+      case 'chart': {
+        const a = p as unknown as ChartPatch;
+        // A delete wins over a concurrent edit: the map goes, and an edit of a gone chart recreates nothing.
+        if (a.after === null) this.#charts(a.sheet).delete(a.id);
+        else if (a.before !== null && this.#charts(a.sheet).get(a.id) === undefined) return;
+        else this.#writeChart(a.sheet, a.before, a.after);
         return;
       }
       case 'sheet-add': {
@@ -515,6 +708,7 @@ export class LoroBinding {
         const inside = zone.bottom < this.#count('rows') && zone.right < this.#count('cols');
         if (inside && (zone.top !== zone.bottom || zone.left !== zone.right)) merges.push(zone);
       }
+      const charts = this.#readCharts(id);
       return {
         id,
         name: names.get(id) ?? id,
@@ -522,6 +716,7 @@ export class LoroBinding {
         sizes,
         hidden,
         merges: disjoint(merges),
+        ...(Object.keys(charts).length > 0 ? { charts } : {}),
         frozen: (map.get('frozen') as { rows: number; cols: number } | undefined) ?? {
           rows: 0,
           cols: 0,

@@ -18,7 +18,14 @@
 
 import { LoroDoc } from 'loro-crdt';
 import { describe, expect, it } from 'vitest';
-import { type CellsModel, type Command, createCellsModel } from '../../core/index.js';
+import { type CellsModel, type Command, createCellsModel, zoneRef } from '../../core/index.js';
+
+const z = (top: number, left: number, bottom: number, right: number) => ({
+  top,
+  left,
+  bottom,
+  right,
+});
 import { LoroBinding } from '../binding.js';
 
 const ROUNDS = Number(process.env.CELLS_MONKEY_ROUNDS ?? 10_000);
@@ -56,7 +63,7 @@ function command(m: CellsModel, r: ReturnType<typeof random>): Command | undefin
   const row = r.int(LIMITS.rows - 4);
   const col = r.int(LIMITS.cols - 2);
   const zone = { top: row, left: col, bottom: row + r.int(2), right: col + r.int(2) };
-  switch (r.int(12)) {
+  switch (r.int(13)) {
     case 0:
     case 1:
     case 2:
@@ -99,6 +106,54 @@ function command(m: CellsModel, r: ReturnType<typeof random>): Command | undefin
       };
     case 10:
       return { type: 'RESIZE_AXIS', sheet, axis: 'cols', from: col, to: col, size: 40 + r.int(80) };
+    case 11: {
+      // Charts (C10-08): inserted on the sheet's first cells, retitled, retyped, moved, deleted.
+      const charts = [...m.sheet(sheet).charts.keys()];
+      const name = m.sheet(sheet).name;
+      const id = charts.length > 0 ? r.pick(charts) : undefined;
+      switch (id === undefined ? 0 : r.int(4)) {
+        case 0:
+          return {
+            type: 'INSERT_CHART',
+            sheet,
+            chart: {
+              type: r.pick(['column', 'line', 'pie'] as const),
+              anchor: {
+                kind: 'cells',
+                from: { row, col, dx: 0, dy: 0 },
+                to: { row: row + 3, col: col + 1, dx: 0, dy: 0 },
+              },
+              data: {
+                series: [
+                  {
+                    values: zoneRef(name, z(0, 0, 2, 0)),
+                    categories: zoneRef(name, z(0, 1, 2, 1)),
+                  },
+                  { values: zoneRef(name, z(0, 1, 2, 1)) },
+                ],
+                by: 'columns',
+                headers: { row: false, column: false },
+                blanks: 'gap',
+              },
+              legend: 'bottom',
+            },
+          };
+        case 1:
+          return {
+            type: 'UPDATE_CHART',
+            sheet,
+            id: id!,
+            changes:
+              r.int(2) === 0
+                ? { title: `T${r.int(100)}` }
+                : { type: r.pick(['column', 'line', 'bar'] as const) },
+          };
+        case 2:
+          return { type: 'MOVE_CHART', sheet, id: id!, to: { row, col } };
+        default:
+          return { type: 'DELETE_CHART', sheet, id: id! };
+      }
+    }
     default:
       return m.sheets.length < 3 && r.int(2) === 0
         ? { type: 'ADD_SHEET', name: `S${r.int(1000)}` }
@@ -119,8 +174,20 @@ function shown(p: Peer) {
   const values = p.model.sheets.map((s) =>
     p.model.toRows({ top: 0, left: 0, bottom: LIMITS.rows - 1, right: LIMITS.cols - 1 }, s.id),
   );
-  return JSON.stringify({ json, values });
+  return canonical({ json, values });
 }
+
+/** JSON with its keys sorted at every level: two peers' workbooks compare whatever order their fields were written in. */
+const canonical = (v: unknown): string =>
+  JSON.stringify(v, (_k, x: unknown) =>
+    typeof x === 'object' && x !== null && !Array.isArray(x)
+      ? Object.fromEntries(
+          Object.entries(x as Record<string, unknown>).sort(([a], [b]) =>
+            a < b ? -1 : a > b ? 1 : 0,
+          ),
+        )
+      : x,
+  );
 
 describe('the monkey party', () => {
   it(`${PEERS} peers, ${ROUNDS} rounds of random commands and deliveries, seed ${SEED}, converge`, () => {
