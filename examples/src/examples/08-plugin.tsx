@@ -4,7 +4,9 @@
  * MIT License
  */
 
-import { buildReactorFromPlugins, type ContributionPoint } from '@datalayer/reactor';
+import { buildReactorFromPlugins } from '@datalayer/reactor';
+import { ReactorSlot, useReactor } from '@datalayer/reactor/react';
+import { CONTRIBUTIONS_TABLE_SLOT, contributionsTablePlugin } from '@datalayer/reactor-manager';
 import {
   CELLS_POINTS,
   CellsCorePlugin,
@@ -13,7 +15,6 @@ import {
   type CellsModel,
   Spreadsheet,
   useCellsModel,
-  useCellsReactor,
   useCellsRevision,
   useDataSource,
   usePlugin,
@@ -40,8 +41,43 @@ import { Button } from '@primer/react';
  * handler, importer or chrome command is loaded here. The plugin guide in
  * `docs/plugins.md` walks through the same file, point by point.
  */
-function bareModel(): CellsModel {
-  const reactor = buildReactorFromPlugins([CellsCorePlugin, AcmePlugin]);
+const LABELS: Record<string, string> = {
+  'datalayer.cells.patchOp': 'patch ops',
+  'datalayer.cells.command': 'commands',
+  'datalayer.cells.function': 'functions',
+  'datalayer.cells.cellType': 'cell types',
+  'datalayer.cells.renderLayer': 'render layers',
+  'datalayer.cells.clipboard': 'clipboard handlers',
+  'datalayer.cells.fillRule': 'fill rules',
+  'datalayer.cells.importer': 'importers',
+  'datalayer.cells.exporter': 'exporters',
+  'datalayer.cells.dataSource': 'data sources',
+  'datalayer.cells.collabProvider': 'collaboration providers',
+  'datalayer.cells.toolbarItem': 'toolbar items',
+  'datalayer.cells.menuItem': 'menu items',
+  'datalayer.cells.chartType': 'chart types',
+  'datalayer.cells.chartOption': 'chart option transforms',
+  'datalayer.cells.chartRenderer': 'chart renderers',
+  'datalayer.cells.gate.edit': 'edit gates',
+  'datalayer.cells.kernel': 'kernels',
+  'datalayer.cells.codeRenderer': 'code renderers',
+};
+
+/**
+ * What `@acme/everything` put in each Cells point, in the Reactor contributions
+ * table (`@datalayer/reactor-manager`): every point has a row, so one the
+ * plugin missed would say *none*.
+ */
+const ContributionsTablePlugin = contributionsTablePlugin({
+  points: CELLS_POINTS,
+  plugin: ACME_PLUGIN,
+  labels: LABELS,
+  title: 'Contribution points',
+  subtitle: 'Each datalayer.cells point, and what @acme/everything contributes to it.',
+});
+
+export function bareModel(): CellsModel {
+  const reactor = buildReactorFromPlugins([CellsCorePlugin, AcmePlugin, ContributionsTablePlugin]);
   reactor.start();
   const m = createCellsModel({ reactor, limits: { rows: 200_000, cols: 12 } });
   m.dispatch({
@@ -84,64 +120,6 @@ function bareModel(): CellsModel {
     active: { row: 1, col: 0 },
   });
   return m;
-}
-
-const LABELS: Record<string, string> = {
-  'datalayer.cells.patchOp': 'patch ops',
-  'datalayer.cells.command': 'commands',
-  'datalayer.cells.function': 'functions',
-  'datalayer.cells.cellType': 'cell types',
-  'datalayer.cells.renderLayer': 'render layers',
-  'datalayer.cells.clipboard': 'clipboard handlers',
-  'datalayer.cells.fillRule': 'fill rules',
-  'datalayer.cells.importer': 'importers',
-  'datalayer.cells.exporter': 'exporters',
-  'datalayer.cells.dataSource': 'data sources',
-  'datalayer.cells.collabProvider': 'collaboration providers',
-  'datalayer.cells.toolbarItem': 'toolbar items',
-  'datalayer.cells.menuItem': 'menu items',
-  'datalayer.cells.chartType': 'chart types',
-  'datalayer.cells.chartOption': 'chart option transforms',
-  'datalayer.cells.chartRenderer': 'chart renderers',
-  'datalayer.cells.gate.edit': 'edit gates',
-};
-
-function Points() {
-  const reactor = useCellsReactor();
-  const revision = useCellsRevision();
-  const rows = useMemo(
-    () =>
-      CELLS_POINTS.map((point) => ({
-        id: point.id,
-        label: LABELS[point.id] ?? point.id,
-        ids: reactor
-          .getContributions(point as ContributionPoint<unknown>)
-          .filter((c) => c.plugin === ACME_PLUGIN)
-          .map((c) => c.id),
-      })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [reactor, revision],
-  );
-  return (
-    <table aria-label="Contribution points">
-      <thead>
-        <tr>
-          <th>Point</th>
-          <th>Contributed by @acme/everything</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.id}>
-            <td>
-              <code>{r.id}</code> ({r.label})
-            </td>
-            <td>{r.ids.join(', ') || 'none'}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
 }
 
 function Panel({ model }: { model: CellsModel }) {
@@ -280,6 +258,8 @@ function Panel({ model }: { model: CellsModel }) {
 
 export default function Plugin() {
   const model = useCellsModel(bareModel);
+  // The platform is published for the contributions table; the grid started it.
+  useReactor(model.reactor, { autoStart: false });
   return (
     <CellsProvider model={model}>
       <p>
@@ -296,7 +276,7 @@ export default function Plugin() {
         <Spreadsheet model={model} aria-label="Plugin" />
       </Frame>
       <Panel model={model} />
-      <Points />
+      <ReactorSlot slot={CONTRIBUTIONS_TABLE_SLOT} />
     </CellsProvider>
   );
 }

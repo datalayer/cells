@@ -87,10 +87,15 @@ describe(`the plugin example page (React ${reactVersion})`, () => {
       );
     });
     await tick();
-    const rows = [...div.querySelectorAll('table[aria-label="Contribution points"] tbody tr')];
+    // The Reactor contributions table: a row per Cells point, none of them empty.
+    const rows = [
+      ...div.querySelectorAll(
+        'table[aria-labelledby="reactor-contributions-table-title"] tbody tr',
+      ),
+    ];
     expect(rows).toHaveLength(19);
     const empty = rows
-      .filter((r) => r.querySelectorAll('td')[1].textContent === 'none')
+      .filter((r) => r.querySelector('[data-contributions]')!.textContent === 'none')
       .map((r) => r.querySelector('code')!.textContent);
     expect(empty).toEqual([]);
     expect(
