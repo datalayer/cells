@@ -6,8 +6,8 @@
 
 /**
  * The sheet tabs: one tab per sheet (a tab list; the arrow keys move between
- * them and show the sheet), a button to add a sheet, and per tab a menu to
- * rename, move and delete it. Double-click or F2 renames in place; a refused
+ * them and show the sheet), a button to add a sheet, and a menu to rename,
+ * move and delete the sheet shown (the tab list holds tabs only). Double-click or F2 renames in place; a refused
  * name is said beside the tab.
  *
  * @module chrome/SheetTabs
@@ -59,6 +59,8 @@ export function SheetTabs(props: SheetTabsProps) {
     }
   };
 
+  const index = sheets.findIndex((s) => s.id === active);
+  const current = sheets[index];
   return (
     <div
       data-cells-sheet-tabs=""
@@ -71,97 +73,57 @@ export function SheetTabs(props: SheetTabsProps) {
       >
         {sheets.map((s, i) => {
           const selected = s.id === active;
-          if (renaming?.id === s.id)
-            return (
-              <TextInput
-                key={s.id}
-                aria-label={`Rename ${s.name}`}
-                size="small"
-                autoFocus
-                value={renaming.name}
-                onChange={(e) => setRenaming({ id: s.id, name: e.target.value })}
-                onBlur={commitRename}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    commitRename();
-                  } else if (e.key === 'Escape') {
-                    setRenaming(null);
-                    setError('');
-                  }
-                }}
-              />
-            );
           return (
-            <div key={s.id} style={{ display: 'flex', alignItems: 'center' }}>
-              <button
-                ref={(el) => {
-                  tabs.current.set(s.id, el);
-                }}
-                role="tab"
-                type="button"
-                aria-selected={selected}
-                tabIndex={selected ? 0 : -1}
-                onClick={() => activate(s.id)}
-                onDoubleClick={() => setRenaming({ id: s.id, name: s.name })}
-                onKeyDown={(e) => onKeyDown(e, i)}
-                style={{
-                  padding: '2px 10px',
-                  border: '1px solid var(--borderColor-muted, #d0d7de)',
-                  borderBottom: selected
-                    ? '2px solid var(--borderColor-accent-emphasis, #0969da)'
-                    : undefined,
-                  background: selected
-                    ? 'var(--bgColor-default, #fff)'
-                    : 'var(--bgColor-muted, #f6f8fa)',
-                  color: 'var(--fgColor-default, #1f2328)',
-                  fontWeight: selected ? 600 : 400,
-                  cursor: 'pointer',
-                }}
-              >
-                {s.name}
-              </button>
-              <ActionMenu>
-                <ActionMenu.Anchor>
-                  <IconButton
-                    icon={KebabHorizontalIcon}
-                    aria-label={`More for ${s.name}`}
-                    size="small"
-                    variant="invisible"
-                  />
-                </ActionMenu.Anchor>
-                <ActionMenu.Overlay>
-                  <ActionList>
-                    <ActionList.Item onSelect={() => setRenaming({ id: s.id, name: s.name })}>
-                      Rename
-                    </ActionList.Item>
-                    <ActionList.Item disabled={i === 0} onSelect={() => move(s.id, i - 1)}>
-                      Move left
-                    </ActionList.Item>
-                    <ActionList.Item
-                      disabled={i === sheets.length - 1}
-                      onSelect={() => move(s.id, i + 1)}
-                    >
-                      Move right
-                    </ActionList.Item>
-                    <ActionList.Divider />
-                    <ActionList.Item
-                      variant="danger"
-                      disabled={sheets.length === 1}
-                      onSelect={() => {
-                        const r = remove(s.id);
-                        if (!r.ok) setError(r.refusals.map((x) => x.message).join(' '));
-                      }}
-                    >
-                      Delete
-                    </ActionList.Item>
-                  </ActionList>
-                </ActionMenu.Overlay>
-              </ActionMenu>
-            </div>
+            <button
+              key={s.id}
+              ref={(el) => {
+                tabs.current.set(s.id, el);
+              }}
+              role="tab"
+              type="button"
+              aria-selected={selected}
+              tabIndex={selected ? 0 : -1}
+              onClick={() => activate(s.id)}
+              onDoubleClick={() => setRenaming({ id: s.id, name: s.name })}
+              onKeyDown={(e) => onKeyDown(e, i)}
+              style={{
+                padding: '2px 10px',
+                border: '1px solid var(--borderColor-muted, #d0d7de)',
+                borderBottom: selected
+                  ? '2px solid var(--borderColor-accent-emphasis, #0969da)'
+                  : undefined,
+                background: selected
+                  ? 'var(--bgColor-default, #fff)'
+                  : 'var(--bgColor-muted, #f6f8fa)',
+                color: 'var(--fgColor-default, #1f2328)',
+                fontWeight: selected ? 600 : 400,
+                cursor: 'pointer',
+              }}
+            >
+              {s.name}
+            </button>
           );
         })}
       </div>
+      {renaming !== null && (
+        <TextInput
+          aria-label={`Rename ${sheets.find((s) => s.id === renaming.id)?.name ?? ''}`}
+          size="small"
+          autoFocus
+          value={renaming.name}
+          onChange={(e) => setRenaming({ id: renaming.id, name: e.target.value })}
+          onBlur={commitRename}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              commitRename();
+            } else if (e.key === 'Escape') {
+              setRenaming(null);
+              setError('');
+            }
+          }}
+        />
+      )}
       <IconButton
         icon={PlusIcon}
         aria-label="Add a sheet"
@@ -172,6 +134,45 @@ export function SheetTabs(props: SheetTabsProps) {
           if (!r.ok) setError(r.refusals.map((x) => x.message).join(' '));
         }}
       />
+      {current !== undefined && (
+        <ActionMenu>
+          <ActionMenu.Anchor>
+            <IconButton
+              icon={KebabHorizontalIcon}
+              aria-label={`More for ${current.name}`}
+              size="small"
+              variant="invisible"
+            />
+          </ActionMenu.Anchor>
+          <ActionMenu.Overlay>
+            <ActionList>
+              <ActionList.Item onSelect={() => setRenaming({ id: current.id, name: current.name })}>
+                Rename
+              </ActionList.Item>
+              <ActionList.Item disabled={index === 0} onSelect={() => move(current.id, index - 1)}>
+                Move left
+              </ActionList.Item>
+              <ActionList.Item
+                disabled={index === sheets.length - 1}
+                onSelect={() => move(current.id, index + 1)}
+              >
+                Move right
+              </ActionList.Item>
+              <ActionList.Divider />
+              <ActionList.Item
+                variant="danger"
+                disabled={sheets.length === 1}
+                onSelect={() => {
+                  const r = remove(current.id);
+                  if (!r.ok) setError(r.refusals.map((x) => x.message).join(' '));
+                }}
+              >
+                Delete
+              </ActionList.Item>
+            </ActionList>
+          </ActionMenu.Overlay>
+        </ActionMenu>
+      )}
       {error && (
         <span role="alert" style={{ color: 'var(--fgColor-danger, #d1242f)' }}>
           {error}
