@@ -512,6 +512,34 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
       [model, measure],
     );
 
+    /** With a chart selected: arrows move it by one cell, Shift+arrows resize it, Delete removes it, Escape returns to the cells. */
+    const chartKey = useCallback(
+      (e: React.KeyboardEvent): boolean => {
+        if (model.selectedChart === null) return false;
+        const arrows: Record<string, [string, string]> = {
+          ArrowUp: ['moveUp', 'shrinkUp'],
+          ArrowDown: ['moveDown', 'growDown'],
+          ArrowLeft: ['moveLeft', 'shrinkLeft'],
+          ArrowRight: ['moveRight', 'growRight'],
+        };
+        const arrow = arrows[e.key];
+        let id: string | undefined;
+        if (arrow !== undefined) id = `cells.chart.${e.shiftKey ? arrow[1] : arrow[0]}`;
+        else if (e.key === 'Delete' || e.key === 'Backspace') id = 'cells.chart.delete';
+        else if (e.key === 'Escape') {
+          model.selectChart(null);
+          rootRef.current?.focus({ preventScroll: true });
+          e.preventDefault();
+          return true;
+        } else if (e.key === 'Enter' && e.shiftKey) id = 'cells.chart.showData';
+        if (id === undefined) return false;
+        e.preventDefault();
+        runCommand(id);
+        return true;
+      },
+      [model, runCommand],
+    );
+
     const onKeyDown = useCallback(
       (e: React.KeyboardEvent) => {
         if (e.target !== rootRef.current) return;
@@ -521,6 +549,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
         const pageRows = Math.max(1, main.lastRow - main.firstRow);
         if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'v')
           pasteValues.current = true;
+        if (chartKey(e)) return;
         if (e.key === 'Escape' && model.clipboardMark !== null) {
           model.clearClipboardMark();
           return;
@@ -1094,7 +1123,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
           });
         }
       },
-      [model, headerAtPoint, pointToCell, selectLines, runCommand],
+      [model, headerAtPoint, pointToCell, selectLines, runCommand, chartKey],
     );
 
     const onContextMenu = useCallback(
@@ -1285,7 +1314,15 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
               ))}
             </div>
             {viewport !== null && theme !== null && (
-              <ChartsLayer model={model} sheet={sheet.id} viewport={viewport} theme={theme} />
+              <ChartsLayer
+                model={model}
+                sheet={sheet.id}
+                viewport={viewport}
+                theme={theme}
+                selectedChart={model.selectedChart}
+                onPointerDownChart={(id) => model.selectChart(id)}
+                onChartKeyDown={chartKey}
+              />
             )}
             {edit !== null && viewport !== null && edit.sheet === sheet.id && theme !== null && (
               <CellEditor

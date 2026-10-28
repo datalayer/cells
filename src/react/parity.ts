@@ -61,6 +61,11 @@ export const CORE_EXPORTS: Readonly<Record<string, Surface>> = {
   inferChartData: hook('useCharts'),
   chartPoints: hook('useChart'),
   chartData: hook('useChart'),
+  anchorBeside: hook('useCharts'),
+  sourceZones: hook('useChart'),
+  CHART_COMMANDS_LIST: hook('useCommandTypes'),
+  CellsChartCommandsPlugin: hook('useCellsReactor'),
+  CELLS_CHART_COMMANDS_PLUGIN: hook('usePlugin'),
   chartRect: hook('useChart'),
   chartOption: hook('useChart'),
   chartPlaceholder: hook('useChart'),
@@ -198,6 +203,8 @@ export const MODEL_MEMBERS: Readonly<Record<string, Surface>> = {
   chartRevision: hook('useChart'),
   chartData: hook('useChart'),
   chartsPending: hook('useCharts'),
+  selectedChart: hook('useCharts'),
+  selectChart: hook('useCharts'),
 };
 
 void component;

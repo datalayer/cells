@@ -26,6 +26,7 @@ import { CHART_COMMANDS, chartOp } from './charts.js';
 import { CellsClipboardPlugin } from '../builtins/clipboard.js';
 import { CellsEditingPlugin } from '../builtins/editing.js';
 import { CellsFillPlugin } from '../builtins/fill.js';
+import { CellsChartCommandsPlugin } from '../builtins/charts.js';
 import { CellsFunctionsPlugin } from '../builtins/functions/index.js';
 
 export const CELLS_CORE_PLUGIN = '@datalayer/cells-core';
@@ -53,7 +54,13 @@ export const CellsCorePlugin = definePlugin({
 
 /** The built-in plugins a grid gets by default, besides the core. More arrive with each feature. */
 export function cellsBuiltins(): PlatformInput[] {
-  return [CellsEditingPlugin, CellsClipboardPlugin, CellsFillPlugin, CellsFunctionsPlugin];
+  return [
+    CellsEditingPlugin,
+    CellsClipboardPlugin,
+    CellsFillPlugin,
+    CellsFunctionsPlugin,
+    CellsChartCommandsPlugin,
+  ];
 }
 
 /**

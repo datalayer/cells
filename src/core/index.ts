@@ -151,6 +151,13 @@ export {
 } from './clipboard.js';
 export { CELLS_CLIPBOARD_PLUGIN, CellsClipboardPlugin } from '../builtins/clipboard.js';
 export {
+  anchorBeside,
+  CELLS_CHART_COMMANDS_PLUGIN,
+  CellsChartCommandsPlugin,
+  CHART_COMMANDS_LIST,
+  sourceZones,
+} from '../builtins/charts.js';
+export {
   CELLS_FILL_PLUGIN,
   CellsFillPlugin,
   FILL_RULES,

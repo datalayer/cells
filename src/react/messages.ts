@@ -51,6 +51,13 @@ export const MESSAGES: Messages = {
   RENAME_SHEET: say('RENAME_SHEET', (c) => `Renamed the sheet to ${c.name}`),
   MOVE_SHEET: say('MOVE_SHEET', () => 'Moved a sheet'),
   FREEZE: say('FREEZE', (c) => `Froze ${c.rows} rows and ${c.cols} columns`),
+  // Charts (§3.12).
+  INSERT_CHART: (c) =>
+    `Inserted a ${(c as unknown as { chart: { type: string } }).chart.type} chart`,
+  UPDATE_CHART: () => 'Changed the chart',
+  MOVE_CHART: () => 'Moved the chart',
+  RESIZE_CHART: () => 'Resized the chart',
+  DELETE_CHART: () => 'Deleted the chart',
 };
 
 /** The sentence for a transaction; a plugin's command without a message says its label. */

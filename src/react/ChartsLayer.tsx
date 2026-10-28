@@ -29,8 +29,10 @@ export interface ChartsLayerProps {
   readonly sheet: string;
   readonly viewport: Viewport;
   readonly theme: CellsTheme;
-  readonly selectedChart?: string;
+  readonly selectedChart?: string | null;
   readonly onPointerDownChart?: (id: string, event: React.PointerEvent) => void;
+  /** The keys of a focused chart frame (arrows, Delete, Escape): `true` when handled. */
+  readonly onChartKeyDown?: (event: React.KeyboardEvent) => boolean;
 }
 
 /** The pane a chart's anchor sits in: by its anchor cell, or its px against the frozen extents. */
@@ -133,6 +135,9 @@ export function ChartsLayer(props: ChartsLayerProps) {
                   pointerEvents: 'auto',
                 }}
                 onPointerDown={(e) => props.onPointerDownChart?.(spec.id, e)}
+                onKeyDown={(e) => {
+                  if (props.onChartKeyDown?.(e)) e.stopPropagation();
+                }}
               >
                 <ChartFrame
                   spec={spec}
@@ -145,6 +150,7 @@ export function ChartsLayer(props: ChartsLayerProps) {
                   theme={theme}
                   mounted={place.near}
                   selected={props.selectedChart === spec.id}
+                  focusWhenSelected
                 />
               </div>
             );

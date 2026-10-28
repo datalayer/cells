@@ -568,6 +568,9 @@ export function useCharts(sheet?: string): {
   charts: ChartSpec[];
   /** The charts of the sheet still waiting for a pass to settle their cells. */
   pending: string[];
+  /** The selected chart's id, or `null`; `select(null)` returns to the cells. */
+  selected: string | null;
+  select: (id: string | null) => void;
   insert: (chart: ChartInsert) => CommandResult;
   update: (id: string, changes: UpdateChartCommand['changes']) => CommandResult;
   move: (id: string, to: MoveChartCommand['to']) => CommandResult;
@@ -584,6 +587,8 @@ export function useCharts(sheet?: string): {
           .chartsPending()
           .filter((c) => c.sheet === id)
           .map((c) => c.id),
+        selected: m.selectedChart,
+        select: (chart: string | null) => model.selectChart(chart),
         insert: (chart: ChartInsert) => {
           if ('from' in chart) {
             const { sheet: source, zone } = resolveRange(model, chart.from);

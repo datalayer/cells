@@ -162,7 +162,9 @@ describe('<CellsChart>', () => {
     const div = await mount(<CellsChart model={m} id="c1" width={400} height={300} />);
     const figure = div.querySelector('[role="figure"]')!;
     expect(figure.getAttribute('aria-label')).toBe('Sales');
-    expect(figure.getAttribute('aria-description')).toMatch(/North runs from 10 to 15/);
+    expect(document.getElementById(figure.getAttribute('aria-describedby')!)!.textContent).toMatch(
+      /North runs from 10 to 15/,
+    );
     expect(used).toHaveLength(1);
     expect(used[0]).toContain(BarChart);
     expect(used[0]).not.toContain(LineChart);

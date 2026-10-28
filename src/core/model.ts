@@ -115,6 +115,8 @@ export class CellsModel {
   readonly #editListeners = new Set<EditListener>();
   #edit: EditState | null = null;
   #mark: ClipboardMark | null = null;
+  /** The selected chart's id (§3.12), view state beside the cell selection; selecting cells clears it. */
+  #selectedChart: string | null = null;
   #revision = 0;
   #selection: SelectionState;
   /** Charts settled while patches were being applied: announced with the change that applied them. */
@@ -396,6 +398,21 @@ export class CellsModel {
       throw new Error(`No sheet '${selection.sheet}' to select in.`);
     if (selection.zones.length === 0) throw new Error('A selection holds at least one zone.');
     this.#setSelection(selection);
+  }
+
+  /** The selected chart's id on the selection's sheet, or `null`: view state, never synced. */
+  get selectedChart(): string | null {
+    return this.#selectedChart;
+  }
+
+  /** Select a chart of the selection's sheet (the keyboard then moves it), or none. */
+  selectChart(id: string | null): void {
+    if (id !== null && !this.workbook.sheet(this.#selection.sheet).charts.has(id))
+      throw new Error(`No chart '${id}' on sheet '${this.#selection.sheet}'.`);
+    if (id === this.#selectedChart) return;
+    this.#selectedChart = id;
+    this.#revision += 1;
+    for (const l of [...this.#selectionListeners]) l(this.#selection);
   }
 
   // ---------------------------------------------------------------- clipboard
@@ -760,6 +777,7 @@ export class CellsModel {
   #setSelection(s: SelectionState): void {
     if (s === this.#selection) return;
     this.#selection = s;
+    this.#selectedChart = null;
     this.#revision += 1;
     for (const l of [...this.#selectionListeners]) l(s);
   }
@@ -767,6 +785,14 @@ export class CellsModel {
   #emit(tx: Transaction): void {
     if (tx.origin === 'load') this.#engine.reset();
     if (this.#edit !== null && !this.workbook.hasSheet(this.#edit.sheet)) this.#setEdit(null);
+    if (
+      this.#selectedChart !== null &&
+      !(
+        this.workbook.hasSheet(this.#selection.sheet) &&
+        this.workbook.sheet(this.#selection.sheet).charts.has(this.#selectedChart)
+      )
+    )
+      this.#selectedChart = null;
     if (this.#settledCharts.length > 0 && this.#open === null) {
       tx = { ...tx, charts: [...(tx.charts ?? []), ...this.#settledCharts] };
       this.#settledCharts = [];
