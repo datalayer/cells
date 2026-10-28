@@ -105,8 +105,12 @@ describe(`the plugin example page (React ${reactVersion})`, () => {
     expect(names()).toContain('Shouted: LOUD');
     expect(names()).toContain('HELLO, formula: =SHOUT(A2)');
     expect(names()).toContain('#NAME?, formula: =SUM(B2:B3), unknown name');
-    // The data source's first page arrived for the mirror: the primes.
-    await tick();
+    // The data source's first page arrives for the mirror (the primes, after the source's 50 ms):
+    // waited for, not timed, since a loaded runner takes longer.
+    for (let i = 0; i < 100 && !names().includes('2'); i += 1)
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 20));
+      });
     expect(names()).toContain('2');
     const button = (name: string) =>
       [...div.querySelectorAll('button')].find((b) => b.textContent === name)!;
