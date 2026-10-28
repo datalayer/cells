@@ -17,7 +17,7 @@ import {
   useSelection,
 } from '@datalayer/cells';
 import { useState } from 'react';
-import { Frame, Soon } from '../shared';
+import { Frame } from '../shared';
 import { Button } from '@primer/react';
 
 /**
@@ -105,10 +105,6 @@ export default function Editing() {
   const model = useCellsModel(() => createCellsModel({ limits: { rows: 1000, cols: 26 } }));
   return (
     <CellsProvider model={model}>
-      <Soon>
-        inserting and resizing from the grid, number formats, the system clipboard, the fill handle
-        and sort.
-      </Soon>
       <FormulaBar />
       <Actions />
       <Frame>

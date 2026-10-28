@@ -5,7 +5,7 @@
  */
 
 import { createCellsModel, Spreadsheet, useCellsModel } from '@datalayer/cells';
-import { Frame, Soon } from '../shared';
+import { Frame } from '../shared';
 
 /** Formulas evaluate on read and recalculate on every change; change a or b and the rest follows. */
 export default function Formulas() {
@@ -37,12 +37,6 @@ export default function Formulas() {
   );
   return (
     <>
-      <Soon>
-        formula editing with pointing, autocomplete and argument hints. Today formulas are compiled
-        once per shape; a change recalculates only what depends on it, the cells on screen first and
-        the rest in the background; copied, filled, sorted and inserted rows carry their references;
-        117 functions are built in.
-      </Soon>
       <Frame height={200}>
         <Spreadsheet model={model} aria-label="Formulas" />
       </Frame>
