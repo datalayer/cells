@@ -19,6 +19,7 @@ import { LIGHT_THEME, type CellsTheme } from '../render/theme.js';
 import { ChartFrame } from '../react/ChartFrame.js';
 import { CellsProvider, useCells, useChart } from '../react/hooks.js';
 
+/** The props of `<CellsChart>`: the chart's sheet and id, its size, and the theme. */
 export interface CellsChartProps {
   readonly id: string;
   /** The sheet the chart is on; the active sheet by default. */
@@ -76,6 +77,7 @@ function Chart(props: CellsChartProps) {
   );
 }
 
+/** One chart, drawn by the contributed chart renderer (ECharts with `CellsChartsPlugin`), outside a grid. */
 export function CellsChart(props: CellsChartProps) {
   if (props.model !== undefined)
     return (

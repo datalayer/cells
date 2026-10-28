@@ -173,12 +173,16 @@ function cartesianOption(kind: Cartesian, spec: ChartSpec, data: ChartData, them
   };
 }
 
+/** The ECharts option of a column chart: a pure function of the spec, its data and the theme. */
 export const columnOption = (spec: ChartSpec, data: ChartData, theme: CellsTheme): ChartOption =>
   cartesianOption('column', spec, data, theme);
+/** The ECharts option of a bar chart. */
 export const barOption = (spec: ChartSpec, data: ChartData, theme: CellsTheme): ChartOption =>
   cartesianOption('bar', spec, data, theme);
+/** The ECharts option of a line chart. */
 export const lineOption = (spec: ChartSpec, data: ChartData, theme: CellsTheme): ChartOption =>
   cartesianOption('line', spec, data, theme);
+/** The ECharts option of an area chart. */
 export const areaOption = (spec: ChartSpec, data: ChartData, theme: CellsTheme): ChartOption =>
   cartesianOption('area', spec, data, theme);
 

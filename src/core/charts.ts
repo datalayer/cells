@@ -38,6 +38,7 @@ export interface CellOffset {
   readonly dy: number;
 }
 
+/** Where a chart sits: on two cells, on one cell with a size, or at an absolute position. */
 export type ChartAnchor =
   /** Moves and sizes with the cells under it. */
   | { readonly kind: 'cells'; readonly from: CellOffset; readonly to: CellOffset }
@@ -57,6 +58,7 @@ export type ChartAnchor =
       readonly height: number;
     };
 
+/** One axis of a chart: its title, limits, scale, gridlines and number format. */
 export interface ChartAxis {
   readonly title?: string;
   readonly min?: number;
@@ -66,6 +68,7 @@ export interface ChartAxis {
   readonly gridlines?: boolean;
 }
 
+/** One series of a chart: its values, and optionally its name, categories, x values, type, axis and colour. */
 export interface ChartSeries {
   /** Its name, given or read from a cell. */
   readonly name?: Ref | string;
@@ -79,6 +82,7 @@ export interface ChartSeries {
   readonly color?: string;
 }
 
+/** The seven chart types `CellsChartsPlugin` contributes. */
 export const BUILTIN_CHART_TYPES = [
   'bar',
   'column',
@@ -88,9 +92,11 @@ export const BUILTIN_CHART_TYPES = [
   'scatter',
   'combo',
 ] as const;
+/** The variants each built-in chart type accepts (stacked, percent, smooth, doughnut, …). */
 export const CHART_VARIANTS = ['clustered', 'stacked', 'percent', 'smooth', 'doughnut'] as const;
 const LEGENDS = ['top', 'right', 'bottom', 'left', 'none'] as const;
 
+/** A chart as the workbook holds it (§3.12): its type, anchor, data ranges and presentation. */
 export interface ChartSpec {
   readonly id: string;
   /** A built-in type, or a type a plugin contributes, by id. */
@@ -599,6 +605,7 @@ export function inferChartData(
 
 // ------------------------------------------------------------------ the patch op
 
+/** The `chart` patch op's patch: a chart's spec before and after (`null` for none). */
 export interface ChartPatch {
   readonly op: 'chart';
   readonly sheet: string;
@@ -642,12 +649,14 @@ export const chartOp: PatchOp<ChartPatch> = {
 
 // ------------------------------------------------------------------ commands
 
+/** Add a chart to a sheet. */
 export interface InsertChartCommand {
   readonly type: 'INSERT_CHART';
   readonly sheet: string;
   /** The chart; its id is made when absent. */
   readonly chart: Omit<ChartSpec, 'id'> & { readonly id?: string };
 }
+/** Change fields of a chart (not its id). */
 export interface UpdateChartCommand {
   readonly type: 'UPDATE_CHART';
   readonly sheet: string;
@@ -655,6 +664,7 @@ export interface UpdateChartCommand {
   /** The fields that change: type, variant, data, title, legend, axes, labels. */
   readonly changes: Partial<Omit<ChartSpec, 'id' | 'anchor'>>;
 }
+/** Move a chart to another anchor. */
 export interface MoveChartCommand {
   readonly type: 'MOVE_CHART';
   readonly sheet: string;
@@ -663,6 +673,7 @@ export interface MoveChartCommand {
   readonly to:
     { readonly row: number; readonly col: number } | { readonly x: number; readonly y: number };
 }
+/** Resize a chart. */
 export interface ResizeChartCommand {
   readonly type: 'RESIZE_CHART';
   readonly sheet: string;
@@ -672,12 +683,14 @@ export interface ResizeChartCommand {
     | { readonly row: number; readonly col: number }
     | { readonly width: number; readonly height: number };
 }
+/** Remove a chart. */
 export interface DeleteChartCommand {
   readonly type: 'DELETE_CHART';
   readonly sheet: string;
   readonly id: string;
 }
 
+/** Any of the five chart commands. */
 export type ChartCommand =
   | InsertChartCommand
   | UpdateChartCommand

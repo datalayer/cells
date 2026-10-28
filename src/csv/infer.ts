@@ -14,6 +14,7 @@
 
 import type { CellValue } from '../core/values.js';
 
+/** How a CSV field's type is inferred (numbers, booleans, dates), or not. */
 export interface InferOptions {
   /** `false`: every field is text. */
   readonly infer?: boolean;
@@ -45,6 +46,7 @@ function serial(y: number, m: number, d: number): number | undefined {
 const ISO = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?$/;
 const SLASHED = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
 
+/** A CSV field's text as a value: a number, a boolean, a date with its format, or text. */
 export function inferField(text: string, options: InferOptions = {}): Inferred {
   if (text === '') return { value: null };
   if (options.infer === false) return { value: text };

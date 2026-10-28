@@ -37,6 +37,7 @@ export interface AxisSegment {
   readonly hidden: Uint8Array | null;
 }
 
+/** An axis' logical size and default size. */
 export interface AxisOptions {
   /** The logical number of indexes (1,048,576 rows, 16,384 columns in Excel). */
   readonly count: number;
@@ -44,6 +45,7 @@ export interface AxisOptions {
   readonly defaultSize: number;
 }
 
+/** One axis of a sheet (rows or columns): stable ids, sizes in a Fenwick tree, hidden indexes; `offsetOf` and `indexAt` in O(log n). */
 export class Axis {
   readonly count: number;
   readonly defaultSize: number;

@@ -93,14 +93,17 @@ export function zoneOf(a: Position, b: Position = a): Zone {
   };
 }
 
+/** Whether a zone holds a position. */
 export function zoneContains(z: Zone, p: Position): boolean {
   return p.row >= z.top && p.row <= z.bottom && p.col >= z.left && p.col <= z.right;
 }
 
+/** Whether two zones share a cell. */
 export function zonesOverlap(a: Zone, b: Zone): boolean {
   return a.left <= b.right && b.left <= a.right && a.top <= b.bottom && b.top <= a.bottom;
 }
 
+/** How many cells a zone holds. */
 export function zoneSize(z: Zone): { rows: number; cols: number } {
   return { rows: z.bottom - z.top + 1, cols: z.right - z.left + 1 };
 }

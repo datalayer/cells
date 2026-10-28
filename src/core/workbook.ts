@@ -28,6 +28,7 @@ export interface Limits {
   readonly colWidth: number;
 }
 
+/** Excel's grid: 1,048,576 rows by 16,384 columns, rows 21 px high and columns 100 px wide. */
 export const DEFAULT_LIMITS: Limits = {
   rows: 1_048_576,
   cols: 16_384,
@@ -35,11 +36,13 @@ export const DEFAULT_LIMITS: Limits = {
   colWidth: 100,
 };
 
+/** How many rows and columns are frozen. */
 export interface Frozen {
   readonly rows: number;
   readonly cols: number;
 }
 
+/** A sheet: its axes, cells, merges, frozen panes, charts and data source. */
 export class Sheet {
   readonly id: string;
   name: string;
@@ -75,6 +78,7 @@ export class Sheet {
   }
 }
 
+/** The workbook's storage: sheets, and the string pool, style table and formula table they share. */
 export class Workbook {
   readonly limits: Limits;
   /**

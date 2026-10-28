@@ -33,6 +33,7 @@ import type { Workbook } from './workbook.js';
 import { type Zone, zonesOverlap } from './zone.js';
 import { translateFormula, transposeFormula } from '../formula/normal.js';
 
+/** The version of the clipboard slice format; a slice of another version is refused. */
 export const SLICE_VERSION = 1;
 
 /** What a copy holds: the source and each handler's part. */
@@ -60,6 +61,7 @@ export interface SliceCell {
   readonly style?: Style;
 }
 
+/** Paste a clipboard slice at a cell, with paste-special options. */
 export interface PasteCommand {
   readonly type: 'PASTE';
   readonly sheet: string;

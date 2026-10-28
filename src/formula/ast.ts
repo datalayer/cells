@@ -22,6 +22,7 @@ export interface RefPart {
   readonly colAbs: boolean;
 }
 
+/** A parsed formula: the tree `parseFormula` returns. */
 export type Ast =
   | { readonly type: 'number'; readonly value: number }
   | { readonly type: 'string'; readonly value: string }

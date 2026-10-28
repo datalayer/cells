@@ -32,6 +32,7 @@ import {
   type FillSource,
 } from '../points/index.js';
 
+/** The name of `CellsFillPlugin`. */
 export const CELLS_FILL_PLUGIN = '@datalayer/cells-fill';
 
 // ------------------------------------------------------------------ series rules
@@ -188,6 +189,7 @@ const copy: FillRule = {
   },
 };
 
+/** The built-in fill-handle series rules, in the order they are tried: numbers, dates, weekdays, months, numbered text. */
 export const FILL_RULES: readonly FillRule[] = [
   dates,
   numbers,
@@ -199,6 +201,7 @@ export const FILL_RULES: readonly FillRule[] = [
 
 // ------------------------------------------------------------------ FILL
 
+/** Extend a source zone over a target zone with the fill rules (or copy, with `copy: true`). */
 export interface FillCommand {
   readonly type: 'FILL';
   readonly sheet: string;
@@ -307,6 +310,7 @@ const fillCommand: CommandHandler<FillCommand> = {
 
 // ------------------------------------------------------------------ SORT
 
+/** Sort a zone's rows by one or more columns. */
 export interface SortCommand {
   readonly type: 'SORT';
   readonly sheet: string;
@@ -452,6 +456,7 @@ function sortAction(descending: boolean) {
   };
 }
 
+/** The built-in fill rules and the `FILL` and `SORT` commands, with their toolbar and menu items. */
 export const CellsFillPlugin = definePlugin({
   name: CELLS_FILL_PLUGIN,
   displayName: 'Cells fill and sort',

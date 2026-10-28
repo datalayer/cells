@@ -307,32 +307,48 @@ export interface CommandItem {
   readonly group?: string;
 }
 
+/** `datalayer.cells.patchOp`: how a change is applied and inverted, by op. */
 export const CellsPatchOps = defineContributionPoint<PatchOp<any>>('datalayer.cells.patchOp');
+/** `datalayer.cells.command`: the handlers of commands, by type. */
 export const CellsCommands =
   defineContributionPoint<CommandHandler<any>>('datalayer.cells.command');
+/** `datalayer.cells.function`: formula functions, by upper-case name. */
 export const CellsFunctions = defineContributionPoint<FormulaFunction>('datalayer.cells.function');
+/** `datalayer.cells.cellType`: cell types (checkbox, link, progress, a plugin's), by id. */
 export const CellsCellTypes = defineContributionPoint<CellType>('datalayer.cells.cellType');
+/** `datalayer.cells.renderLayer`: layers drawn after the core layer of their kind, in order. */
 export const CellsRenderLayers = defineContributionPoint<RenderLayer>(
   'datalayer.cells.renderLayer',
 );
+/** `datalayer.cells.clipboard`: one clipboard handler per feature, in order. */
 export const CellsClipboard = defineContributionPoint<ClipboardHandler>(
   'datalayer.cells.clipboard',
 );
+/** `datalayer.cells.fillRule`: fill-handle series rules, tried in order. */
 export const CellsFillRules = defineContributionPoint<FillRule>('datalayer.cells.fillRule');
+/** `datalayer.cells.importer`: file readers, by MIME type and extension. */
 export const CellsImporters = defineContributionPoint<Importer>('datalayer.cells.importer');
+/** `datalayer.cells.exporter`: file writers, by MIME type and extension. */
 export const CellsExporters = defineContributionPoint<Exporter>('datalayer.cells.exporter');
+/** `datalayer.cells.dataSource`: read-only paged sources of columns, by id. */
 export const CellsDataSources = defineContributionPoint<DataSource>('datalayer.cells.dataSource');
+/** `datalayer.cells.collabProvider`: the one collaboration provider, or none. */
 export const CellsCollabProvider = defineContributionPoint<CollabProvider>(
   'datalayer.cells.collabProvider',
 );
+/** `datalayer.cells.toolbarItem`: the toolbar's entries, naming Reactor commands. */
 export const CellsToolbarItems = defineContributionPoint<CommandItem>(
   'datalayer.cells.toolbarItem',
 );
+/** `datalayer.cells.menuItem`: the context menu's entries, naming Reactor commands. */
 export const CellsMenuItems = defineContributionPoint<CommandItem>('datalayer.cells.menuItem');
+/** `datalayer.cells.chartType`: chart types, by id. */
 export const CellsChartTypes = defineContributionPoint<ChartType>('datalayer.cells.chartType');
+/** `datalayer.cells.chartOption`: transforms of every chart option, in order. */
 export const CellsChartOptions = defineContributionPoint<ChartOptionTransform>(
   'datalayer.cells.chartOption',
 );
+/** `datalayer.cells.chartRenderer`: the one component drawing charts, or none (placeholders). */
 export const CellsChartRenderer = defineContributionPoint<ChartRenderer>(
   'datalayer.cells.chartRenderer',
 );

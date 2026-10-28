@@ -40,6 +40,7 @@ export interface Union {
   readonly refs: readonly Reference[];
 }
 
+/** What formula evaluation handles: a cell value, a reference, a union of references or an array. */
 export type Value = CellValue | Reference | Matrix | Union;
 
 export const isReference = (v: Value): v is Reference =>

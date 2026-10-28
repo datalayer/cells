@@ -28,6 +28,7 @@ export interface Resolved<T> {
   readonly id: string;
 }
 
+/** How a point is resolved into a table: its label for refusals, its key, and a shape check. */
 export interface PointTableOptions<T> {
   /** What the point is, in words, for the refusals ("formula function"). */
   readonly label: string;

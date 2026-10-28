@@ -51,11 +51,13 @@ function changed(): void {
   for (const l of [...listeners]) l();
 }
 
+/** Hear changes to the shell's workbook list; returns the unsubscriber. */
 export function subscribeWorkbooks(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }
 
+/** The shell's workbooks and the one open. */
 export function getWorkbooksState(): State {
   return state;
 }
@@ -90,17 +92,20 @@ export function createWorkbook(title?: string): string {
   return id;
 }
 
+/** Open a workbook of the shell's list. */
 export function openWorkbook(id: string): void {
   if (!items.has(id)) throw new Error(`There is no workbook '${id}'.`);
   open = id;
   changed();
 }
 
+/** Close the open workbook. */
 export function closeWorkbook(): void {
   open = null;
   changed();
 }
 
+/** Rename a workbook of the shell's list. */
 export function renameWorkbook(id: string, title: string): void {
   const item = items.get(id);
   if (item === undefined) throw new Error(`There is no workbook '${id}'.`);
@@ -109,6 +114,7 @@ export function renameWorkbook(id: string, title: string): void {
   changed();
 }
 
+/** Delete a workbook from the shell's list. */
 export function removeWorkbook(id: string): void {
   if (!items.delete(id)) throw new Error(`There is no workbook '${id}'.`);
   if (open === id) open = null;

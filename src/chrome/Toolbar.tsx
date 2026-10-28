@@ -68,6 +68,7 @@ const PRESSED: Record<string, keyof Style> = {
   'cells.strikethrough': 'strike',
 };
 
+/** The props of `<Toolbar>`: `charts={false}` leaves the chart picker out. */
 export interface ToolbarProps {
   readonly 'aria-label'?: string;
   /** Told when a command fails, with its message (the grid announces it too). */
@@ -76,6 +77,7 @@ export interface ToolbarProps {
   readonly charts?: boolean;
 }
 
+/** The toolbar: the commands plugins contribute to `datalayer.cells.toolbarItem`, in their groups, as one tab stop. */
 export function Toolbar(props: ToolbarProps) {
   const model = useCells();
   const items = useContributions(CellsToolbarItems);

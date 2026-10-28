@@ -33,8 +33,10 @@ import {
 } from './store.js';
 import { WorkbookList, WorkbookView } from './views.js';
 
+/** The name of the Reactor shell plugin `CellsPlugin`. */
 export const CELLS_PLUGIN_NAME = '@datalayer/cells';
 
+/** The shell commands of `CellsPlugin`: list, create, open, rename and delete workbooks. */
 export const CELLS_COMMANDS = {
   list: 'cells.workbooks.list',
   create: 'cells.workbooks.create',
@@ -43,6 +45,7 @@ export const CELLS_COMMANDS = {
   remove: 'cells.workbooks.remove',
 } as const;
 
+/** How `CellsPlugin` is configured in a shell. */
 export interface CellsPluginConfig {
   /** Where the list renders. */
   listSlot: string;
@@ -59,6 +62,7 @@ const text = (v: unknown, what: string): string => {
   return v;
 };
 
+/** The Reactor shell plugin (C7-05): the workbook list in the sidebar, the open workbook in the main slot, and the workbook commands. */
 export const CellsPlugin = definePlugin<CellsPluginConfig, unknown, ReactorReactOutput>({
   name: CELLS_PLUGIN_NAME,
   version: '1.0.0',

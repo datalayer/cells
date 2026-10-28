@@ -20,6 +20,7 @@ import { type CellErrorCode, isErrorCode } from '../core/values.js';
 import type { Ast, RefPart } from './ast.js';
 import { EN_US_SYNTAX, type FormulaSyntax, type Token, tokenize } from './tokens.js';
 
+/** A formula that does not parse, with where and why. */
 export class FormulaSyntaxError extends Error {
   constructor(
     message: string,

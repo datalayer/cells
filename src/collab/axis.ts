@@ -40,6 +40,7 @@ const DIGITS = '0123456789abcdefghijklmnopqrstuvwxyz';
 /** The width of an implicit key: 36⁵, sixty million rows, is past any sheet's end. */
 const WIDTH = 5;
 
+/** The id an axis index has before anything materialises it (`b` and the index in base 36), the same on every peer. */
 export const implicitId = (index: number): string => `b${index.toString(36)}`;
 
 /**

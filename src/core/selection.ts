@@ -15,6 +15,7 @@
 
 import { type Position, type Zone, zoneContains, zoneOf } from './zone.js';
 
+/** The selection (view state): its sheet, zones, anchor and active cell. */
 export interface SelectionState {
   readonly sheet: string;
   /** At least one; the last is the one being edited by Shift+arrows. */
@@ -37,8 +38,10 @@ export interface NavigationGrid {
   hidden?(axis: 'rows' | 'cols', index: number): boolean;
 }
 
+/** A direction of a keyboard move. */
 export type Direction = 'up' | 'down' | 'left' | 'right';
 
+/** A keyboard move, as `navigate` takes it. */
 export type Navigation =
   | {
       readonly type: 'move';
@@ -65,6 +68,7 @@ export type Navigation =
   /** Ctrl+A. */
   | { readonly type: 'selectAll' };
 
+/** A selection of one cell (A1 by default) on a sheet. */
 export function initialSelection(sheet: string, at: Position = { row: 0, col: 0 }): SelectionState {
   return { sheet, zones: [zoneOf(at)], anchor: at, active: at };
 }
@@ -143,6 +147,7 @@ function extendTo(s: SelectionState, corner: Position): SelectionState {
   return { ...s, zones: [...s.zones.slice(0, -1), zoneOf(s.anchor, corner)] };
 }
 
+/** The selection after a keyboard move (arrows, data edges, pages, Home and End, extending with Shift). */
 export function navigate(s: SelectionState, nav: Navigation, g: NavigationGrid): SelectionState {
   switch (nav.type) {
     case 'move': {

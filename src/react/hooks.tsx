@@ -330,6 +330,7 @@ export function useSelection(): SelectionState & {
   );
 }
 
+/** A sheet as `useSheets` lists it: its id and name. */
 export interface SheetInfo {
   readonly id: string;
   readonly name: string;

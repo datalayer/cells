@@ -24,6 +24,7 @@ export { type ImportReport, readXlsx } from './read.js';
 export { BUILTIN_FORMATS } from './formats.js';
 export { writeXlsx } from './write.js';
 
+/** The name of `CellsXlsxPlugin`. */
 export const CELLS_XLSX_PLUGIN = '@datalayer/cells-xlsx';
 
 /** The bytes of an input. */
@@ -35,6 +36,7 @@ async function bytesOf(
   return new Uint8Array(await new Response(input).arrayBuffer());
 }
 
+/** The XLSX importer and exporter, loaded lazily on the first read of the importer point. */
 export const CellsXlsxPlugin = definePlugin({
   name: CELLS_XLSX_PLUGIN,
   displayName: 'Cells XLSX',

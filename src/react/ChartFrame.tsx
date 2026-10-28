@@ -28,6 +28,7 @@ import type { ChartSpec } from '../core/charts.js';
 import type { ChartRenderer, ChartRendererProps, Resolved } from '../points/index.js';
 import type { CellsTheme } from '../render/theme.js';
 
+/** The props of `<ChartFrame>`. */
 export interface ChartFrameProps {
   readonly spec: ChartSpec;
   readonly resolved: ResolvedChart;
@@ -107,6 +108,7 @@ export function chartLabel(spec: ChartSpec, resolved: ResolvedChart): string {
   return resolved.text;
 }
 
+/** A chart's frame in the grid: `role="figure"`, its name, description and hidden data table, selectable and movable. */
 export function ChartFrame(props: ChartFrameProps) {
   const { spec, resolved, renderer, width, height, theme } = props;
   const label = chartLabel(spec, resolved);

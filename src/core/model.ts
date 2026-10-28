@@ -94,6 +94,7 @@ export interface Transaction {
   readonly charts?: readonly { readonly sheet: string; readonly id: string }[];
 }
 
+/** What a model is made from: a workbook, a Reactor platform or plugins, limits, read-only, history and data-source limits. */
 export interface CellsModelOptions {
   /** A started Reactor platform the host owns, with `CellsCorePlugin` among its plugins. */
   readonly reactor?: ReactorPlatform;
@@ -108,6 +109,7 @@ export interface CellsModelOptions {
   readonly dataSources?: { readonly pages?: number };
 }
 
+/** Called with each committed change. */
 export type ChangeListener = (transaction: Transaction) => void;
 
 /** A cell being edited: where, and the text of the edit buffer (the in-cell editor and a formula bar share it). */
@@ -118,6 +120,7 @@ export interface EditState {
   readonly text: string;
 }
 
+/** Called when the edit starts, its text changes, or it ends (`null`). */
 export type EditListener = (edit: EditState | null) => void;
 
 /** The zone last copied or cut: what the marching ants surround. */
@@ -126,6 +129,7 @@ export interface ClipboardMark {
   readonly zone: Zone;
   readonly cut: boolean;
 }
+/** Called with each new selection. */
 export type SelectionListener = (selection: SelectionState) => void;
 
 /** A remote peer's presence (§3.9): who, where, and what it is doing; view state the overlay draws. */
@@ -142,6 +146,7 @@ export interface RemotePeer {
   readonly chart?: string;
 }
 
+/** The headless spreadsheet (§3.1): commands in through `dispatch`, patches applied, history kept, listeners told; no React, no DOM. */
 export class CellsModel {
   readonly reactor: ReactorPlatform;
   readonly workbook: Workbook;

@@ -21,11 +21,13 @@ import { DEFAULT_LIMITS, type Limits, type Workbook } from './workbook.js';
 import { type Zone, zoneContains } from './zone.js';
 import { boundZone } from './dataSources.js';
 
+/** The version of the `CellsWorkbook` format: a file of another version is refused, with no migration before 1.0. */
 export const FORMAT_VERSION = 1;
 
 /** A value as JSON carries it: errors as `{ error }`. */
 export type JsonValue = number | string | boolean | null | { readonly error: string };
 
+/** A cell in the file: its value `v`, its formula `f` (without the `=`), its style index `s`. */
 export interface CellsCell {
   /** The value, or a formula's cached value. */
   readonly v?: JsonValue;
@@ -35,6 +37,7 @@ export interface CellsCell {
   readonly s?: number;
 }
 
+/** A sheet in the file: its id, name, rows of cells, sizes, hidden indexes, merges, frozen panes, charts and data source. */
 export interface CellsSheet {
   readonly id: string;
   readonly name: string;
@@ -58,6 +61,7 @@ export interface CellsSheet {
   };
 }
 
+/** The file format (§3.1): versioned JSON of sheets and a style table, validated whole before it is loaded. */
 export interface CellsWorkbook {
   readonly version: 1;
   readonly sheets: readonly CellsSheet[];

@@ -26,6 +26,7 @@ import { TEXT } from './text.js';
 
 export { numbers } from './args.js';
 
+/** The name of `CellsFunctionsPlugin`. */
 export const CELLS_FUNCTIONS_PLUGIN = '@datalayer/cells-functions';
 
 /** Every built-in function, by category. */
@@ -39,6 +40,7 @@ export const FUNCTIONS: readonly FormulaFunction[] = [
   ...INFORMATION,
 ];
 
+/** The built-in formula functions (about a hundred), through `datalayer.cells.function`. */
 export const CellsFunctionsPlugin = definePlugin({
   name: CELLS_FUNCTIONS_PLUGIN,
   displayName: 'Cells functions',

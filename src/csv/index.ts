@@ -26,8 +26,10 @@ export { type CsvChunk, type CsvColumn, type CsvReadOptions, decodeChunk } from 
 export { type CsvInput, type CsvOptions, type CsvSummary, importCsv, readCsv } from './read.js';
 export { csvStream, type CsvWriteOptions, toCsv, usedZone } from './write.js';
 
+/** The name of `CellsCsvPlugin`. */
 export const CELLS_CSV_PLUGIN = '@datalayer/cells-csv';
 
+/** The CSV importer and exporter, through `datalayer.cells.importer` and `.exporter`. */
 export const CellsCsvPlugin = definePlugin({
   name: CELLS_CSV_PLUGIN,
   displayName: 'Cells CSV',

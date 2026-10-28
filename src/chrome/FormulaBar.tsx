@@ -20,10 +20,12 @@ import { columnLetters, zoneToA1 } from '../core/zone.js';
 import { numberToText } from '../formula/values.js';
 import { useCell, useCells, useCellsEditor, useSelection } from '../react/hooks.js';
 
+/** The props of `<FormulaBar>`. */
 export interface FormulaBarProps {
   readonly 'aria-label'?: string;
 }
 
+/** The name box and the formula input, sharing the in-cell editor's buffer. */
 export function FormulaBar(props: FormulaBarProps) {
   const model = useCells();
   const selection = useSelection();

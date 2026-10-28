@@ -15,14 +15,18 @@ import { checkFormatCode } from './numfmt.js';
  */
 
 export type HorizontalAlign = 'left' | 'center' | 'right';
+/** Where text sits in its cell's height. */
 export type VerticalAlign = 'top' | 'middle' | 'bottom';
+/** The line style of a cell border. */
 export type BorderStyle = 'thin' | 'medium' | 'thick' | 'dashed' | 'dotted' | 'double';
 
+/** One side of a cell's border: its style and colour. */
 export interface BorderSide {
   readonly style: BorderStyle;
   readonly color: string;
 }
 
+/** A cell style: font, size, emphasis, colours, alignment, wrap, borders, number format and cell type. */
 export interface Style {
   readonly font?: string;
   readonly size?: number;

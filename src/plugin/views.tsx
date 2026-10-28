@@ -45,6 +45,7 @@ function useContributedWorkbooks(): void {
   );
 }
 
+/** The shell's workbook list (new, rename, delete) for the sidebar slot. */
 export function WorkbookList(): JSX.Element {
   useContributedWorkbooks();
   const { workbooks, open } = useWorkbooksState();
@@ -105,6 +106,7 @@ export function WorkbookList(): JSX.Element {
   );
 }
 
+/** The open workbook in a shell's main slot, with its toolbar, formula bar and sheet tabs. */
 export function WorkbookView(): JSX.Element {
   const platform = useReactorPlatform();
   const { workbooks, open } = useWorkbooksState();

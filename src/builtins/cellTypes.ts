@@ -24,6 +24,7 @@ import type { Style } from '../core/styles.js';
 import { type CellValue, isCellError } from '../core/values.js';
 import type { CellsTheme } from '../render/theme.js';
 
+/** The name of `CellsCellTypesPlugin`, for `usePlugin` and `reactor.disable`. */
 export const CELLS_CELL_TYPES_PLUGIN = '@datalayer/cells-cell-types';
 
 const PADDING = 3;

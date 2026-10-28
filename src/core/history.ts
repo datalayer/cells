@@ -24,11 +24,13 @@ export interface HistoryStep<S = unknown> {
   readonly selectionAfter: S;
 }
 
+/** How much the local undo history keeps: a number of steps and a size of patches. */
 export interface HistoryLimits {
   readonly steps: number;
   readonly bytes: number;
 }
 
+/** 500 steps or 64 MB of patches, whichever comes first. */
 export const DEFAULT_HISTORY_LIMITS: HistoryLimits = { steps: 500, bytes: 64 * 1024 * 1024 };
 
 export class LocalHistory<S = unknown> {

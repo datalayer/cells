@@ -31,6 +31,7 @@ import { CellsChartCommandsPlugin } from '../builtins/charts.js';
 import { CellsCellTypesPlugin } from '../builtins/cellTypes.js';
 import { CellsFunctionsPlugin } from '../builtins/functions/index.js';
 
+/** The name of `CellsCorePlugin`; a platform without it is refused. */
 export const CELLS_CORE_PLUGIN = '@datalayer/cells-core';
 
 /**

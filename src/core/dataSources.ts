@@ -60,6 +60,7 @@ export function bindingZone(b: DataSourceBinding): Zone {
 
 // ------------------------------------------------------------------ the patch op
 
+/** The `dataSource` patch op's patch: a sheet's binding before and after (`null` for none). */
 export interface DataSourcePatch {
   readonly op: 'dataSource';
   readonly sheet: string;
@@ -170,6 +171,7 @@ export interface ResolvedDataSource {
   readonly problem?: string;
 }
 
+/** A data source's page that failed: which sheet and source, which rows, and the error. */
 export interface DataSourceError {
   readonly sheet: string;
   readonly source: string;
@@ -178,6 +180,7 @@ export interface DataSourceError {
   readonly error: Error;
 }
 
+/** The data-source page cache's counters: pages resident, loading and failed, fetches and evictions. */
 export interface DataSourceStats {
   resident: number;
   loading: number;

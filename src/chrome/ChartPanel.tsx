@@ -24,6 +24,7 @@ import {
 import { chartTypeTable } from '../core/chartOption.js';
 import { useCells, useCharts } from '../react/hooks.js';
 
+/** The props of `<ChartPanel>`: where a refused edit is told. */
 export interface ChartPanelProps {
   /** Told a refusal's sentence. */
   readonly onError?: (message: string) => void;
@@ -72,6 +73,7 @@ function Field(props: {
   );
 }
 
+/** The panel editing the selected chart (type, variant, title, series, axes, legend), each edit an `UPDATE_CHART`. */
 export function ChartPanel(props: ChartPanelProps) {
   const model = useCells();
   const { selected, charts, update } = useCharts();

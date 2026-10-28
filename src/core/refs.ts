@@ -14,10 +14,12 @@
 import type { CellsModel } from './model.js';
 import { parseA1, parseZone, type Position, splitSheet, type Zone } from './zone.js';
 
+/** A cell reference resolved against a model: its sheet id, row and column. */
 export interface ResolvedCell extends Position {
   readonly sheet: string;
 }
 
+/** A range reference resolved against a model: its sheet id and zone. */
 export interface ResolvedRange {
   readonly sheet: string;
   readonly zone: Zone;

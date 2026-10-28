@@ -28,6 +28,7 @@ import type { Patch } from '../core/patches.js';
 import type { Zone } from '../core/zone.js';
 import type { CellsCommandArgument } from './editing.js';
 
+/** The name of `CellsChartCommandsPlugin`. */
 export const CELLS_CHART_COMMANDS_PLUGIN = '@datalayer/cells-chart-commands';
 
 type Action = (argument: CellsCommandArgument) => unknown;
@@ -174,6 +175,7 @@ export function sourceZones(m: CellsModel, sheet: string, spec: ChartSpec): Zone
   return zones;
 }
 
+/** The Reactor commands of `CellsChartCommandsPlugin` (insert, delete, move, resize, show data, go to chart). */
 export const CHART_COMMANDS_LIST: readonly ReactorCommand<CellsCommandArgument, unknown>[] = [
   command('insert', 'Insert chart', insertChart('column'), { octicon: 'graph' }),
   command('insertLine', 'Insert line chart', insertChart('line')),
@@ -280,6 +282,7 @@ export const chartsHandler: ClipboardHandler = {
   },
 };
 
+/** The built-in chart commands (`cells.chart.*`), with their context-menu items and the `charts` clipboard handler. */
 export const CellsChartCommandsPlugin = definePlugin({
   name: CELLS_CHART_COMMANDS_PLUGIN,
   displayName: 'Cells chart commands',

@@ -45,17 +45,21 @@ export type RefusalReason =
   | 'InvalidSheetName'
   | 'Gate';
 
+/** Why a command was refused: a reason code and a sentence for a person. */
 export interface Refusal {
   readonly reason: RefusalReason | (string & {});
   /** A sentence a person can read. */
   readonly message: string;
 }
 
+/** What `dispatch` returns: `{ ok: true }`, or the refusals. */
 export type CommandResult =
   { readonly ok: true } | { readonly ok: false; readonly refusals: readonly Refusal[] };
 
+/** The result of a command that applied. */
 export const OK: CommandResult = { ok: true };
 
+/** A refusal with its reason code and sentence, as a command handler returns it. */
 export function refuse(reason: Refusal['reason'], message: string): CommandResult {
   return { ok: false, refusals: [{ reason, message }] };
 }
@@ -96,6 +100,7 @@ export function parseInput(text: string): CellInput {
 
 // ------------------------------------------------------------------ the core commands
 
+/** Write a block of contents (values or formulas, with styles) from a cell. */
 export interface SetCellsCommand {
   readonly type: 'SET_CELLS';
   readonly sheet: string;
@@ -103,6 +108,7 @@ export interface SetCellsCommand {
   readonly at: Position;
   readonly cells: readonly (readonly CellInput[])[];
 }
+/** Merge a style into every cell of a zone, or reset them to the default (`style: null`). */
 export interface SetStyleCommand {
   readonly type: 'SET_STYLE';
   readonly sheet: string;
@@ -110,12 +116,14 @@ export interface SetStyleCommand {
   /** Merged into each cell's style; `null` resets to the default. */
   readonly style: Style | null;
 }
+/** Empty a zone: its contents, its styles, or both. */
 export interface ClearCommand {
   readonly type: 'CLEAR';
   readonly sheet: string;
   readonly zone: Zone;
   readonly what?: 'all' | 'contents' | 'styles';
 }
+/** Insert rows or columns before an index. */
 export interface InsertAxisCommand {
   readonly type: 'INSERT_AXIS';
   readonly sheet: string;
@@ -123,6 +131,7 @@ export interface InsertAxisCommand {
   readonly at: number;
   readonly n: number;
 }
+/** Delete rows or columns. */
 export interface DeleteAxisCommand {
   readonly type: 'DELETE_AXIS';
   readonly sheet: string;
@@ -130,6 +139,7 @@ export interface DeleteAxisCommand {
   readonly at: number;
   readonly n: number;
 }
+/** Move rows or columns before another index. */
 export interface MoveAxisCommand {
   readonly type: 'MOVE_AXIS';
   readonly sheet: string;
@@ -139,6 +149,7 @@ export interface MoveAxisCommand {
   /** Before this index, in the coordinates before the move. */
   readonly to: number;
 }
+/** Set the size of a run of rows or columns. */
 export interface ResizeAxisCommand {
   readonly type: 'RESIZE_AXIS';
   readonly sheet: string;
@@ -148,6 +159,7 @@ export interface ResizeAxisCommand {
   readonly to: number;
   readonly size: number;
 }
+/** Hide or show a run of rows or columns. */
 export interface HideAxisCommand {
   readonly type: 'HIDE_AXIS';
   readonly sheet: string;
@@ -156,16 +168,19 @@ export interface HideAxisCommand {
   readonly to: number;
   readonly hidden: boolean;
 }
+/** Merge a zone into one cell. */
 export interface MergeCommand {
   readonly type: 'MERGE';
   readonly sheet: string;
   readonly zone: Zone;
 }
+/** Split the merges inside a zone. */
 export interface UnmergeCommand {
   readonly type: 'UNMERGE';
   readonly sheet: string;
   readonly zone: Zone;
 }
+/** Add a sheet, at an index and with a name when given. */
 export interface AddSheetCommand {
   readonly type: 'ADD_SHEET';
   readonly name?: string;
@@ -174,20 +189,24 @@ export interface AddSheetCommand {
   /** The id to give it; fresh by default. */
   readonly id?: string;
 }
+/** Delete a sheet (never the last one). */
 export interface DeleteSheetCommand {
   readonly type: 'DELETE_SHEET';
   readonly sheet: string;
 }
+/** Rename a sheet; a name another sheet has is refused. */
 export interface RenameSheetCommand {
   readonly type: 'RENAME_SHEET';
   readonly sheet: string;
   readonly name: string;
 }
+/** Move a sheet to another place in the tabs. */
 export interface MoveSheetCommand {
   readonly type: 'MOVE_SHEET';
   readonly sheet: string;
   readonly to: number;
 }
+/** Freeze the first rows and columns of a sheet (0 and 0 unfreeze). */
 export interface FreezeCommand {
   readonly type: 'FREEZE';
   readonly sheet: string;
@@ -195,6 +214,7 @@ export interface FreezeCommand {
   readonly cols: number;
 }
 
+/** Any command `CellsCorePlugin` handles. */
 export type CoreCommand =
   | SetCellsCommand
   | SetStyleCommand

@@ -16,10 +16,12 @@ import { ActionList, ActionMenu, ThemeProvider } from '@primer/react';
 import { chartTypeChoices } from './ChartPanel.js';
 import { useCells } from '../react/hooks.js';
 
+/** The props of `<ChartTypePicker>`. */
 export interface ChartTypePickerProps {
   readonly onError?: (message: string) => void;
 }
 
+/** The toolbar's *Insert chart* menu: one item per chart type, inserting it from the selection. */
 export function ChartTypePicker(props: ChartTypePickerProps) {
   const model = useCells();
   const choices = chartTypeChoices(model);

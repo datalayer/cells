@@ -17,8 +17,10 @@ import type { CellsModel } from '../core/model.js';
 import { type CsvChunk, type CsvReadOptions, decodeChunk, parseToChunks } from './chunks.js';
 import type { Delimiter } from './parse.js';
 
+/** What a CSV import reads: a string, bytes, a `Blob` or a stream. */
 export type CsvInput = Blob | ArrayBuffer | Uint8Array | string;
 
+/** How a CSV import reads and where it parses (in a worker by default). */
 export interface CsvOptions extends CsvReadOptions {
   /** A `TextDecoder` label: `utf-8` (the default), `windows-1252`, `utf-16le`… */
   readonly encoding?: string;

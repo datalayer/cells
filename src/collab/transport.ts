@@ -31,6 +31,7 @@ export interface RoomUser {
   readonly color: string;
 }
 
+/** Where and as whom to join a room: the server's URL, the room, the document and the user. */
 export interface RoomOptions {
   /** The rooms server, `ws://127.0.0.1:1236` (`scripts/collab-server.mjs`), or a Spacer room's URL. */
   readonly url: string;
@@ -58,6 +59,7 @@ export interface RoomProvider {
   destroy(): void;
 }
 
+/** A joined room: its document, its provider and its presence, and how to leave it. */
 export interface Room {
   readonly doc: LoroDoc;
   readonly provider: RoomProvider;
@@ -203,6 +205,7 @@ export async function bindRoom(
   return { room, binding, stopPresence };
 }
 
+/** The name of the plugin contributing the WebSocket rooms provider. */
 export const CELLS_WS_COLLAB_PLUGIN = '@datalayer/cells-collab-ws';
 
 /**

@@ -24,6 +24,7 @@ export const CELL_ERRORS = [
   '#SPILL!',
 ] as const;
 
+/** An error a cell can show: `#DIV/0!`, `#REF!`, `#NAME?`, `#VALUE!`, `#N/A`, `#NUM!`, `#NULL!`, `#CYCLE!`, `#BUSY!`, `#SPILL!`. */
 export type CellErrorCode = (typeof CELL_ERRORS)[number];
 
 /** An error value, with an optional sentence saying why (shown in the cell's tooltip). */
@@ -44,6 +45,7 @@ export function cellError(code: CellErrorCode, message?: string): CellError {
   return message === undefined ? { error: code } : { error: code, message };
 }
 
+/** Whether a value is a cell error. */
 export function isCellError(value: unknown): value is CellError {
   return (
     typeof value === 'object' &&
@@ -52,6 +54,7 @@ export function isCellError(value: unknown): value is CellError {
   );
 }
 
+/** Whether a string is one of the error codes. */
 export function isErrorCode(text: string): text is CellErrorCode {
   return ERROR_SET.has(text);
 }

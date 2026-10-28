@@ -35,6 +35,7 @@ light and dark.
 | `@datalayer/cells/collab` | real-time collaboration over Loro                       |
 | `@datalayer/cells/chrome` | toolbar, formula bar and sheet tabs                     |
 | `@datalayer/cells/charts` | charts drawn with Apache ECharts (an optional peer)     |
+| `@datalayer/cells/plugin` | views for a Reactor shell                               |
 
 ```bash
 npm install @datalayer/cells @primer/react @primer/octicons-react @datalayer/primer-addons
@@ -45,13 +46,21 @@ required peers: the grid's context menu, the chrome and the named themes are
 Primer. `loro-crdt` (`./collab`), `@datalayer/lexical-loro` (its transport),
 `echarts` and `echarts-for-react` (`./charts`) are optional peers, installed
 by the hosts that use those entries.
-| `@datalayer/cells/plugin` | views for a Reactor shell                               |
 
 Cells is built on [Reactor](https://github.com/datalayer/reactor): every
 extension point is a `datalayer.cells.*` contribution point, and the built-in
 features are plugins contributing through the same points. [docs/plugins.md](docs/plugins.md)
 walks through a third-party plugin that reaches every one of them, running on
 the [plugin example](https://cells.datalayer.tech/#/plugin).
+
+## Documentation
+
+- [API](docs/api.md): every public export of every entry point, linked to its source.
+- [Keyboard](docs/keyboard.md): moving, selecting, editing, and the commands' keybindings.
+- [Functions](docs/functions.md): the built-in formula functions.
+- [Plugins](docs/plugins.md): extending Cells through its Reactor contribution points.
+- [File format](docs/format.md): `CellsWorkbook` JSON, its validation, and its version.
+- [Docusaurus](integrations/docusaurus/README.md): live sheets in a documentation site.
 
 ## Python
 

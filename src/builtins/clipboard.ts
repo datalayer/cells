@@ -33,6 +33,7 @@ import {
   type CommandHandler,
 } from '../points/index.js';
 
+/** The name of `CellsClipboardPlugin`. */
 export const CELLS_CLIPBOARD_PLUGIN = '@datalayer/cells-clipboard';
 
 const cellsHandler: ClipboardHandler = {
@@ -167,6 +168,7 @@ const pasteCommand: CommandHandler<PasteCommand> = {
   },
 };
 
+/** The built-in clipboard handlers (cells, merges, sizes) and the `PASTE` command, through `datalayer.cells.clipboard`. */
 export const CellsClipboardPlugin = definePlugin({
   name: CELLS_CLIPBOARD_PLUGIN,
   displayName: 'Cells clipboard',

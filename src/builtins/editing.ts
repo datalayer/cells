@@ -30,6 +30,7 @@ export interface CellsCommandArgument {
   readonly chartType?: string;
 }
 
+/** The name of `CellsEditingPlugin`. */
 export const CELLS_EDITING_PLUGIN = '@datalayer/cells-editing';
 
 const last = (m: CellsModel): Zone => m.selection.zones[m.selection.zones.length - 1];
@@ -226,6 +227,7 @@ const formatAs =
     });
   };
 
+/** The built-in editing commands (bold, insert rows, undo, fit columns, …) as Reactor commands with their keybindings. */
 export const EDITING_COMMANDS: readonly ReactorCommand<CellsCommandArgument, unknown>[] = [
   command('bold', 'Bold', toggle('bold'), { keybinding: 'Mod+B', octicon: 'bold' }),
   command('italic', 'Italic', toggle('italic'), { keybinding: 'Mod+I', octicon: 'italic' }),

@@ -25,6 +25,7 @@ const enum Kind {
   False = 4,
 }
 
+/** One column of a parsed CSV chunk, columnar: kinds, numbers and strings. */
 export interface CsvColumn {
   readonly kinds: Uint8Array;
   readonly numbers: Float64Array;
@@ -34,6 +35,7 @@ export interface CsvColumn {
   readonly formats: Uint8Array;
 }
 
+/** A block of parsed CSV rows, as the parser hands them on (in a worker or not). */
 export interface CsvChunk {
   /** The chunk's first row in the file (0 is the first line). */
   readonly row: number;
@@ -42,6 +44,7 @@ export interface CsvChunk {
   readonly formats: string[];
 }
 
+/** How a CSV file is read: its delimiter, encoding, header and type inference. */
 export interface CsvReadOptions extends InferOptions {
   readonly delimiter?: Delimiter;
   /** Rows per chunk: 4,096 by default (a chunk loads into the model in one main-thread task). */

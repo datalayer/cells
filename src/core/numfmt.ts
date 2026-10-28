@@ -23,6 +23,7 @@
 import type { CellValue } from './values.js';
 import { isCellError } from './values.js';
 
+/** Decimal and group separators, month and day names a number format is shown with. */
 export interface NumberLocale {
   readonly decimal: string;
   readonly group: string;
@@ -30,6 +31,7 @@ export interface NumberLocale {
   readonly days: readonly string[];
 }
 
+/** The en-US number locale, the default. */
 export const EN_US: NumberLocale = {
   decimal: '.',
   group: ',',
@@ -50,6 +52,7 @@ export const EN_US: NumberLocale = {
   days: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
 };
 
+/** A value as a number format shows it: its text, and the colour the format asks for. */
 export interface Formatted {
   readonly text: string;
   /** A colour the format asks for (`[Red]`), as a CSS colour. */
@@ -515,6 +518,7 @@ function formatNumberSection(section: Section, value: number, locale: NumberLoca
   return out;
 }
 
+/** A compiled number format: a value in, its text (and colour) out. */
 export type NumberFormatter = (value: CellValue) => Formatted;
 
 const CACHE = new Map<string, NumberFormatter>();

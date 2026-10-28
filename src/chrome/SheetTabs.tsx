@@ -18,10 +18,12 @@ import { ActionList, ActionMenu, IconButton, TextInput } from '@primer/react';
 import { type KeyboardEvent, useRef, useState } from 'react';
 import { useSheets } from '../react/hooks.js';
 
+/** The props of `<SheetTabs>`. */
 export interface SheetTabsProps {
   readonly 'aria-label'?: string;
 }
 
+/** The sheet tabs: show, add, rename, move and delete sheets from the keyboard or the pointer. */
 export function SheetTabs(props: SheetTabsProps) {
   const { sheets, active, add, rename, move, remove, activate } = useSheets();
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);

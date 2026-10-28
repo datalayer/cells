@@ -22,6 +22,7 @@ import {
   LIGHT_THEME,
 } from '../render/theme.js';
 
+/** `light`, `dark`, or `auto` (the host's or the system's). */
 export type ColorMode = 'light' | 'dark' | 'auto';
 
 /** Which CellsTheme field reads which Primer variable. */

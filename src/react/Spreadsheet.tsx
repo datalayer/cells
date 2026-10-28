@@ -103,12 +103,14 @@ export interface CellsHandle {
   renderStats(): RendererCounters | undefined;
 }
 
+/** A cell of a grid: its sheet id, row and column. */
 export interface CellRef {
   readonly sheet: string;
   readonly row: number;
   readonly col: number;
 }
 
+/** The props of `<Spreadsheet>` (§3.6): the model or data, plugins, appearance, behaviour and events. */
 export interface SpreadsheetProps {
   /** Controlled: the host owns the model (create it once, outside render). Never with `defaultData`. */
   readonly model?: CellsModel;
@@ -210,6 +212,7 @@ const visuallyHidden: CSSProperties = {
   border: 0,
 };
 
+/** The grid (§3.6): a canvas spreadsheet with its editor, accessibility mirror and context menu, over a `CellsModel`. */
 export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
   function Spreadsheet(props, ref) {
     // ------------------------------------------------------------ the model

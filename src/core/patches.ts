@@ -22,6 +22,7 @@ import type { CellValue } from './values.js';
 import type { Frozen, Sheet, Workbook } from './workbook.js';
 import type { Zone } from './zone.js';
 
+/** `rows` or `cols`. */
 export type AxisName = 'rows' | 'cols';
 
 /**
@@ -37,6 +38,7 @@ export interface Snapshot {
   readonly styles: Uint16Array;
 }
 
+/** The `cells` patch: a zone's populated cells before and after. */
 export interface CellsPatch {
   readonly op: 'cells';
   readonly sheet: string;
@@ -132,6 +134,7 @@ export type CorePatch =
   | SheetMovePatch
   | FrozenPatch;
 
+/** A change as the model applies and inverts it: a core patch, or a plugin's patch op. */
 export interface Patch {
   readonly op: string;
 }
@@ -150,6 +153,7 @@ export interface PatchOp<P extends Patch = Patch> {
 
 // ------------------------------------------------------------------ snapshots
 
+/** A snapshot of no cells. */
 export const EMPTY_SNAPSHOT: Snapshot = {
   rows: new Int32Array(0),
   cols: new Int32Array(0),
@@ -192,6 +196,7 @@ export function snapshotOf(cells: readonly (readonly [number, number, CellConten
   };
 }
 
+/** The cells of a snapshot as `[row, col, content]` triples. */
 export function snapshotEntries(s: Snapshot): [number, number, CellContent][] {
   const out: [number, number, CellContent][] = [];
   for (let i = 0; i < s.rows.length; i += 1) {

@@ -44,6 +44,7 @@ export {
 } from '../core/chartOption.js';
 export { ChartFrame, chartLabel, type ChartFrameProps } from '../react/ChartFrame.js';
 
+/** The name of `CellsChartsPlugin`. */
 export const CELLS_CHARTS_PLUGIN = '@datalayer/cells-charts';
 
 /**

@@ -19,6 +19,7 @@ import type { Zone } from '../core/zone.js';
 import { numberToText } from '../formula/values.js';
 import type { Delimiter } from './parse.js';
 
+/** How a sheet is written as CSV: its delimiter, the zone, values or formulas. */
 export interface CsvWriteOptions {
   /** The sheet (the active one by default). */
   readonly sheet?: string;

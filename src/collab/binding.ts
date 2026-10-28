@@ -84,11 +84,13 @@ const REFERENCE = /^(\$?)([A-Za-z]{1,3})?(\$?)([0-9]{1,7})?$/;
 /** A reference in id form: `⟦$col|$row⟧`, either part empty for whole rows or columns. */
 const ID_FORM = /⟦(\$?)([^|⟧]*)\|(\$?)([^⟧]*)⟧/g;
 
+/** How a `LoroBinding` is set up: the peer's id in the room. */
 export interface BindingOptions {
   /** This peer's name in the ids it makes (`p<peer>-<n>`): unique among the peers of a document. */
   readonly peer: string;
 }
 
+/** A model bound to a Loro document (§3.9): local patches written on ids, remote changes projected into the model, undo per peer. */
 export class LoroBinding {
   readonly model: CellsModel;
   readonly doc: LoroDoc;

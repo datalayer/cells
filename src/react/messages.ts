@@ -29,6 +29,7 @@ const say =
 const axisWord = (c: { axis: string; n?: number }) =>
   c.axis === 'rows' ? (c.n === 1 ? 'row' : 'rows') : c.n === 1 ? 'column' : 'columns';
 
+/** The live region's sentences by command type, to translate or override through the `messages` prop. */
 export const MESSAGES: Messages = {
   SET_CELLS: say('SET_CELLS', (c) => `Edited ${toA1(c.at)}`),
   SET_STYLE: say('SET_STYLE', (c) => `Formatted ${zoneToA1(c.zone)}`),
