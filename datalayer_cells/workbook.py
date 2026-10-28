@@ -170,7 +170,7 @@ class Workbook:
                     out["s"] = used[s]
                 rows.setdefault(str(r), {"cells": {}})["cells"][str(c)] = out
             item: dict[str, Any] = {"id": sheet["id"], "name": sheet["name"], "rows": rows}
-            for key in ("sizes", "hidden", "merges", "frozen"):
+            for key in ("sizes", "hidden", "merges", "frozen", "charts"):
                 if key in sheet and sheet[key]:
                     if key == "frozen" and sheet[key] == {"rows": 0, "cols": 0}:
                         continue
@@ -287,6 +287,125 @@ class Workbook:
                     sheet["cells"][(r, c)] = cell
                 else:
                     sheet["cells"].pop((r, c), None)
+
+    # ------------------------------------------------------------------ charts (§3.12)
+
+    def charts(self, sheet: str | None = None) -> list[dict[str, Any]]:
+        """The charts of a sheet (the first by default), as their specs."""
+        return [dict(c) for c in self._sheet(sheet).get("charts", {}).values()]
+
+    def _chart_sheet_and_zone(self, ref: str, default: dict[str, Any]) -> tuple[dict[str, Any], tuple[int, int, int, int]]:
+        name, zone = split_sheet(ref)
+        sheet = self._sheet(name) if name is not None else default
+        return sheet, parse_zone(zone)
+
+    def _points_and_numbers(self, sheet: dict[str, Any], spec: dict[str, Any]) -> tuple[int, bool]:
+        from .charts import ref_zone
+
+        points = 0
+        numeric = False
+        for s in spec["data"]["series"]:
+            found = ref_zone(s["values"])
+            if found is None:
+                continue
+            target = self._sheet(found[0]) if found[0] is not None else sheet
+            top, left, bottom, right = found[1]
+            points += (bottom - top + 1) * (right - left + 1)
+            if not numeric:
+                for (r, c), cell in target["cells"].items():
+                    v = cell.get("v")
+                    if top <= r <= bottom and left <= c <= right and isinstance(v, (int, float)) and not isinstance(v, bool):
+                        numeric = True
+                        break
+        return points, numeric
+
+    def _check_chart_content(self, sheet: dict[str, Any], spec: dict[str, Any]) -> None:
+        from .charts import MAX_CHART_POINTS, ChartRefusal, chart_problem
+
+        problem = chart_problem(spec, DEFAULT_LIMITS)
+        if problem is not None:
+            raise ChartRefusal("InvalidArgument", problem)
+        points, numeric = self._points_and_numbers(sheet, spec)
+        if points > MAX_CHART_POINTS:
+            raise ChartRefusal(
+                "ChartTooLarge", f"A chart holds at most {MAX_CHART_POINTS:,} points; this one has {points:,}."
+            )
+        if not numeric:
+            raise ChartRefusal("NoNumericData", "The chart’s ranges hold no number to draw.")
+
+    def add_chart(
+        self,
+        type: str,
+        data: str,
+        anchor: str,
+        title: str | None = None,
+        legend: str = "bottom",
+        variant: str | None = None,
+        id: str | None = None,
+        sheet: str | None = None,
+    ) -> dict[str, Any]:
+        """Add a chart of ``type`` from the cells of ``data`` (``Sheet1!A1:C13``, inferred as the
+        TypeScript core infers a selection), anchored on the cells of ``anchor`` (``E2:L18``);
+        returns its spec. Refusals are :class:`ChartRefusal` with the core's reasons."""
+        from .charts import ChartRefusal, infer_chart_data
+
+        target = self._sheet(sheet)
+        source, zone = self._chart_sheet_and_zone(data, target)
+        cells = source["cells"]
+        inferred = infer_chart_data(lambda r, c: (cells.get((r, c)) or {}).get("v"), source["name"], zone)
+        _, (top, left, bottom, right) = self._chart_sheet_and_zone(anchor, target)
+        charts = target.setdefault("charts", {})
+        if id is None:
+            n = 1
+            while f"chart{n}" in charts:
+                n += 1
+            id = f"chart{n}"
+        elif id in charts:
+            raise ChartRefusal("DuplicateChart", f"A chart '{id}' is on this sheet already.")
+        spec: dict[str, Any] = {
+            "id": id,
+            "type": type,
+            "anchor": {
+                "kind": "cells",
+                "from": {"row": top, "col": left, "dx": 0, "dy": 0},
+                "to": {"row": bottom + 1, "col": right + 1, "dx": 0, "dy": 0},
+            },
+            "data": inferred,
+            "legend": legend,
+        }
+        if variant is not None:
+            spec["variant"] = variant
+        if title is not None:
+            spec["title"] = title
+        self._check_chart_content(target, spec)
+        charts[id] = spec
+        return dict(spec)
+
+    def update_chart(self, id: str, sheet: str | None = None, **changes: Any) -> dict[str, Any]:
+        """Change a chart's type, variant, data, title, legend, axes or labels; returns the new spec."""
+        from .charts import ChartRefusal
+
+        target = self._sheet(sheet)
+        charts = target.get("charts", {})
+        if id not in charts:
+            raise ChartRefusal("UnknownChart", f"No chart '{id}' on this sheet.")
+        if "id" in changes or "anchor" in changes:
+            raise ChartRefusal("InvalidArgument", "An update changes neither the id nor the anchor (MOVE_CHART, RESIZE_CHART).")
+        spec = {**charts[id], **{k: v for k, v in changes.items() if v is not None}}
+        for k, v in changes.items():
+            if v is None:
+                spec.pop(k, None)
+        self._check_chart_content(target, spec)
+        charts[id] = spec
+        return dict(spec)
+
+    def remove_chart(self, id: str, sheet: str | None = None) -> None:
+        from .charts import ChartRefusal
+
+        charts = self._sheet(sheet).get("charts", {})
+        if id not in charts:
+            raise ChartRefusal("UnknownChart", f"No chart '{id}' on this sheet.")
+        del charts[id]
 
     def add_sheet(self, name: str) -> None:
         if not name.strip() or len(name) > 31 or re.search(r"[\\/?*\[\]:]", name):

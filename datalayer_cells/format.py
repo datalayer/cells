@@ -259,6 +259,16 @@ def validate_workbook(data: Any, limits: dict[str, int] | None = None) -> dict[s
                     s = cell["s"]
                     if not _is_int(s) or s < 0 or s >= max(1, len(styles)):
                         _fail(f"{cp}.s", f"no style {_js(s)}")
+        charts = sheet.get("charts")
+        if charts is not None:
+            from .charts import check_chart  # local: charts imports this module
+
+            if not _is_object(charts):
+                _fail(f"{p}.charts", "an object of charts by id")
+            for cid, chart in charts.items():
+                check_chart(chart, f'{p}.charts["{cid}"]', limits)
+                if chart["id"] != cid:
+                    _fail(f'{p}.charts["{cid}"].id', f"'{chart['id']}' is not the key '{cid}'")
         sizes = sheet.get("sizes")
         if sizes is not None:
             if not _is_object(sizes):

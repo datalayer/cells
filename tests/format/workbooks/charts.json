@@ -1,0 +1,658 @@
+{
+  "version": 1,
+  "sheets": [
+    {
+      "id": "s1",
+      "name": "Figures",
+      "rows": {
+        "0": {
+          "cells": {
+            "0": {
+              "v": "Month"
+            },
+            "1": {
+              "v": "North"
+            },
+            "2": {
+              "v": "South"
+            },
+            "4": {
+              "v": "x"
+            },
+            "5": {
+              "v": "y"
+            }
+          }
+        },
+        "1": {
+          "cells": {
+            "0": {
+              "v": "Jan"
+            },
+            "1": {
+              "v": 10
+            },
+            "2": {
+              "v": 5
+            },
+            "4": {
+              "v": 1
+            },
+            "5": {
+              "v": 1
+            }
+          }
+        },
+        "2": {
+          "cells": {
+            "0": {
+              "v": "Feb"
+            },
+            "1": {
+              "v": 17
+            },
+            "2": {
+              "v": 10
+            },
+            "4": {
+              "v": 2
+            },
+            "5": {
+              "v": 4
+            }
+          }
+        },
+        "3": {
+          "cells": {
+            "0": {
+              "v": "Mar"
+            },
+            "1": {
+              "v": 13
+            },
+            "2": {
+              "v": 6
+            },
+            "4": {
+              "v": 3
+            },
+            "5": {
+              "v": 9
+            }
+          }
+        },
+        "4": {
+          "cells": {
+            "0": {
+              "v": "Apr"
+            },
+            "1": {
+              "v": 20
+            },
+            "2": {
+              "v": 11
+            },
+            "4": {
+              "v": 4
+            },
+            "5": {
+              "v": 16
+            }
+          }
+        },
+        "5": {
+          "cells": {
+            "0": {
+              "v": "May"
+            },
+            "1": {
+              "v": 16
+            },
+            "2": {
+              "v": 7
+            },
+            "4": {
+              "v": 5
+            },
+            "5": {
+              "v": 25
+            }
+          }
+        },
+        "6": {
+          "cells": {
+            "0": {
+              "v": "Jun"
+            },
+            "1": {
+              "v": 12
+            },
+            "2": {
+              "v": 12
+            },
+            "4": {
+              "v": 6
+            },
+            "5": {
+              "v": 36
+            }
+          }
+        },
+        "7": {
+          "cells": {
+            "0": {
+              "v": "Jul"
+            },
+            "1": {
+              "v": 19
+            },
+            "2": {
+              "v": 8
+            }
+          }
+        },
+        "8": {
+          "cells": {
+            "0": {
+              "v": "Aug"
+            },
+            "1": {
+              "v": 15
+            },
+            "2": {
+              "v": 13
+            }
+          }
+        },
+        "9": {
+          "cells": {
+            "0": {
+              "v": "Sep"
+            },
+            "1": {
+              "v": 11
+            },
+            "2": {
+              "v": 9
+            }
+          }
+        },
+        "10": {
+          "cells": {
+            "0": {
+              "v": "Oct"
+            },
+            "1": {
+              "v": 18
+            },
+            "2": {
+              "v": 5
+            }
+          }
+        },
+        "11": {
+          "cells": {
+            "0": {
+              "v": "Nov"
+            },
+            "1": {
+              "v": 14
+            },
+            "2": {
+              "v": 10
+            }
+          }
+        },
+        "12": {
+          "cells": {
+            "0": {
+              "v": "Dec"
+            },
+            "1": {
+              "v": 10
+            },
+            "2": {
+              "v": 6
+            }
+          }
+        }
+      },
+      "charts": {
+        "chart1": {
+          "id": "chart1",
+          "type": "column",
+          "anchor": {
+            "kind": "cells",
+            "from": {
+              "row": 2,
+              "col": 5,
+              "dx": 27,
+              "dy": 4
+            },
+            "to": {
+              "row": 15,
+              "col": 9,
+              "dx": 26,
+              "dy": 9
+            }
+          },
+          "data": {
+            "series": [
+              {
+                "values": "Figures!$B$2:$B$13",
+                "name": "Figures!$B$1",
+                "categories": "Figures!$A$2:$A$13",
+                "color": "#1f77b4"
+              },
+              {
+                "values": "Figures!$C$2:$C$13",
+                "name": "Figures!$C$1",
+                "categories": "Figures!$A$2:$A$13",
+                "color": "#ff420e"
+              }
+            ],
+            "by": "columns",
+            "headers": {
+              "row": true,
+              "column": true
+            },
+            "blanks": "gap"
+          },
+          "title": "Column",
+          "legend": "bottom",
+          "axes": {
+            "x": {
+              "title": "Month"
+            },
+            "y": {
+              "title": "Units",
+              "min": 0,
+              "max": 25
+            }
+          }
+        },
+        "chart2": {
+          "id": "chart2",
+          "type": "column",
+          "variant": "stacked",
+          "anchor": {
+            "kind": "cells",
+            "from": {
+              "row": 17,
+              "col": 5,
+              "dx": 27,
+              "dy": 12
+            },
+            "to": {
+              "row": 30,
+              "col": 9,
+              "dx": 26,
+              "dy": 17
+            }
+          },
+          "data": {
+            "series": [
+              {
+                "values": "Figures!$B$2:$B$13",
+                "name": "Figures!$B$1",
+                "categories": "Figures!$A$2:$A$13",
+                "color": "#004586"
+              },
+              {
+                "values": "Figures!$C$2:$C$13",
+                "name": "Figures!$C$1",
+                "categories": "Figures!$A$2:$A$13",
+                "color": "#ff420e"
+              }
+            ],
+            "by": "columns",
+            "headers": {
+              "row": true,
+              "column": true
+            },
+            "blanks": "gap"
+          },
+          "title": "Stacked",
+          "legend": "bottom",
+          "axes": {
+            "y": {
+              "gridlines": false
+            }
+          }
+        },
+        "chart3": {
+          "id": "chart3",
+          "type": "column",
+          "variant": "percent",
+          "anchor": {
+            "kind": "cells",
+            "from": {
+              "row": 33,
+              "col": 5,
+              "dx": 27,
+              "dy": 4
+            },
+            "to": {
+              "row": 46,
+              "col": 9,
+              "dx": 26,
+              "dy": 9
+            }
+          },
+          "data": {
+            "series": [
+              {
+                "values": "Figures!$B$2:$B$13",
+                "name": "Figures!$B$1",
+                "categories": "Figures!$A$2:$A$13",
+                "color": "#004586"
+              },
+              {
+                "values": "Figures!$C$2:$C$13",
+                "name": "Figures!$C$1",
+                "categories": "Figures!$A$2:$A$13",
+                "color": "#ff420e"
+              }
+            ],
+            "by": "columns",
+            "headers": {
+              "row": true,
+              "column": true
+            },
+            "blanks": "gap"
+          },
+          "title": "Percent",
+          "legend": "bottom"
+        },
+        "chart4": {
+          "id": "chart4",
+          "type": "bar",
+          "anchor": {
+            "kind": "cells",
+            "from": {
+              "row": 48,
+              "col": 5,
+              "dx": 27,
+              "dy": 12
+            },
+            "to": {
+              "row": 62,
+              "col": 9,
+              "dx": 26,
+              "dy": 0
+            }
+          },
+          "data": {
+            "series": [
+              {
+                "values": "Figures!$B$2:$B$13",
+                "name": "Figures!$B$1",
+                "categories": "Figures!$A$2:$A$13",
+                "color": "#004586"
+              },
+              {
+                "values": "Figures!$C$2:$C$13",
+                "name": "Figures!$C$1",
+                "categories": "Figures!$A$2:$A$13",
+                "color": "#ff420e"
+              }
+            ],
+            "by": "columns",
+            "headers": {
+              "row": true,
+              "column": true
+            },
+            "blanks": "gap"
+          },
+          "title": "Bar",
+          "legend": "bottom"
+        },
+        "chart5": {
+          "id": "chart5",
+          "type": "line",
+          "anchor": {
+            "kind": "cells",
+            "from": {
+              "row": 2,
+              "col": 9,
+              "dx": 63,
+              "dy": 4
+            },
+            "to": {
+              "row": 15,
+              "col": 13,
+              "dx": 62,
+              "dy": 9
+            }
+          },
+          "data": {
+            "series": [
+              {
+                "values": "Figures!$B$2:$B$13",
+                "name": "Figures!$B$1",
+                "categories": "Figures!$A$2:$A$13",
+                "color": "#004586"
+              },
+              {
+                "values": "Figures!$C$2:$C$13",
+                "name": "Figures!$C$1",
+                "categories": "Figures!$A$2:$A$13",
+                "color": "#ff420e"
+              }
+            ],
+            "by": "columns",
+            "headers": {
+              "row": true,
+              "column": true
+            },
+            "blanks": "gap"
+          },
+          "title": "Line",
+          "legend": "bottom"
+        },
+        "chart6": {
+          "id": "chart6",
+          "type": "area",
+          "anchor": {
+            "kind": "cells",
+            "from": {
+              "row": 17,
+              "col": 9,
+              "dx": 63,
+              "dy": 12
+            },
+            "to": {
+              "row": 30,
+              "col": 13,
+              "dx": 62,
+              "dy": 17
+            }
+          },
+          "data": {
+            "series": [
+              {
+                "values": "Figures!$B$2:$B$13",
+                "name": "Figures!$B$1",
+                "categories": "Figures!$A$2:$A$13",
+                "color": "#004586"
+              },
+              {
+                "values": "Figures!$C$2:$C$13",
+                "name": "Figures!$C$1",
+                "categories": "Figures!$A$2:$A$13",
+                "color": "#ff420e"
+              }
+            ],
+            "by": "columns",
+            "headers": {
+              "row": true,
+              "column": true
+            },
+            "blanks": "zero"
+          },
+          "title": "Area",
+          "legend": "bottom"
+        },
+        "chart7": {
+          "id": "chart7",
+          "type": "pie",
+          "anchor": {
+            "kind": "cell",
+            "from": {
+              "row": 33,
+              "col": 9,
+              "dx": 63,
+              "dy": 4
+            },
+            "width": 340,
+            "height": 227
+          },
+          "data": {
+            "series": [
+              {
+                "values": "Figures!$B$2:$B$13",
+                "name": "Figures!$B$1",
+                "categories": "Figures!$A$2:$A$13",
+                "color": "#004586"
+              }
+            ],
+            "by": "columns",
+            "headers": {
+              "row": true,
+              "column": true
+            },
+            "blanks": "gap"
+          },
+          "title": "Pie",
+          "legend": "bottom"
+        },
+        "chart8": {
+          "id": "chart8",
+          "type": "pie",
+          "variant": "doughnut",
+          "anchor": {
+            "kind": "absolute",
+            "x": 800,
+            "y": 900,
+            "width": 340,
+            "height": 227
+          },
+          "data": {
+            "series": [
+              {
+                "values": "Figures!$B$2:$B$13",
+                "name": "Figures!$B$1",
+                "categories": "Figures!$A$2:$A$13",
+                "color": "#004586"
+              }
+            ],
+            "by": "columns",
+            "headers": {
+              "row": true,
+              "column": true
+            },
+            "blanks": "gap"
+          },
+          "title": "Doughnut",
+          "legend": "bottom"
+        },
+        "chart9": {
+          "id": "chart9",
+          "type": "scatter",
+          "anchor": {
+            "kind": "cells",
+            "from": {
+              "row": 2,
+              "col": 14,
+              "dx": 15,
+              "dy": 4
+            },
+            "to": {
+              "row": 15,
+              "col": 18,
+              "dx": 14,
+              "dy": 9
+            }
+          },
+          "data": {
+            "series": [
+              {
+                "values": "Figures!$F$2:$F$7",
+                "name": "Figures!$F$1",
+                "x": "Figures!$E$2:$E$7",
+                "color": "#004586"
+              }
+            ],
+            "by": "columns",
+            "headers": {
+              "row": true,
+              "column": false
+            },
+            "blanks": "connect"
+          },
+          "title": "Scatter",
+          "legend": "bottom",
+          "axes": {
+            "x": {
+              "gridlines": false
+            }
+          }
+        },
+        "chart10": {
+          "id": "chart10",
+          "type": "combo",
+          "anchor": {
+            "kind": "cells",
+            "from": {
+              "row": 17,
+              "col": 14,
+              "dx": 15,
+              "dy": 12
+            },
+            "to": {
+              "row": 30,
+              "col": 18,
+              "dx": 14,
+              "dy": 17
+            }
+          },
+          "data": {
+            "series": [
+              {
+                "values": "Figures!$B$2:$B$13",
+                "name": "Figures!$B$1",
+                "categories": "Figures!$A$2:$A$13",
+                "type": "column",
+                "color": "#004586"
+              },
+              {
+                "values": "Figures!$C$2:$C$13",
+                "name": "Figures!$C$1",
+                "categories": "Figures!$A$2:$A$13",
+                "type": "line",
+                "axis": "secondary",
+                "color": "#ff420e"
+              }
+            ],
+            "by": "columns",
+            "headers": {
+              "row": true,
+              "column": true
+            },
+            "blanks": "gap"
+          },
+          "title": "Combo",
+          "legend": "bottom",
+          "axes": {
+            "y2": {
+              "gridlines": false
+            }
+          }
+        }
+      }
+    }
+  ],
+  "styles": [
+    {}
+  ]
+}

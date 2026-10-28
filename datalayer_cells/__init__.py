@@ -10,10 +10,30 @@ The ``CellsWorkbook`` JSON format with the same validation as
 """
 
 from .__version__ import __version__
+from .charts import (
+    BUILTIN_CHART_TYPES,
+    CHART_VARIANTS,
+    MAX_CHART_POINTS,
+    ChartRefusal,
+    chart_problem,
+    check_chart,
+    infer_chart_data,
+    ref_zone,
+    zone_ref,
+)
 from .format import CELL_ERRORS, FORMAT_VERSION, FormatError, validate_workbook
 from .workbook import Workbook, column_index, column_letters, parse_a1, parse_input, parse_zone
 
 __all__ = [
+    "BUILTIN_CHART_TYPES",
+    "CHART_VARIANTS",
+    "MAX_CHART_POINTS",
+    "ChartRefusal",
+    "chart_problem",
+    "check_chart",
+    "infer_chart_data",
+    "ref_zone",
+    "zone_ref",
     "CELL_ERRORS",
     "FORMAT_VERSION",
     "FormatError",

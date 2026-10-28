@@ -20,7 +20,7 @@ MALFORMED = json.loads((FORMAT / "malformed.json").read_text(encoding="utf-8"))[
 
 
 def test_the_corpus_is_there():
-    assert len(WORKBOOKS) == 6
+    assert len(WORKBOOKS) == 7  # six of C1-06 and the charts workbook of C10-07
     assert len(MALFORMED) >= 17
 
 

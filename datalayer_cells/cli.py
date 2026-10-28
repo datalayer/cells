@@ -135,6 +135,74 @@ def export(
     typer.echo(out.getvalue(), nl=False)
 
 
+charts_app = typer.Typer(help="Charts of a workbook (§3.12): list, add from a range, remove.")
+app.add_typer(charts_app, name="charts")
+
+
+def _anchor_text(spec: dict[str, Any]) -> str:
+    a = spec["anchor"]
+    if a["kind"] == "absolute":
+        return f"{a['x']},{a['y']} {a['width']}x{a['height']}px"
+    start = f"{column_letters(a['from']['col'])}{a['from']['row'] + 1}"
+    if a["kind"] == "cell":
+        return f"{start} {a['width']}x{a['height']}px"
+    return f"{start}:{column_letters(a['to']['col'] - 1)}{a['to']['row']}"
+
+
+@charts_app.command(name="list")
+def charts_list(path: Path, sheet: Optional[str] = typer.Option(None, help="The sheet (the first by default).")) -> None:
+    """The charts of a sheet: id, type, title, anchor, series."""
+    wb = _load(path)
+    try:
+        charts = wb.charts(sheet)
+        name = wb._sheet(sheet)["name"]
+    except KeyError as error:
+        typer.echo(str(error).strip('"'), err=True)
+        raise typer.Exit(1) from error
+    if not charts:
+        typer.echo(f"{name}: no chart")
+    for c in charts:
+        typer.echo(f"{c['id']}\t{c['type']}\t{c.get('title', '')}\t{_anchor_text(c)}\t{len(c['data']['series'])} series")
+
+
+@charts_app.command(name="add")
+def charts_add(
+    path: Path,
+    type: str = typer.Argument(..., help="column, bar, line, area, pie, scatter, combo, or a contributed type."),
+    data: str = typer.Argument(..., help="The cells to chart, Sheet1!A1:C13: headers and categories are inferred."),
+    anchor: str = typer.Argument(..., help="The cells the chart sits on, E2:L18."),
+    title: Optional[str] = typer.Option(None),
+    legend: str = typer.Option("bottom", help="top, right, bottom, left or none."),
+    sheet: Optional[str] = typer.Option(None, help="The sheet the chart goes on (the first by default)."),
+) -> None:
+    """Add a chart from a range, and save."""
+    from .charts import ChartRefusal
+
+    wb = _load(path)
+    try:
+        spec = wb.add_chart(type, data=data, anchor=anchor, title=title, legend=legend, sheet=sheet)
+    except (ChartRefusal, KeyError, ValueError) as error:
+        typer.echo(str(error).strip('"'), err=True)
+        raise typer.Exit(1) from error
+    wb.save(path)
+    typer.echo(f"Added {spec['id']}: a {spec['type']} chart of {len(spec['data']['series'])} series at {_anchor_text(spec)}.")
+
+
+@charts_app.command(name="remove")
+def charts_remove(path: Path, id: str, sheet: Optional[str] = typer.Option(None)) -> None:
+    """Remove a chart by id, and save."""
+    from .charts import ChartRefusal
+
+    wb = _load(path)
+    try:
+        wb.remove_chart(id, sheet=sheet)
+    except (ChartRefusal, KeyError) as error:
+        typer.echo(str(error), err=True)
+        raise typer.Exit(1) from error
+    wb.save(path)
+    typer.echo(f"Removed {id}.")
+
+
 @app.command()
 def version() -> None:
     """The version of datalayer_cells."""
