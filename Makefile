@@ -33,7 +33,7 @@ bench-reference: ## the reference figures: the browser benches in a headed Chrom
 	CELLS_BENCH_HEADED=1 node scripts/bench.mjs --browser
 
 .PHONY: examples
-examples: ## start the examples on http://127.0.0.1:3077/ (installs nothing; Ctrl+C stops)
+examples: ## start the examples on http://127.0.0.1:3077 (installs nothing; Ctrl+C stops)
 	npm run examples
 
 .PHONY: build-examples deploy-examples

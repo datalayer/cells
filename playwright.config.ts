@@ -14,13 +14,13 @@ export default defineConfig({
   fullyParallel: false,
   webServer: {
     command: 'node scripts/examples.mjs',
-    url: 'http://127.0.0.1:3077/',
+    url: 'http://127.0.0.1:3077',
     // A server already on the port (make examples) is used as it is.
     reuseExistingServer: true,
     timeout: 60_000,
   },
   use: {
-    baseURL: 'http://127.0.0.1:3077/',
+    baseURL: 'http://127.0.0.1:3077',
     headless: true,
     // A page's heap is capped, so a runaway page crashes its tab, not the machine.
     launchOptions: {
