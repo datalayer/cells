@@ -152,15 +152,6 @@
     "ws": "^8.18.0"
   },
   "peerDependenciesMeta": {
-    "@datalayer/primer-addons": {
-      "optional": true
-    },
-    "@primer/octicons-react": {
-      "optional": true
-    },
-    "@primer/react": {
-      "optional": true
-    },
     "loro-crdt": {
       "optional": true
     },

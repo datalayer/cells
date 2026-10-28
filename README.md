@@ -35,6 +35,16 @@ light and dark.
 | `@datalayer/cells/collab` | real-time collaboration over Loro                       |
 | `@datalayer/cells/chrome` | toolbar, formula bar and sheet tabs                     |
 | `@datalayer/cells/charts` | charts drawn with Apache ECharts (an optional peer)     |
+
+```bash
+npm install @datalayer/cells @primer/react @primer/octicons-react @datalayer/primer-addons
+```
+
+`@primer/react`, `@primer/octicons-react` and `@datalayer/primer-addons` are
+required peers: the grid's context menu, the chrome and the named themes are
+Primer. `loro-crdt` (`./collab`), `@datalayer/lexical-loro` (its transport),
+`echarts` and `echarts-for-react` (`./charts`) are optional peers, installed
+by the hosts that use those entries.
 | `@datalayer/cells/plugin` | views for a Reactor shell                               |
 
 ## Python

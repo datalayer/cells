@@ -8,6 +8,7 @@
 
 import { StrictMode, useEffect, useState, type ComponentType } from 'react';
 import { createRoot } from 'react-dom/client';
+import { BaseStyles, ThemeProvider } from '@primer/react';
 import Minimal from './examples/01-minimal';
 import Formulas from './examples/02-formulas';
 import Editing from './examples/03-editing';
@@ -127,6 +128,11 @@ const root = document.getElementById('root');
 if (root === null) throw new Error('The examples page has no #root.');
 createRoot(root).render(
   <StrictMode>
-    <App />
+    {/* The grid's context menu is a Primer Overlay: the pages without a theme chooser get Primer's theme here. */}
+    <ThemeProvider colorMode="auto">
+      <BaseStyles>
+        <App />
+      </BaseStyles>
+    </ThemeProvider>
   </StrictMode>,
 );

@@ -26,6 +26,7 @@ import { CellsMenuItems, type CommandItem } from '../points/index.js';
 import type { Style } from '../core/styles.js';
 import {
   type CSSProperties,
+  Fragment,
   forwardRef,
   memo,
   type ReactNode,
@@ -66,6 +67,7 @@ import { type CellsTheme, checkTheme } from '../render/theme.js';
 import { cellAt, cellRect, headerAt, type Viewport } from '../render/viewport.js';
 import { fontOf } from '../render/paint.js';
 import { ChartsLayer } from './ChartsLayer.js';
+import { ActionList, Overlay, registerPortalRoot, ThemeProvider } from '@primer/react';
 import {
   callAt,
   canPoint,
@@ -232,6 +234,12 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
 
     // ------------------------------------------------------------ elements and renderer
     const uid = useId().replace(/:/g, '');
+    // The context menu (a Primer Overlay) portals into the grid's own root, so it sits under the
+    // host's theme and at root-relative coordinates, as the overlay canvas does.
+    const portalName = `cells-${uid}`;
+    useLayoutEffect(() => {
+      if (rootRef.current) registerPortalRoot(rootRef.current, portalName);
+    }, [portalName]);
     const rootRef = useRef<HTMLDivElement>(null);
     const scrollerRef = useRef<HTMLDivElement>(null);
     const gridRef = useRef<HTMLCanvasElement>(null);
@@ -1386,6 +1394,8 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
                 x={menu.x}
                 y={menu.y}
                 keymap={props.keymap}
+                portalName={portalName}
+                returnFocusRef={rootRef}
                 onRun={(id) => {
                   setMenu(null);
                   rootRef.current?.focus({ preventScroll: true });
@@ -1818,16 +1828,27 @@ function commandFor(
  * `datalayer.cells.menuItem`, in order, grouped, with their keybindings.
  * Arrow keys move, Enter runs, Escape closes.
  */
+/**
+ * The context menu: Primer's `Overlay` (into the grid's portal root, at the
+ * cell's coordinates) holding an `ActionList` with `role="menu"`, one item
+ * per `datalayer.cells.menuItem` contribution whose command exists, its
+ * keybinding as the trailing visual, a divider between groups. The keyboard:
+ * arrows, Home and End move (Primer's own), Enter or Space runs (the item's
+ * `onSelect`), Escape closes and returns focus to the grid; the pointer:
+ * hover focuses (Primer's hover state), a click runs.
+ */
 function ContextMenu(props: {
   model: CellsModel;
   x: number;
   y: number;
   keymap?: Readonly<Record<string, string | null>>;
+  portalName: string;
+  returnFocusRef: React.RefObject<HTMLElement | null>;
   onRun: (id: string) => void;
   onClose: () => void;
 }) {
   const { model } = props;
-  const ref = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const items = useMemo(() => {
     const commands = new Map(model.reactor.listCommands().map((c) => [c.id, c]));
     return model.reactor
@@ -1838,86 +1859,74 @@ function ContextMenu(props: {
           x.command !== undefined,
       );
   }, [model]);
-  const [focused, setFocused] = useState(0);
-  useLayoutEffect(() => {
-    ref.current?.querySelectorAll<HTMLElement>('[role="menuitem"]')[focused]?.focus();
-  }, [focused]);
+  // A Primer ThemeProvider with no props takes the host's theme when it has one, Primer's
+  // default otherwise: the Overlay needs one either way.
   return (
-    <div
-      ref={ref}
-      role="menu"
-      aria-label="Cell actions"
-      data-cells-menu=""
-      onPointerDown={(e) => e.stopPropagation()}
-      onKeyDown={(e) => {
-        e.stopPropagation();
-        if (e.key === 'Escape') props.onClose();
-        else if (e.key === 'ArrowDown') setFocused((f) => (f + 1) % items.length);
-        else if (e.key === 'ArrowUp') setFocused((f) => (f - 1 + items.length) % items.length);
-        else if (e.key === 'Home') setFocused(0);
-        else if (e.key === 'End') setFocused(items.length - 1);
-        else return;
-        e.preventDefault();
-      }}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget)) props.onClose();
-      }}
-      style={{
-        position: 'absolute',
-        left: props.x,
-        top: props.y,
-        zIndex: 4,
-        minWidth: 220,
-        maxHeight: 360,
-        overflowY: 'auto',
-        padding: 4,
-        background: 'Canvas',
-        color: 'CanvasText',
-        border: '1px solid GrayText',
-        borderRadius: 6,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-        font: '13px system-ui, sans-serif',
-      }}
-    >
-      {items.map(({ item, command }, i) => {
-        const binding = bindingOf(command, props.keymap);
-        const separator = i > 0 && items[i - 1].item.group !== item.group;
-        return (
-          <div key={command.id} role="none">
-            {separator && (
-              <div
-                role="separator"
-                style={{ height: 1, margin: '4px 0', background: 'GrayText' }}
-              />
-            )}
-            <div
-              role="menuitem"
-              tabIndex={-1}
-              aria-keyshortcuts={binding}
-              onClick={() => props.onRun(command.id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  props.onRun(command.id);
-                }
-              }}
-              onMouseEnter={() => setFocused(i)}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: 16,
-                padding: '4px 8px',
-                cursor: 'default',
-                outlineOffset: -2,
-              }}
-            >
-              <span>{command.name}</span>
-              {binding && <span style={{ opacity: 0.7 }}>{formatKeybinding(binding)}</span>}
-            </div>
-          </div>
-        );
-      })}
-    </div>
+    <ThemeProvider>
+      <Overlay
+        role="menu"
+        aria-label="Cell actions"
+        returnFocusRef={props.returnFocusRef as React.RefObject<HTMLElement>}
+        onClickOutside={props.onClose}
+        onEscape={props.onClose}
+        portalContainerName={props.portalName}
+        position="absolute"
+        top={props.y}
+        left={props.x}
+        width="auto"
+        data-cells-menu=""
+      >
+        <div
+          ref={listRef}
+          data-cells-menu=""
+          style={{ minWidth: 220, maxHeight: 360, overflowY: 'auto' }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => {
+            // The grid's own keys must not see the menu's. Primer's ActionList moves the focus on
+            // arrows, Home and End; Escape is handled here, since the event stops before Primer's
+            // document listener.
+            e.stopPropagation();
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              props.onClose();
+            }
+          }}
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget)) props.onClose();
+          }}
+        >
+          <ActionList role="menu">
+            {items.map(({ item, command }, i) => {
+              const binding = bindingOf(command, props.keymap);
+              const separator = i > 0 && items[i - 1].item.group !== item.group;
+              return (
+                <Fragment key={command.id}>
+                  {separator && <ActionList.Divider />}
+                  <ActionList.Item
+                    role="menuitem"
+                    aria-keyshortcuts={binding}
+                    onSelect={() => props.onRun(command.id)}
+                    onMouseEnter={(e: React.MouseEvent<HTMLElement>) => {
+                      const target = (e.currentTarget.closest('[role="menuitem"]') ??
+                        e.currentTarget.querySelector('[role="menuitem"]') ??
+                        e.currentTarget) as HTMLElement;
+                      target.focus();
+                    }}
+                  >
+                    {command.name}
+                    {binding && (
+                      <ActionList.TrailingVisual>
+                        {formatKeybinding(binding)}
+                      </ActionList.TrailingVisual>
+                    )}
+                  </ActionList.Item>
+                </Fragment>
+              );
+            })}
+          </ActionList>
+        </div>
+      </Overlay>
+    </ThemeProvider>
   );
 }
 

@@ -34,6 +34,12 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/react/**/__tests__/**/*.test.ts?(x)'],
+    // The context menu is Primer's Overlay, whose compiled output calls `react-compiler-runtime`;
+    // that package reaches React through a CommonJS require the aliases cannot redirect, so in
+    // this harness it meets the hoisted React 19 beside the aliased 18 and fails. Primer itself
+    // runs on React 18 (its peer range); the menu under React 18 is checked in a React 18 host
+    // (JupyterLab), not here.
+    exclude: ['**/node_modules/**', 'src/react/__tests__/menu.test.tsx'],
     pool: 'forks',
     poolOptions: { forks: { execArgv: ['--preserve-symlinks'] } },
     maxWorkers: 2,
