@@ -19,6 +19,7 @@ const EXAMPLES = [
   ['chrome', 'Toolbar, formula bar and tabs'],
   ['charts', 'Charts'],
   ['cell-types', 'Cell types'],
+  ['code-cells', 'Code cells'],
   ['data-sources', 'Data sources'],
   ['command-palette', 'Command palette'],
 ] as const;
@@ -57,7 +58,7 @@ test.describe('the examples', () => {
   }) => {
     await page.goto('/#/plugin');
     const table = page.getByRole('table', { name: 'Contribution points' });
-    await expect(table.locator('tbody tr')).toHaveCount(18);
+    await expect(table.locator('tbody tr')).toHaveCount(19);
     await expect(table.locator('tbody td:nth-child(2)')).not.toContainText(['none']);
     await page.getByRole('button', { name: 'Write into row 1' }).click();
     await expect(page.locator('[data-message]')).toHaveText(

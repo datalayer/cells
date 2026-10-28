@@ -22,8 +22,9 @@ import Collaboration from './examples/09-collaboration';
 import Chrome from './examples/10-chrome';
 import Charts from './examples/11-charts';
 import CellTypes from './examples/12-cell-types';
-import DataSources from './examples/13-data-sources';
-import CommandPalette from './examples/14-command-palette';
+import CodeCells from './examples/13-code-cells';
+import DataSources from './examples/14-data-sources';
+import CommandPalette from './examples/15-command-palette';
 
 const SOURCES = import.meta.glob('./examples/*.tsx', {
   query: '?raw',
@@ -81,16 +82,17 @@ export const EXAMPLES: readonly Example[] = [
   },
   { id: 'charts', title: 'Charts', file: '11-charts.tsx', Component: Charts },
   { id: 'cell-types', title: 'Cell types', file: '12-cell-types.tsx', Component: CellTypes },
+  { id: 'code-cells', title: 'Code cells', file: '13-code-cells.tsx', Component: CodeCells },
   {
     id: 'data-sources',
     title: 'Data sources',
-    file: '13-data-sources.tsx',
+    file: '14-data-sources.tsx',
     Component: DataSources,
   },
   {
     id: 'command-palette',
     title: 'Command palette',
-    file: '14-command-palette.tsx',
+    file: '15-command-palette.tsx',
     Component: CommandPalette,
   },
 ];

@@ -48,6 +48,8 @@ export default defineConfig({
       'src/react/__tests__/menu.test.tsx',
       'src/react/__tests__/pluginPage.test.tsx',
       'src/react/__tests__/commandPalette.test.tsx',
+      // The code cells page mounts Primer's SegmentedControl: the same.
+      'src/react/__tests__/codeCellsPage.test.tsx',
     ],
     pool: 'forks',
     poolOptions: { forks: { execArgv: ['--preserve-symlinks'] } },

@@ -152,6 +152,12 @@
       "unit": "kB",
       "where": "size",
       "note": "Decided 220 by the user on 28 October 2026 (the plan first said 200): measured 205.15 kB min+gzip the same day with echarts 5.6.0 and esbuild 0.25.12, of which ECharts' core with Bar, Line, Pie, Scatter, Grid, Tooltip, Legend, Title, Aria and the canvas renderer is 180 kB, echarts-for-react 7 kB, the entry 10 kB."
+    },
+    "bundle.jupyter.kB": {
+      "max": 10,
+      "unit": "kB",
+      "where": "size",
+      "note": "The entry over jupyter-react (a peer, external): the kernel adapter, the output and editor components, the plugin."
     }
   }
 }

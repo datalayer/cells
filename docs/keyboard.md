@@ -54,6 +54,8 @@ a command acts on the grid that last had the focus.
 | Mod+Z                      | `cells.undo`                                                                    |
 | Mod+Y, Mod+Shift+Z         | `cells.redo` (Mod+Shift+Z is a grid key)                                        |
 | Mod+D, Mod+R               | `cells.fillDown`, `cells.fillRight`                                             |
+| Shift+Enter, on a code cell | `cells.code.run`: run it on the sheet's kernel (elsewhere, `cells.nextUp`)     |
+| F4, on a code cell         | `cells.code.openEditor`: the source in the contributed editor (jupyter-react's `Cell`) |
 | Typing                     | Replace the active cell's content (not on a cell type that says so)             |
 | Enter, Tab                 | In the editor: commit and move (Alt+Enter: a new line in the cell)              |
 | Escape                     | In the editor: leave the cell as it was; on the grid: drop the copy marquee     |

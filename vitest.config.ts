@@ -22,6 +22,7 @@ export default defineConfig({
       { find: /^@datalayer\/cells\/xlsx$/, replacement: src('xlsx/index.ts') },
       { find: /^@datalayer\/cells\/charts$/, replacement: src('charts/index.ts') },
       { find: /^@datalayer\/cells\/collab$/, replacement: src('collab/index.ts') },
+      { find: /^@datalayer\/cells\/jupyter$/, replacement: src('jupyter/index.tsx') },
     ],
   },
   test: {

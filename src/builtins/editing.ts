@@ -40,6 +40,10 @@ export interface CellsGridAccess {
   scrollTo(row: number, col: number): void;
   /** Open the context menu at the active cell. */
   openMenu(): void;
+  /** Focus a code cell's output frame (*Go to output*); `false` when it shows none. */
+  focusOutput?(row: number, col: number): boolean;
+  /** Open the contributed code editor over a code cell (*Open in editor*). */
+  openCodeEditor?(row: number, col: number): void;
 }
 
 /** What a Cells command is run with: the grid's model, and how its text measures (for fitting). */

@@ -20,7 +20,16 @@
  * @module core/codeRun
  */
 
-import { CellsKernels, type CellsKernel, type KernelProvider } from '../points/index.js';
+import type { ReactorPlatform } from '@datalayer/reactor';
+import {
+  type CellsKernel,
+  CellsCodeRenderer,
+  CellsKernels,
+  type CodeRenderer,
+  type KernelProvider,
+  optionalContribution,
+  type Resolved,
+} from '../points/index.js';
 import { type CodeCell, type CodeOutput, type CodeResult, codeCells, codeKey } from './code.js';
 import type { CellsModel } from './model.js';
 import type { CellValue } from './values.js';
@@ -145,8 +154,6 @@ export const PREAMBLE = String.raw`def __cells_run(__data, __source):
             result = {"error": "#NUM!"}
         else:
             result = value
-        if value is not None:
-            _emit({"text/plain": repr(value)})
     else:
         _show(value)
         shape = getattr(value, "shape", None)
@@ -179,6 +186,11 @@ export function readOutputs(outputs: readonly CodeOutput[]): {
 /** A fingerprint of what a code cell reads, to tell when it changed since its run. */
 function fingerprint(model: CellsModel, sheet: string, source: string): string {
   return JSON.stringify(readValues(model, sheet, source));
+}
+
+/** The code renderer a platform resolves (the first in `order`), or `undefined`. */
+export function codeRendererOf(reactor: ReactorPlatform): Resolved<CodeRenderer> | undefined {
+  return optionalContribution(reactor, CellsCodeRenderer, 'code renderer');
 }
 
 /** Where a code cell is: its sheet and position. */
@@ -221,6 +233,17 @@ export class CodeRunner {
     return this.#kernelId === undefined ? all[0] : all.find((k) => k.id === this.#kernelId);
   }
 
+  /** The kernel, connected on first use (one per model: an editor and the runs share it). Refused with no kernel. */
+  connect(): Promise<CellsKernel> {
+    const provider = this.provider();
+    if (provider === undefined) return Promise.reject(new Error(NO_KERNEL));
+    this.#kernel ??= provider.connect().catch((error: unknown) => {
+      this.#kernel = undefined;
+      throw error;
+    });
+    return this.#kernel;
+  }
+
   /** Run one code cell; resolves once its result is written. Refused (thrown) with no kernel. */
   run(place: CodePlace): Promise<void> {
     const provider = this.provider();
@@ -233,6 +256,11 @@ export class CodeRunner {
   /** Run every code cell of a sheet, in dependency order. */
   async runAll(sheet: string): Promise<void> {
     for (const place of this.#ordered(sheet, () => true)) await this.run(place);
+  }
+
+  /** Forget the kernel (a host switched kernels): the next run connects to the provider of that moment. The old kernel is not shut down. */
+  reset(): void {
+    this.#kernel = undefined;
   }
 
   /** Interrupt the run in flight. */
@@ -251,14 +279,8 @@ export class CodeRunner {
     const m = this.model;
     const code = m.code(place.sheet, place.row, place.col);
     if (code === undefined) throw new Error('No code cell here.');
-    this.#kernel ??= provider.connect();
-    let kernel: CellsKernel;
-    try {
-      kernel = await this.#kernel;
-    } catch (error) {
-      this.#kernel = undefined;
-      throw error;
-    }
+    void provider;
+    const kernel = await this.connect();
     const sheet = m.workbook.sheet(place.sheet);
     const key = codeKey(sheet, place.row, place.col);
     const data = readValues(m, place.sheet, code.source);

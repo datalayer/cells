@@ -282,6 +282,37 @@ export interface CellsKernel {
   interrupt?(): Promise<void>;
 }
 
+/** What a code output renderer draws: a code cell's stored outputs, the cell's name, the frame's size. */
+export interface CodeOutputRendererProps {
+  readonly outputs: readonly CodeOutput[];
+  /** The cell, as a person reads it: `B4`. */
+  readonly cell: string;
+  readonly width: number;
+  readonly height: number;
+}
+
+/** What a code editor renderer edits: the cell's source, the model to write back to, and how to close. */
+export interface CodeEditorRendererProps {
+  readonly sheet: string;
+  readonly row: number;
+  readonly col: number;
+  /** The `CellsModel` (typed loosely, as a render layer's). */
+  readonly model: unknown;
+  readonly onClose: () => void;
+}
+
+/**
+ * The React components code cells are shown and edited with
+ * (`datalayer.cells.codeRenderer`, §3.13): `output` draws a cell's outputs
+ * in its frame, `editor` is *Open in editor*. Typed loosely so the core
+ * needs no React; `./jupyter` contributes jupyter-react's `Output` and `Cell`.
+ */
+export interface CodeRenderer {
+  readonly id: string;
+  readonly output: unknown;
+  readonly editor?: unknown;
+}
+
 /** A kernel provider (`datalayer.cells.kernel`): an id, a label, and how to connect, once, on a first run. */
 export interface KernelProvider {
   readonly id: string;
@@ -372,6 +403,10 @@ export const CellsDataSources = defineContributionPoint<DataSource>('datalayer.c
 export const CellsCollabProvider = defineContributionPoint<CollabProvider>(
   'datalayer.cells.collabProvider',
 );
+/** `datalayer.cells.codeRenderer`: how code outputs are drawn and sources edited; the first in `order` wins. */
+export const CellsCodeRenderer = defineContributionPoint<CodeRenderer>(
+  'datalayer.cells.codeRenderer',
+);
 /** `datalayer.cells.kernel`: the kernels code cells run on, by id (the first unless the host names one). */
 export const CellsKernels = defineContributionPoint<KernelProvider>('datalayer.cells.kernel');
 /** `datalayer.cells.toolbarItem`: the toolbar's entries, naming Reactor commands. */
@@ -420,6 +455,7 @@ export const CELLS_POINTS = [
   CellsChartRenderer,
   CellsEditGate,
   CellsKernels,
+  CellsCodeRenderer,
 ] as const;
 
 export {

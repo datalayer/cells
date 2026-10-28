@@ -19,7 +19,7 @@ import { formatKeybinding } from '@datalayer/reactor';
 import { PALETTE_KEYBINDING } from '@datalayer/reactor-commands';
 import CommandPaletteExample, {
   paletteModel,
-} from '../../../examples/src/examples/14-command-palette.js';
+} from '../../../examples/src/examples/15-command-palette.js';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

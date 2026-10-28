@@ -7,21 +7,50 @@
 import react from '@vitejs/plugin-react';
 import wasm from 'vite-plugin-wasm';
 import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 
 // The examples run on the package's source: no library build is needed.
 export const PORT = 3077;
 
 const page = (name: string): string => fileURLToPath(new URL(name, import.meta.url));
 
+/**
+ * JupyterLab and jupyter-react (the code cells page) import text the way webpack
+ * reads it: a `?text` query on the JupyterLite service worker, and `.raw.css`
+ * stylesheets as strings. Vite's spelling of both is `?raw`.
+ */
+function textQuery(): Plugin {
+  return {
+    name: 'cells-text-query',
+    enforce: 'pre',
+    async resolveId(source, importer) {
+      const raw = source.includes('?text')
+        ? source.replace('?text', '?raw')
+        : source.endsWith('.raw.css')
+          ? `${source}?raw`
+          : undefined;
+      if (raw === undefined) return null;
+      const resolved = await this.resolve(raw, importer, { skipSelf: true });
+      return resolved?.id ?? null;
+    },
+  };
+}
+
 export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
   // loro-crdt (through ./collab and lexical-loro) is WebAssembly: the dev server needs
   // these two to load it; a production build does not.
-  plugins: [react(), wasm()],
+  plugins: [react(), wasm(), textQuery()],
   optimizeDeps: { exclude: ['loro-crdt', '@datalayer/lexical-loro'] },
+  // JupyterLab's packages (through jupyter-react, on the code cells page) read `global`.
+  define: { global: 'globalThis' },
+  worker: { format: 'es' },
+  // JupyterLab's wheels, fetched by the browser kernel, travel as assets.
+  assetsInclude: ['**/*.whl'],
   resolve: {
     alias: [
+      // JupyterLab's stylesheets import each other with webpack's `~` prefix.
+      { find: /^~(.*)$/, replacement: '$1' },
       {
         find: /^@datalayer\/cells$/,
         replacement: fileURLToPath(new URL('../src/index.ts', import.meta.url)),
@@ -45,6 +74,10 @@ export default defineConfig({
       {
         find: /^@datalayer\/cells\/charts$/,
         replacement: fileURLToPath(new URL('../src/charts/index.ts', import.meta.url)),
+      },
+      {
+        find: /^@datalayer\/cells\/jupyter$/,
+        replacement: fileURLToPath(new URL('../src/jupyter/index.tsx', import.meta.url)),
       },
     ],
   },

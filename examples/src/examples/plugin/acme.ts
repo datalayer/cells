@@ -23,6 +23,8 @@ import {
   type ChartRendererProps,
   CellsChartTypes,
   CellsClipboard,
+  CellsCodeRenderer,
+  type CodeOutputRendererProps,
   CellsCollabProvider,
   CellsCommands,
   CellsDataSources,
@@ -597,6 +599,25 @@ export const wordCount = {
   }),
 };
 
+/** A code output renderer that is not jupyter-react: the outputs' `text/plain`, in a list. */
+export function TextOutputRenderer({ outputs, cell, width, height }: CodeOutputRendererProps) {
+  return createElement(
+    'ul',
+    { 'data-acme-output': cell, style: { width, height, margin: 0, padding: 4, overflow: 'auto' } },
+    ...outputs.map((o, i) =>
+      createElement(
+        'li',
+        { key: i },
+        o.output_type === 'stream'
+          ? String((o as { text?: unknown }).text ?? '')
+          : o.output_type === 'error'
+            ? `${String(o.ename)}: ${String(o.evalue)}`
+            : String(((o as { data?: Record<string, unknown> }).data ?? {})['text/plain'] ?? ''),
+      ),
+    ),
+  );
+}
+
 export const AcmePlugin = definePlugin({
   name: ACME_PLUGIN,
   displayName: 'Acme',
@@ -663,6 +684,11 @@ export const AcmePlugin = definePlugin({
     ),
     contribution(CellsEditGate, headerLocked as never, { id: 'acme.headerLocked' }),
     contribution(CellsKernels, wordCount, { id: 'acme.words' }),
+    contribution(
+      CellsCodeRenderer,
+      { id: 'acme.textOutput', output: TextOutputRenderer },
+      { id: 'acme.textOutput', order: 500 },
+    ),
   ],
 });
 

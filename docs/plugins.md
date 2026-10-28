@@ -254,6 +254,15 @@ contribution(CellsEditGate, {
 }, { id: 'acme.headerLocked' });
 ```
 
+### `codeRenderer` — `CodeRenderer`
+
+How code cells' outputs are drawn and their sources edited: `{ id, output,
+editor? }`, two React components typed loosely (`CodeOutputRendererProps`:
+the outputs, the cell's name, the frame's size; `CodeEditorRendererProps`:
+the cell, the model, `onClose`). The first in `order` wins.
+`@datalayer/cells/jupyter` contributes jupyter-react's `Output` and `Cell`;
+with none, the grid shows the outputs' `text/plain` and a plain textarea.
+
 ### `kernel` — `KernelProvider`
 
 The kernels code cells run on (§ code cells): `{ id, label, connect() }`,

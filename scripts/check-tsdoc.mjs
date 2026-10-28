@@ -33,6 +33,7 @@ const ENTRIES = [
   'src/chrome/index.ts',
   'src/charts/index.ts',
   'src/plugin/index.ts',
+  'src/jupyter/index.tsx',
 ];
 
 const config = ts.getParsedCommandLineOfConfigFile(
@@ -109,6 +110,7 @@ const IMPORTS = {
   'src/chrome/index.ts': '@datalayer/cells/chrome',
   'src/charts/index.ts': '@datalayer/cells/charts',
   'src/plugin/index.ts': '@datalayer/cells/plugin',
+  'src/jupyter/index.tsx': '@datalayer/cells/jupyter',
 };
 const firstSentence = (text) => {
   const flat = text.replace(/\s+/g, ' ').trim();

@@ -81,6 +81,33 @@ export const CODE_COMMANDS: readonly CellsCommand[] = [
       isEnabled: onCodeCell,
     },
   ),
+  command(
+    'openEditor',
+    'Open in editor',
+    ({ model: m, grid }) => {
+      if (grid?.openCodeEditor === undefined)
+        throw new Error('cells.code.openEditor opens an editor on a grid: run it from a grid.');
+      const { active } = m.selection;
+      grid.openCodeEditor(active.row, active.col);
+    },
+    {
+      gridKeybindings: ['F4'],
+      description: gridKeysDescription(['F4'], false),
+      octicon: 'pencil',
+      isEnabled: onCodeCell,
+    },
+  ),
+  command(
+    'goToOutput',
+    'Go to output',
+    ({ model: m, grid }) => {
+      if (grid?.focusOutput === undefined)
+        throw new Error('cells.code.goToOutput reaches a frame on a grid: run it from a grid.');
+      const { active } = m.selection;
+      if (!grid.focusOutput(active.row, active.col)) throw new Error('This cell shows no output.');
+    },
+    { isEnabled: onCodeCell },
+  ),
   command('runAll', 'Run every code cell of the sheet', ({ model: m }) =>
     codeRunner(m).runAll(m.selection.sheet),
   ),
@@ -96,7 +123,7 @@ export const CellsCodePlugin = definePlugin({
   description: 'Code cells: make one, run it on a kernel, run them all, interrupt.',
   octicon: 'code',
   commands: [...CODE_COMMANDS],
-  contributes: ['insert', 'run', 'runAll'].map((id, i) =>
+  contributes: ['insert', 'run', 'openEditor', 'goToOutput', 'runAll'].map((id, i) =>
     contribution(
       CellsMenuItems,
       { command: `cells.code.${id}`, group: 'code' },

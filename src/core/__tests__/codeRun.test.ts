@@ -143,7 +143,7 @@ describe('running code cells', () => {
     expect(m.value('s1', 0, 3)).toBe(1210);
     expect(m.code('s1', 0, 2)?.executionCount).toBe(1);
     expect(m.code('s1', 0, 2)?.lastRun).toBeDefined();
-    expect(m.code('s1', 0, 2)?.outputs[0]?.data).toEqual({ 'text/plain': '605' });
+    expect(m.code('s1', 0, 2)?.outputs).toEqual([]);
     // The run is one undo step.
     m.undo();
     expect(m.value('s1', 0, 2)).toBeNull();

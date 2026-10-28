@@ -129,6 +129,17 @@ export function toResult(value: CellValue): CodeResult {
   return isCellError(value) ? { error: value.error } : (value as CodeResult);
 }
 
+/** The output frame's default size, px: what a code cell with outputs gets when its `frame` is unset. */
+export const DEFAULT_CODE_FRAME = { width: 360, height: 240 } as const;
+
+/** The frame a code cell shows its outputs in: its own, the default, or none (`frame: null`, or nothing to show). */
+export function codeFrame(
+  code: CodeCell,
+): { readonly width: number; readonly height: number } | undefined {
+  if (code.frame === null || code.outputs.length === 0) return undefined;
+  return code.frame ?? DEFAULT_CODE_FRAME;
+}
+
 // ------------------------------------------------------------------ where code cells live
 
 /** The key of a position, by its row and column ids (materialised: the key follows the cell). */

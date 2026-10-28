@@ -35,6 +35,8 @@ const ENTRIES = {
   'bundle.xlsx.kB': { entry: 'lib/xlsx/index.js', external, noEcharts: true },
   'bundle.chrome.kB': { entry: 'lib/chrome/index.js', external, noEcharts: true },
   'bundle.charts.kB': { entry: 'lib/charts/index.js', external },
+  // `./jupyter` with its peers external: what the entry adds over jupyter-react.
+  'bundle.jupyter.kB': { entry: 'lib/jupyter/index.js', external, noEcharts: true },
   'bundle.chartsECharts.kB': {
     entry: 'lib/charts/index.js',
     external: external.filter((name) => !ECHARTS.includes(name)),

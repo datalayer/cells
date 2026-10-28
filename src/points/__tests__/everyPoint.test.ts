@@ -67,7 +67,7 @@ describe('the plugin reaches every point', () => {
           .some((c) => c.plugin === ACME_PLUGIN),
     ).map((p) => p.id);
     expect(missing).toEqual([]);
-    expect(CELLS_POINTS.length).toBe(18);
+    expect(CELLS_POINTS.length).toBe(19);
     expect(m.reactor.hasPlugin('@datalayer/cells-core')).toBe(true);
     expect(m.reactor.hasPlugin(ACME_PLUGIN)).toBe(true);
     expect(m.reactor.hasPlugin('@datalayer/cells-functions')).toBe(false);

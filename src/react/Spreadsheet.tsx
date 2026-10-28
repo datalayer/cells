@@ -69,6 +69,8 @@ import { type CellsTheme, checkTheme } from '../render/theme.js';
 import { cellAt, cellRect, headerAt, paneAt, type Viewport } from '../render/viewport.js';
 import { fontOf } from '../render/paint.js';
 import { ChartsLayer } from './ChartsLayer.js';
+import { CodeLayer } from './CodeLayer.js';
+import { codeRef } from '../core/code.js';
 import { ActionList, Overlay, registerPortalRoot, ThemeProvider } from '@primer/react';
 import {
   callAt,
@@ -518,6 +520,8 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
 
     // ------------------------------------------------------------ keyboard and pointer
     const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+    /** The code cell open in the contributed editor (*Open in editor*). */
+    const [codeEditing, setCodeEditing] = useState<{ row: number; col: number } | null>(null);
     /** Escape was pressed: the next Tab leaves the grid. */
     const leaving = useRef(false);
     const measure = useCallback(
@@ -553,6 +557,15 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
           );
           setMenu({ x: rect.x + rect.width / 2, y: rect.y + rect.height });
         },
+        focusOutput: (row: number, col: number) => {
+          const frame = rootRef.current?.querySelector<HTMLElement>(
+            `[data-cells-code-output="${codeRef(row, col)}"]`,
+          );
+          if (frame === null || frame === undefined) return false;
+          frame.focus({ preventScroll: false });
+          return true;
+        },
+        openCodeEditor: (row: number, col: number) => setCodeEditing({ row, col }),
       }),
       [model, scrollToCell],
     );
@@ -1407,6 +1420,20 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
                 selectedChart={model.selectedChart}
                 onPointerDownChart={(id) => model.selectChart(id)}
                 onChartKeyDown={chartKey}
+              />
+            )}
+            {viewport !== null && theme !== null && (
+              <CodeLayer
+                model={model}
+                sheet={sheet.id}
+                viewport={viewport}
+                theme={theme}
+                editing={codeEditing}
+                onCloseEditor={() => {
+                  setCodeEditing(null);
+                  rootRef.current?.focus({ preventScroll: true });
+                }}
+                onEscape={() => rootRef.current?.focus({ preventScroll: true })}
               />
             )}
             {edit !== null && viewport !== null && edit.sheet === sheet.id && theme !== null && (

@@ -263,13 +263,16 @@ export {
   codeAt,
   codeCell,
   codeCells,
+  codeFrame,
   codeProblem,
+  DEFAULT_CODE_FRAME,
   type SetCodeCommand,
 } from './code.js';
 export {
   AUTO_DEBOUNCE_MS,
   type CodePlace,
   codeProgram,
+  codeRendererOf,
   CodeRunner,
   codeRunner,
   NO_KERNEL,
