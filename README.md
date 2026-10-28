@@ -59,6 +59,7 @@ the [plugin example](https://cells.datalayer.tech/#/plugin).
 - [Keyboard](docs/keyboard.md): moving, selecting, editing, and the commands' keybindings.
 - [Functions](docs/functions.md): the built-in formula functions.
 - [Plugins](docs/plugins.md): extending Cells through its Reactor contribution points.
+- [Code cells](docs/code-cells.md): Python in a cell, run on a Jupyter kernel, its result in the grid and its outputs beside it; the security notes.
 - [File format](docs/format.md): `CellsWorkbook` JSON, its validation, and its version.
 - [Docusaurus](integrations/docusaurus/README.md): live sheets in a documentation site.
 

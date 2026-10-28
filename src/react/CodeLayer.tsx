@@ -68,6 +68,27 @@ export function outputsText(outputs: readonly CodeOutput[]): string {
   return parts.join('\n').trim();
 }
 
+/** The mime types an untrusted output keeps: text and images, never HTML, scripts, SVG (scripts in it) or widgets. */
+export const SAFE_MIMES = ['text/plain', 'image/png', 'image/jpeg', 'image/gif', 'text/latex'];
+
+/**
+ * Outputs as an untrusted frame shows them (§3.13, security): streams and
+ * errors as they are, a display's safe mime types only; a display with none
+ * left becomes a `text/plain` line saying what it held.
+ */
+export function safeOutputs(outputs: readonly CodeOutput[]): CodeOutput[] {
+  return outputs.map((o) => {
+    if (o.output_type === 'stream' || o.output_type === 'error') return o;
+    const data = ((o as { data?: Record<string, unknown> }).data ?? {}) as Record<string, unknown>;
+    const kept = Object.fromEntries(
+      Object.entries(data).filter(([mime]) => SAFE_MIMES.includes(mime)),
+    );
+    if (Object.keys(kept).length > 0) return { ...o, data: kept };
+    const held = Object.keys(data).join(', ') || 'nothing';
+    return { ...o, data: { 'text/plain': `[${held}: shown once the cell runs here]` } };
+  });
+}
+
 /** The pane a cell sits in: by the frozen extents. */
 export function paneOfCell(sheet: Sheet, row: number, col: number, panes: readonly Pane[]): Pane {
   const inRows = row < sheet.frozen.rows;
@@ -116,6 +137,8 @@ function Frame(props: {
   readonly theme: CellsTheme;
   readonly renderer: ComponentType<CodeOutputRendererProps> | undefined;
   readonly mounted: boolean;
+  /** Whether the outputs were made here; an untrusted frame shows their text and images only. */
+  readonly trusted: boolean;
   readonly onEscape?: () => void;
 }) {
   const { code, place, theme } = props;
@@ -126,13 +149,18 @@ function Frame(props: {
     () => props.model.codeState(props.sheet, props.row, props.col) !== 'running',
     () => true,
   );
-  const text = outputsText(code.outputs);
+  const outputs = props.trusted ? code.outputs : safeOutputs(code.outputs);
+  const text = outputsText(outputs);
+  const note = props.trusted
+    ? ''
+    : ' Untrusted: from a file or another person; HTML, scripts and widgets are shown once the cell runs here.';
   return (
     <div
       data-cells-code-output={ref}
       role="region"
       aria-label={`Output of ${ref}`}
-      aria-description={text.slice(0, 500) || undefined}
+      aria-description={`${text.slice(0, 500)}${note}`.trim() || undefined}
+      data-cells-code-untrusted={props.trusted ? undefined : ''}
       tabIndex={-1}
       style={{
         position: 'absolute',
@@ -159,7 +187,8 @@ function Frame(props: {
         <LazyOutputs
           heavy={heavy}
           renderer={props.renderer}
-          outputs={code.outputs}
+          outputs={outputs}
+          trusted={props.trusted}
           cell={ref}
           width={place.width}
           height={place.height}
@@ -174,6 +203,7 @@ function LazyOutputs(props: {
   readonly heavy: boolean;
   readonly renderer: ComponentType<CodeOutputRendererProps> | undefined;
   readonly outputs: readonly CodeOutput[];
+  readonly trusted: boolean;
   readonly cell: string;
   readonly width: number;
   readonly height: number;
@@ -194,6 +224,7 @@ function LazyOutputs(props: {
     );
   return createElement(props.renderer, {
     outputs: props.outputs,
+    trusted: props.trusted,
     cell: props.cell,
     width: props.width,
     height: props.height,
@@ -276,6 +307,7 @@ export function CodeLayer(props: CodeLayerProps) {
               theme={theme}
               renderer={Output}
               mounted={mounted.has(p)}
+              trusted={model.codeTrusted(sheet.id, p.row, p.col)}
               onEscape={props.onEscape}
             />
           ))}

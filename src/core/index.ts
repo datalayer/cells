@@ -282,6 +282,7 @@ export {
   readValues,
   RESULT_MIME,
 } from './codeRun.js';
+export { type Notebook, type NotebookCell, notebookText, toNotebook } from './notebook.js';
 export { CELLS_CODE_PLUGIN, CellsCodePlugin, CODE_COMMANDS } from '../builtins/code.js';
 export {
   CELLS_NAVIGATION_PLUGIN,

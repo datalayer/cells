@@ -108,6 +108,8 @@ export interface CellsModelOptions {
   readonly plugins?: readonly PlatformInput[];
   readonly limits?: Partial<Limits>;
   readonly readOnly?: boolean;
+  /** `false`: code cells are shown as they are (sources, results, outputs), but none is made, changed or run (§3.13). */
+  readonly codeCells?: boolean;
   readonly history?: Partial<HistoryLimits>;
   /** A `CellsWorkbook` to load; validated whole first, refused with the path of the first bad field. */
   readonly data?: unknown;
@@ -157,6 +159,8 @@ export class CellsModel {
   readonly reactor: ReactorPlatform;
   readonly workbook: Workbook;
   readonly readOnly: boolean;
+  /** Whether code cells may be made, changed and run here (`codeCells: false` shows them read-only). */
+  readonly codeCells: boolean;
   readonly #commands: PointTable<CommandHandler<any>>;
   readonly #patchOps: PointTable<PatchOp<any>>;
   readonly #functions: PointTable<FormulaFunction>;
@@ -166,6 +170,8 @@ export class CellsModel {
   readonly #sourceStore: DataSourceStore;
   /** Code cells' session state, by sheet and `rowId.colId`. */
   readonly #codeStates = new Map<string, Map<string, CodeState>>();
+  /** The code cells run here, by `sheet:rowId.colId`: their outputs are trusted (HTML and scripts drawn). */
+  readonly #codeTrusted = new Set<string>();
   readonly #sourceErrorListeners = new Set<(error: DataSourceError) => void>();
   readonly #engine: FormulaEngine;
   readonly #history: LocalHistory<SelectionState>;
@@ -203,6 +209,7 @@ export class CellsModel {
     }
     this.reactor = options.reactor ?? buildCellsReactor(options.plugins ?? []);
     this.readOnly = options.readOnly ?? false;
+    this.codeCells = options.codeCells ?? true;
     this.workbook = new Workbook({ ...DEFAULT_LIMITS, ...options.limits });
     this.#history = new LocalHistory({ ...DEFAULT_HISTORY_LIMITS, ...options.history });
     this.#commands = new PointTable(this.reactor, CellsCommands, {
@@ -358,6 +365,8 @@ export class CellsModel {
   /** Run a command: refused with reasons, or applied as one undo step (or into the open transaction). */
   dispatch(command: Command): CommandResult {
     if (this.readOnly) return refuse('ReadOnly', 'The workbook is read-only.');
+    if (!this.codeCells && command.type === 'SET_CODE')
+      return refuse('CodeCellsOff', 'Code cells are off here: they are shown, not changed.');
     const handler = this.#commands.get(command.type);
     if (handler === undefined) {
       return refuse('UnknownCommand', `No plugin handles the command '${command.type}'.`);
@@ -454,6 +463,9 @@ export class CellsModel {
     if (this.#open) throw new Error('Cannot replace the workbook inside a transaction.');
     // Validated before anything is dropped: a bad document leaves the workbook as it was.
     validateWorkbook(data, this.workbook.limits);
+    // Another document's outputs are not this session's: trusted again once run here.
+    this.#codeTrusted.clear();
+    this.#codeStates.clear();
     for (const sheet of this.workbook.sheets)
       for (const [row, col] of [...sheet.cells.entries()]) sheet.cells.set(row, col, null);
     this.workbook.sheets.length = 0;
@@ -825,6 +837,25 @@ export class CellsModel {
   codeState(sheet: string, row: number, col: number): CodeState | undefined {
     const s = this.workbook.sheet(sheet);
     return this.#codeStates.get(sheet)?.get(`${s.rows.idAt(row)}.${s.cols.idAt(col)}`);
+  }
+
+  /**
+   * Whether a code cell's outputs were made here (a run in this session): a
+   * loaded or shared workbook's outputs are untrusted until the cell runs
+   * again, and the frame draws their text and images only (§3.13, security).
+   */
+  codeTrusted(sheet: string, row: number, col: number): boolean {
+    const s = this.workbook.sheet(sheet);
+    return this.#codeTrusted.has(`${sheet}:${s.rows.idAt(row)}.${s.cols.idAt(col)}`);
+  }
+
+  /** Mark a code cell's outputs as made here (the runner, after a run); the grid repaints. */
+  setCodeTrusted(sheet: string, row: number, col: number): void {
+    const s = this.workbook.sheet(sheet);
+    const key = `${sheet}:${s.rows.materialize(row)}.${s.cols.materialize(col)}`;
+    if (this.#codeTrusted.has(key)) return;
+    this.#codeTrusted.add(key);
+    this.#emit({ label: 'code', commands: [], patches: [], origin: 'code' });
   }
 
   /** Set a code cell's session state; the grid repaints (`origin: 'code'`). */

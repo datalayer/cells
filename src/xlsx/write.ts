@@ -18,6 +18,7 @@
 import { strToU8, zipSync } from 'fflate';
 import { CHART_CONTENT_TYPE, chartPartXml, DRAWING_CONTENT_TYPE, drawingXml } from './charts.js';
 import type { CellsModel } from '../core/model.js';
+import type { CellsWorkbook } from '../core/format.js';
 import type { BorderSide, Style } from '../core/styles.js';
 import { type CellValue, isCellError } from '../core/values.js';
 import { columnLetters } from '../core/zone.js';
@@ -124,6 +125,30 @@ function stylesPart(styles: readonly Style[]): { xml: string; xfOf: number[] } {
   return { xml, xfOf };
 }
 
+/** Where the code cells' sources go in the package. */
+export const CODE_PART = 'customXml/cells-code.xml';
+
+/** The custom XML part holding every code cell's source and how it runs, by sheet name and cell; `undefined` with none. */
+export function codePartXml(json: CellsWorkbook): string | undefined {
+  const sheets = json.sheets.filter((s) => s.code !== undefined && Object.keys(s.code).length > 0);
+  if (sheets.length === 0) return undefined;
+  const cells = sheets.flatMap((s) =>
+    Object.entries(s.code!).map(
+      ([ref, c]) =>
+        `<cell sheet="${escape(s.name)}" ref="${ref}" language="${c.language}" run="${c.run}"` +
+        (c.frame === null
+          ? ' frame="none"'
+          : c.frame !== undefined
+            ? ` frameWidth="${c.frame.width}" frameHeight="${c.frame.height}"`
+            : '') +
+        (c.executionCount !== undefined ? ` executionCount="${c.executionCount}"` : '') +
+        (c.lastRun !== undefined ? ` lastRun="${escape(c.lastRun)}"` : '') +
+        `><source>${escape(c.source)}</source></cell>`,
+    ),
+  );
+  return `${XML}<cellsCode xmlns="https://datalayer.io/cells/code" version="1">${cells.join('')}</cellsCode>`;
+}
+
 /** Write a model's workbook as XLSX bytes. */
 export function writeXlsx(model: CellsModel): Uint8Array {
   const chartParts: string[] = []; // the chart parts' numbers, across sheets
@@ -142,6 +167,9 @@ export function writeXlsx(model: CellsModel): Uint8Array {
     return i;
   };
   const files: Record<string, Uint8Array> = {};
+  // Code cells (§3.13): XLSX has no place for code, so the sources go into a custom XML part, by
+  // sheet and cell; the result is the cell's cached value above; the outputs are not written.
+  const code = codePartXml(json);
   json.sheets.forEach((sheet, n) => {
     const s = model.sheet(sheet.id);
     const parts: string[] = [`${XML}<worksheet xmlns="${NS}" xmlns:r="${REL}">`];
@@ -297,8 +325,12 @@ export function writeXlsx(model: CellsModel): Uint8Array {
     `${XML}<Relationships xmlns="${PKG_REL}">${sheetRels}` +
       `<Relationship Id="rId${k + 1}" Type="${REL}/styles" Target="styles.xml"/>` +
       `<Relationship Id="rId${k + 2}" Type="${REL}/sharedStrings" Target="sharedStrings.xml"/>` +
+      (code === undefined
+        ? ''
+        : `<Relationship Id="rId${k + 3}" Type="${REL}/customXml" Target="../customXml/cells-code.xml"/>`) +
       '</Relationships>',
   );
+  if (code !== undefined) files[CODE_PART] = strToU8(code);
   files['xl/styles.xml'] = strToU8(stylesXml);
   files['xl/sharedStrings.xml'] = strToU8(
     `${XML}<sst xmlns="${NS}" count="${strings.length}" uniqueCount="${strings.length}">` +

@@ -16,7 +16,9 @@
 import { contribution, definePlugin } from '@datalayer/reactor';
 import { codeCell } from '../core/code.js';
 import { codeRunner } from '../core/codeRun.js';
-import { CellsMenuItems } from '../points/index.js';
+import { notebookText } from '../core/notebook.js';
+import type { CellsModel } from '../core/model.js';
+import { CellsExporters, CellsMenuItems } from '../points/index.js';
 import { type CellsCommand, type CellsCommandArgument, gridKeysDescription } from './editing.js';
 import { cellsArgument, currentCellsCommandTarget } from './target.js';
 
@@ -123,11 +125,24 @@ export const CellsCodePlugin = definePlugin({
   description: 'Code cells: make one, run it on a kernel, run them all, interrupt.',
   octicon: 'code',
   commands: [...CODE_COMMANDS],
-  contributes: ['insert', 'run', 'openEditor', 'goToOutput', 'runAll'].map((id, i) =>
-    contribution(
-      CellsMenuItems,
-      { command: `cells.code.${id}`, group: 'code' },
-      { id: `cells.code.${id}`, order: 170 + i },
+  contributes: [
+    ...['insert', 'run', 'openEditor', 'goToOutput', 'runAll'].map((id, i) =>
+      contribution(
+        CellsMenuItems,
+        { command: `cells.code.${id}`, group: 'code' },
+        { id: `cells.code.${id}`, order: 170 + i },
+      ),
     ),
-  ),
+    // The code cells as a notebook (§3.13): one code cell each, in reading order, with its outputs.
+    contribution(
+      CellsExporters,
+      {
+        id: 'ipynb',
+        mime: 'application/x-ipynb+json',
+        extension: '.ipynb',
+        write: async (model) => notebookText((model as CellsModel).workbook),
+      },
+      { id: 'ipynb', order: 130 },
+    ),
+  ],
 });

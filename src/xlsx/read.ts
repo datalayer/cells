@@ -26,6 +26,8 @@ import { translateFormula } from '../formula/normal.js';
 import { BUILTIN_FORMATS } from './formats.js';
 import { type Attributes, decode, scan } from './xml.js';
 import { readSheetCharts } from './charts.js';
+import { type CodeCell, type CodeResult, codeProblem } from '../core/code.js';
+import { CODE_PART } from './write.js';
 
 /** What an import met and left out, and what it changed, for the person who opened the file. */
 export interface ImportReport {
@@ -38,6 +40,8 @@ export interface ImportReport {
   readonly chartsImported: number;
   /** One line per chart, or part of one, that is not drawn: 3-D (imported as 2-D), radar, bubble, `cx:` parts, chart sheets, literal series, trendlines… */
   readonly charts: readonly string[];
+  /** Code cells read back from `customXml/cells-code.xml` (§3.13), and the line saying their outputs are not in the file. */
+  readonly code: readonly string[];
 }
 
 /** Column letters to an index: `A` is 0. */
@@ -544,6 +548,7 @@ export function readXlsx(bytes: Uint8Array): { workbook: CellsWorkbook; report: 
       ...(Object.keys(charts).length > 0 ? { charts } : {}),
     };
   });
+  const codeLines = readCodePart(text(CODE_PART), sheets);
   for (const path of Object.keys(files)) {
     if (/^xl\/chartsheets\/sheet\d+\.xml$/.test(path))
       chartLines.push(`${path}: a chart sheet was not imported.`);
@@ -567,6 +572,72 @@ export function readXlsx(bytes: Uint8Array): { workbook: CellsWorkbook; report: 
       skipped: [...skipped].map(([feature, count]) => ({ feature, count })),
       chartsImported,
       charts: chartLines,
+      code: codeLines,
     },
   };
+}
+
+/**
+ * The code cells of `customXml/cells-code.xml` back onto their sheets: the
+ * source and how it runs from the part, the result from the cell's cached
+ * value, the outputs gone (XLSX holds none), which the report says.
+ */
+function readCodePart(xml: string | undefined, sheets: CellsSheet[]): string[] {
+  if (xml === undefined) return [];
+  const byName = new Map(sheets.map((s) => [s.name, s]));
+  const code = new Map<CellsSheet, Record<string, CodeCell>>();
+  let count = 0;
+  let current: { sheet: CellsSheet; ref: string; attrs: Record<string, string> } | undefined;
+  let source = '';
+  let inSource = false;
+  scan(xml, {
+    open(name, a) {
+      if (name === 'cell') {
+        const sheet = byName.get(a.sheet ?? '');
+        current = sheet === undefined ? undefined : { sheet, ref: a.ref ?? '', attrs: a };
+        source = '';
+      } else if (name === 'source') inSource = true;
+    },
+    text(t) {
+      if (inSource) source += t;
+    },
+    close(name) {
+      if (name === 'source') inSource = false;
+      if (name !== 'cell' || current === undefined) return;
+      const { sheet, ref, attrs } = current;
+      const m = /^([A-Z]{1,3})([1-9][0-9]*)$/.exec(ref);
+      if (m === null) return;
+      let col = -1;
+      for (const ch of m[1]) col = (col + 1) * 26 + ch.charCodeAt(0) - 65;
+      const cached = sheet.rows[String(Number(m[2]) - 1)]?.cells[String(col)]?.v;
+      const cell: CodeCell = {
+        source,
+        language: 'python',
+        outputs: [],
+        result: cached === undefined ? null : (cached as CodeResult),
+        run: attrs.run === 'auto' ? 'auto' : 'manual',
+        ...(attrs.executionCount !== undefined
+          ? { executionCount: Number(attrs.executionCount) }
+          : {}),
+        ...(attrs.lastRun !== undefined ? { lastRun: attrs.lastRun } : {}),
+        ...(attrs.frame === 'none'
+          ? { frame: null }
+          : attrs.frameWidth !== undefined && attrs.frameHeight !== undefined
+            ? { frame: { width: Number(attrs.frameWidth), height: Number(attrs.frameHeight) } }
+            : {}),
+      };
+      if (codeProblem(cell) !== undefined) return;
+      let map = code.get(sheet);
+      if (map === undefined) code.set(sheet, (map = {}));
+      map[ref] = cell;
+      count += 1;
+      current = undefined;
+    },
+  });
+  for (const [sheet, map] of code) (sheet as { code?: Record<string, CodeCell> }).code = map;
+  return count === 0
+    ? []
+    : [
+        `${count} code cell${count === 1 ? '' : 's'} read from ${CODE_PART}: the sources and the results, as cached values; the outputs are not in XLSX and were dropped.`,
+      ];
 }

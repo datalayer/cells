@@ -32,6 +32,7 @@ describe('the XLSX reader, on the round-trip workbooks', () => {
       skipped: [],
       chartsImported: 0,
       charts: [],
+      code: [],
     });
     expect(m.sheets.map((s) => s.name)).toEqual(['Sheet1', 'Data']);
     expect(m.toRows({ top: 0, left: 0, bottom: 3, right: 3 })).toEqual([

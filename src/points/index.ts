@@ -289,6 +289,8 @@ export interface CodeOutputRendererProps {
   readonly cell: string;
   readonly width: number;
   readonly height: number;
+  /** Whether the outputs were made here: untrusted ones come with their HTML, scripts and widgets already left out. */
+  readonly trusted: boolean;
 }
 
 /** What a code editor renderer edits: the cell's source, the model to write back to, and how to close. */

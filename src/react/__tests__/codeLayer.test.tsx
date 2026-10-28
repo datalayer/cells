@@ -26,7 +26,7 @@ import {
   createCellsModel,
   Spreadsheet,
 } from '../../index.js';
-import { CODE_FRAMES_CAP, outputsText, placeFrame } from '../CodeLayer.js';
+import { CODE_FRAMES_CAP, outputsText, placeFrame, safeOutputs } from '../CodeLayer.js';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -226,5 +226,56 @@ describe('the output frames of code cells', () => {
     expect(document.activeElement).toBe(grid);
     m.undo();
     expect(m.code('s1', 1, 1)?.source).toBe('1 + 1');
+  });
+
+  it("shows an untrusted cell's text and images only, and everything once it ran here", async () => {
+    const html = {
+      output_type: 'display_data' as const,
+      data: { 'text/html': '<b>bold</b>', 'text/plain': 'plain' },
+      metadata: {},
+    };
+    const script = {
+      output_type: 'display_data' as const,
+      data: { 'application/javascript': 'alert(1)' },
+      metadata: {},
+    };
+    expect(safeOutputs([html, script, stream('out')])).toEqual([
+      { ...html, data: { 'text/plain': 'plain' } },
+      {
+        ...script,
+        data: { 'text/plain': '[application/javascript: shown once the cell runs here]' },
+      },
+      stream('out'),
+    ]);
+    const seen: { trusted: boolean; mimes: string[] }[] = [];
+    function Probe({ outputs, trusted }: CodeOutputRendererProps) {
+      seen.push({ trusted, mimes: Object.keys((outputs[0] as unknown as { data: object }).data) });
+      return null;
+    }
+    const plugin = definePlugin({
+      name: 'probe',
+      contributes: [
+        contribution(CellsCodeRenderer, { id: 'probe', output: Probe }, { id: 'probe' }),
+      ],
+    });
+    const { m, div } = mount([plugin]);
+    await tick();
+    // From a file: untrusted.
+    m.replaceData({
+      ...m.toJSON(),
+      sheets: [
+        {
+          ...m.toJSON().sheets[0],
+          code: { B2: codeCell('x', { outputs: [html], result: null }) },
+        },
+      ],
+    });
+    await tick();
+    expect(div.querySelector('[data-cells-code-untrusted]')).not.toBeNull();
+    expect(seen.at(-1)).toEqual({ trusted: false, mimes: ['text/plain'] });
+    act(() => m.setCodeTrusted('s1', 1, 1));
+    await tick();
+    expect(div.querySelector('[data-cells-code-untrusted]')).toBeNull();
+    expect(seen.at(-1)).toEqual({ trusted: true, mimes: ['text/html', 'text/plain'] });
   });
 });

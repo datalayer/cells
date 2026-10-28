@@ -244,8 +244,10 @@ export class CodeRunner {
     return this.#kernel;
   }
 
-  /** Run one code cell; resolves once its result is written. Refused (thrown) with no kernel. */
+  /** Run one code cell; resolves once its result is written. Refused (thrown) with no kernel, or with code cells off. */
   run(place: CodePlace): Promise<void> {
+    if (!this.model.codeCells)
+      return Promise.reject(new Error('Code cells are off here: they are shown, not run.'));
     const provider = this.provider();
     if (provider === undefined) return Promise.reject(new Error(NO_KERNEL));
     const run = this.#queue.then(() => this.#runNow(provider, place));
@@ -319,6 +321,7 @@ export class CodeRunner {
     m.transact('Run code', () =>
       m.dispatch({ type: 'SET_CODE', sheet: place.sheet, row: at.row, col: at.col, code: after }),
     );
+    m.setCodeTrusted(place.sheet, at.row, at.col);
     this.#seen.set(`${place.sheet}:${key}`, fingerprint(m, place.sheet, after.source));
     this.#check();
   }
