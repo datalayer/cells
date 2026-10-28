@@ -27,6 +27,8 @@ import {
   useSyncExternalStore,
 } from 'react';
 import type { CellContent } from '../core/cells.js';
+import type { CodeCell } from '../core/code.js';
+import type { CodeState } from '../core/model.js';
 import {
   type ChartData,
   type ChartAnchor,
@@ -163,6 +165,34 @@ export function useCell(ref: string): {
 /** What a cell shows. */
 export function useCellValue(ref: string): CellValue {
   return useCell(ref).value;
+}
+
+/**
+ * A code cell (§3.13): its content (source, outputs, result, run) and its
+ * session state (`running`, `stale`), with a setter for each: `setCode`
+ * dispatches `SET_CODE` (one undo step, `null` makes it a plain cell), and
+ * `setState` is for a runner. `ref` is `B3` or `Sheet2!B3`.
+ */
+export function useCodeCell(ref: string): {
+  code: CodeCell | undefined;
+  state: CodeState | undefined;
+  setCode: (code: CodeCell | null) => CommandResult;
+  setState: (state: CodeState | undefined) => void;
+} {
+  const model = useCells();
+  return useDerived(
+    (m) => {
+      const { sheet, row, col } = resolveCell(m, ref);
+      return {
+        code: m.code(sheet, row, col),
+        state: m.codeState(sheet, row, col),
+        setCode: (code: CodeCell | null) =>
+          model.dispatch({ type: 'SET_CODE', sheet, row, col, code }),
+        setState: (state: CodeState | undefined) => model.setCodeState(sheet, row, col, state),
+      };
+    },
+    [ref],
+  );
 }
 
 /** What a range shows, as rows. `ref` is `A1:D20` or `Sheet2!A1:D20`. */

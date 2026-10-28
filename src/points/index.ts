@@ -132,14 +132,17 @@ export type CellActivation =
  */
 export interface CellType {
   readonly id: string;
-  /** Draw the cell's value in its rectangle (already clipped to it); `style` is the cell's, `theme` the grid's. */
+  /** Draw the cell's value in its rectangle (already clipped to it); `style` is the cell's, `theme` the grid's, `cell` where it is. */
   render(
     ctx: CanvasRenderingContext2D,
     rect: CellRect,
     value: CellValue,
     style: Style,
     theme: CellsTheme,
+    cell?: CellTypeCell,
   ): void;
+  /** Drawn even with no value (a code cell not run yet shows its source). */
+  readonly paintsEmpty?: boolean;
   /** The width the cell wants (`cells.fitColumns`), in px; `text` measures a string in the cell's font. */
   measure?(value: CellValue, style: Style, text: (s: string) => number): number | undefined;
   /** Whether a point of the cell (relative to its rectangle) activates it; the whole cell when absent and `activate` is given. */
@@ -155,9 +158,18 @@ export interface CellType {
   /** `false`: typing over the cell does not open the editor (F2 still does). */
   readonly editable?: boolean;
   /** What a screen reader hears for the cell, instead of the value's text. */
-  accessibleName?(value: CellValue, style: Style): string;
+  accessibleName?(value: CellValue, style: Style, cell?: CellTypeCell): string;
   /** A React component editing this type; typed loosely so the core needs no React. */
   readonly editor?: unknown;
+}
+
+/** Where a typed cell is, for a type that reads more than its value: the sheet, the position and the grid's `CellsModel`. */
+export interface CellTypeCell {
+  readonly sheet: string;
+  readonly row: number;
+  readonly col: number;
+  /** The `CellsModel` (typed loosely, as a render layer's). */
+  readonly model: unknown;
 }
 
 /** What a render layer draws into: one pane of the viewport, clipped to it, in CSS px with the zoom applied. */

@@ -181,6 +181,12 @@ function errorMeaning(code: string): string {
 /** The accessible name of a cell: what it shows, then its formula, then what an error means. */
 export function accessibleName(model: CellsModel, sheet: string, row: number, col: number): string {
   const content = model.content(sheet, row, col);
+  if (content !== null && content.value === null && content.formula === undefined) {
+    // An empty typed cell that paints itself (a code cell not run yet) still has a name.
+    const empty = model.cellType(sheet, row, col)?.value;
+    if (empty?.paintsEmpty === true && empty.accessibleName !== undefined)
+      return empty.accessibleName(null, model.style(sheet, row, col), { sheet, row, col, model });
+  }
   if (content === null) {
     // A bound cell whose page is away says so (`#BUSY!`), or is empty.
     const bound = model.dataSource(sheet)?.zone;
@@ -194,7 +200,7 @@ export function accessibleName(model: CellsModel, sheet: string, row: number, co
   const type = model.cellType(sheet, row, col)?.value;
   let name =
     type?.accessibleName !== undefined
-      ? type.accessibleName(value, style)
+      ? type.accessibleName(value, style, { sheet, row, col, model })
       : display(value, style.format).text;
   if (content.formula !== undefined) name += `, formula: =${content.formula}`;
   if (isCellError(value)) name += `, ${errorMeaning(value.error)}`;

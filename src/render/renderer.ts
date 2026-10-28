@@ -379,7 +379,8 @@ export class CanvasRenderer {
       tx.origin === 'load' ||
       tx.origin === 'plugins' ||
       tx.origin === 'async' ||
-      tx.origin === 'source'
+      tx.origin === 'source' ||
+      tx.origin === 'code'
         ? 'all'
         : rowsTouched(tx.patches, this.#sheet);
     // A changed cell may change any formula: the whole view, until the dependency graph says which.

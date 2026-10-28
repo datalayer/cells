@@ -96,9 +96,9 @@ describe('the type assignment', () => {
     expect(m.cellType('s1', 0, 1)?.value).toBe(link);
     expect(m.cellType('s1', 0, 2)?.value).toBe(progress);
     expect(m.cellType('s1', 5, 5)).toBeUndefined();
-    expect(m.cellTypeIds()).toEqual(['checkbox', 'link', 'progress']);
+    expect(m.cellTypeIds()).toEqual(['checkbox', 'code', 'link', 'progress']);
     expect(m.cellTypeOf('progress')?.value).toBe(progress);
-    expect(CELL_TYPES.map((t) => t.id)).toEqual(['checkbox', 'link', 'progress']);
+    expect(CELL_TYPES.map((t) => t.id)).toEqual(['checkbox', 'link', 'progress', 'code']);
   });
 
   it('draws a type no plugin contributes as a plain value, and follows the plugin off and on', () => {

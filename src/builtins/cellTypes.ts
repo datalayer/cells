@@ -19,7 +19,10 @@ import {
   type CellRect,
   CellsCellTypes,
   type CellType,
+  type CellTypeCell,
 } from '../points/index.js';
+import type { CellsModel } from '../core/model.js';
+import { display } from '../render/numberFormat.js';
 import type { Style } from '../core/styles.js';
 import { type CellValue, isCellError } from '../core/values.js';
 import type { CellsTheme } from '../render/theme.js';
@@ -232,14 +235,110 @@ export const progress: CellType = {
   },
 };
 
+// ------------------------------------------------------------------ code
+
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace';
+
+/** The first line of a source, trimmed. */
+export function firstLine(source: string): string {
+  return source.trim().split('\n')[0]?.trim() ?? '';
+}
+
+/** What a code cell reads as (§3.13): "Code, last run 10:42, result 42" (or not run, running, stale, an error). */
+export function codeName(value: CellValue, cell: CellTypeCell | undefined): string {
+  const m = cell?.model as CellsModel | undefined;
+  const code = m?.code(cell!.sheet, cell!.row, cell!.col);
+  const state = m?.codeState(cell!.sheet, cell!.row, cell!.col);
+  const parts = ['Code'];
+  if (state === 'running') parts.push('running');
+  else if (code?.lastRun !== undefined) {
+    const t = new Date(code.lastRun);
+    const hh = String(t.getHours()).padStart(2, '0');
+    const mm = String(t.getMinutes()).padStart(2, '0');
+    parts.push(`last run ${hh}:${mm}`);
+  } else parts.push('not run');
+  if (state === 'stale') parts.push('stale');
+  if (state !== 'running') {
+    if (value !== null)
+      parts.push(`result ${isCellError(value) ? value.error : display(value).text}`);
+    else if (code !== undefined && code.lastRun === undefined) parts.push(firstLine(code.source));
+  }
+  return parts.join(', ');
+}
+
+/**
+ * A code cell (§3.13, C11-02): a badge, then the result as a value would show
+ * (or, before its first run, the source's first line in monospace), `#BUSY!`
+ * while it runs, and a corner mark when what it reads changed since its run.
+ */
+export const code: CellType = {
+  id: 'code',
+  paintsEmpty: true,
+  editable: false,
+  render(ctx, rect, value, style, theme, cell) {
+    const m = cell?.model as CellsModel | undefined;
+    const source = cell !== undefined ? m?.code(cell.sheet, cell.row, cell.col) : undefined;
+    const state = cell !== undefined ? m?.codeState(cell.sheet, cell.row, cell.col) : undefined;
+    const z = rect.zoom;
+    // The badge: a small rounded square with a chevron, in the accent colour.
+    const size = Math.max(6, Math.min(12 * z, rect.height - 6 * z));
+    const bx = rect.x + PADDING * z;
+    const by = rect.y + (rect.height - size) / 2;
+    ctx.strokeStyle = theme.activeCellBorder;
+    ctx.lineWidth = Math.max(1, z);
+    ctx.strokeRect(bx + 0.5, by + 0.5, size - 1, size - 1);
+    ctx.beginPath();
+    ctx.moveTo(bx + size * 0.3, by + size * 0.3);
+    ctx.lineTo(bx + size * 0.55, by + size * 0.5);
+    ctx.lineTo(bx + size * 0.3, by + size * 0.7);
+    ctx.moveTo(bx + size * 0.6, by + size * 0.72);
+    ctx.lineTo(bx + size * 0.78, by + size * 0.72);
+    ctx.stroke();
+    const after = { ...rect, x: bx + size, width: rect.width - (bx + size - rect.x) };
+    if (state === 'running') {
+      drawPlainText(ctx, after, '#BUSY!', style, theme, theme.errorText, 'right');
+    } else if (value !== null) {
+      const shown = display(value, style.format);
+      const color = isCellError(value) ? theme.errorText : (style.color ?? theme.text);
+      const align =
+        style.align ?? (typeof value === 'number' || isCellError(value) ? 'right' : 'left');
+      drawPlainText(
+        ctx,
+        after,
+        shown.text,
+        style,
+        theme,
+        color,
+        align === 'center' ? 'center' : align,
+      );
+    } else if (source !== undefined) {
+      const mono = { ...style, font: theme.monoFontFamily ?? MONO };
+      drawPlainText(ctx, after, firstLine(source.source), mono, theme, theme.textMuted, 'left');
+    }
+    if (state === 'stale') {
+      // The stale mark: a triangle in the top-right corner.
+      const t = Math.max(4, 6 * z);
+      ctx.fillStyle = theme.textMuted;
+      ctx.beginPath();
+      ctx.moveTo(rect.x + rect.width - t, rect.y);
+      ctx.lineTo(rect.x + rect.width, rect.y);
+      ctx.lineTo(rect.x + rect.width, rect.y + t);
+      ctx.closePath();
+      ctx.fill();
+    }
+  },
+  measure: (value, _style, text) => text(textOf(value)) + 18 + 2 * PADDING,
+  accessibleName: (value, _style, cell) => codeName(value, cell),
+};
+
 /** The built-in cell types, in the order they are contributed. */
-export const CELL_TYPES: readonly CellType[] = [checkbox, link, progress];
+export const CELL_TYPES: readonly CellType[] = [checkbox, link, progress, code];
 
 /** Checkbox, link and progress bar, through the `datalayer.cells.cellType` point. */
 export const CellsCellTypesPlugin = definePlugin({
   name: CELLS_CELL_TYPES_PLUGIN,
   displayName: 'Cell types',
-  description: 'The built-in cell types: checkbox, link and progress bar.',
+  description: 'The built-in cell types: checkbox, link, progress bar and code.',
   octicon: 'checkbox',
   contributes: CELL_TYPES.map((type) =>
     contribution(CellsCellTypes, type, { id: type.id, order: 100 }),

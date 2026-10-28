@@ -58,6 +58,10 @@ import type { Style } from './styles.js';
 import { type CellsWorkbook, loadInto, toJSON, validateWorkbook } from './format.js';
 import type { CellValue } from './values.js';
 import { DEFAULT_LIMITS, type Limits, type Sheet, Workbook } from './workbook.js';
+import { type CodeCell, codeAt } from './code.js';
+
+/** A code cell's session state (§3.13): running, or stale since what it reads changed. */
+export type CodeState = 'running' | 'stale';
 import { type Position, type Zone, zonesOverlap, zoneToA1 } from './zone.js';
 
 const zoneHelpers = { zonesOverlap, zoneToA1 };
@@ -77,7 +81,9 @@ export type Origin =
   | 'async'
   | 'charts'
   /** No patches: a data source's page arrived, failed or was evicted (C7-03). */
-  | 'source';
+  | 'source'
+  /** No patches: a code cell started or finished running, or turned stale (§3.13). */
+  | 'code';
 
 /** One committed change: what listeners and `onChange` receive. */
 export interface Transaction {
@@ -158,6 +164,8 @@ export class CellsModel {
   readonly #dataSources: PointTable<DataSource>;
   readonly #renderLayers: PointTable<RenderLayer>;
   readonly #sourceStore: DataSourceStore;
+  /** Code cells' session state, by sheet and `rowId.colId`. */
+  readonly #codeStates = new Map<string, Map<string, CodeState>>();
   readonly #sourceErrorListeners = new Set<(error: DataSourceError) => void>();
   readonly #engine: FormulaEngine;
   readonly #history: LocalHistory<SelectionState>;
@@ -806,6 +814,29 @@ export class CellsModel {
   cellType(sheet: string, row: number, col: number): Resolved<CellType> | undefined {
     const type = this.style(sheet, row, col).type;
     return type === undefined ? undefined : this.#cellTypes.get(type);
+  }
+
+  /** The code cell at a position (§3.13), or `undefined`. */
+  code(sheet: string, row: number, col: number): CodeCell | undefined {
+    return codeAt(this.workbook.sheet(sheet), row, col);
+  }
+
+  /** A code cell's session state: `running`, `stale` (what it reads changed since its run), or `undefined`. Never saved. */
+  codeState(sheet: string, row: number, col: number): CodeState | undefined {
+    const s = this.workbook.sheet(sheet);
+    return this.#codeStates.get(sheet)?.get(`${s.rows.idAt(row)}.${s.cols.idAt(col)}`);
+  }
+
+  /** Set a code cell's session state; the grid repaints (`origin: 'code'`). */
+  setCodeState(sheet: string, row: number, col: number, state: CodeState | undefined): void {
+    const s = this.workbook.sheet(sheet);
+    const key = `${s.rows.materialize(row)}.${s.cols.materialize(col)}`;
+    let states = this.#codeStates.get(sheet);
+    if (states === undefined) this.#codeStates.set(sheet, (states = new Map()));
+    if (states.get(key) === state) return;
+    if (state === undefined) states.delete(key);
+    else states.set(key, state);
+    this.#emit({ label: 'code', commands: [], patches: [], origin: 'code' });
   }
 
   /** A cell type by its id, or `undefined`. */

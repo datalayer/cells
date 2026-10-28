@@ -44,6 +44,8 @@ export interface CellsTheme {
   readonly chartBackground: string;
   /** Under `forced-colors: active`: the selection is an outline, never a fill. */
   readonly forcedColors?: boolean;
+  /** The font of code (a code cell's source); a monospace list by default. */
+  readonly monoFontFamily?: string;
 }
 
 const FONT =

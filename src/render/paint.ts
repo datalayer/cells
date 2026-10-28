@@ -240,9 +240,11 @@ function paintPane(input: PaintInput, pane: Pane, stats: PaintStats): void {
     const style = styles.get(content?.style ?? 0);
     ctx.fillStyle = style.fill ?? theme.background;
     ctx.fillRect(box.x, box.y, box.width, box.height);
-    if (content !== null && !isEmpty(content)) {
-      const type = typeOf(input, style);
-      if (type !== undefined) drawTyped(input, type, box, input.value(m.top, m.left), style, stats);
+    const mergeType = content === null ? undefined : typeOf(input, style);
+    if (content !== null && (!isEmpty(content) || mergeType?.paintsEmpty === true)) {
+      const type = mergeType;
+      if (type !== undefined)
+        drawTyped(input, type, box, input.value(m.top, m.left), style, stats, m.top, m.left);
       else
         drawText(
           input,
@@ -280,13 +282,15 @@ function paintPane(input: PaintInput, pane: Pane, stats: PaintStats): void {
         content = { value: away, style: 0 };
         stats.cells += 1;
       }
-      if (content === null || isEmpty(content) || inMerge(r, c)) continue;
+      if (content === null || inMerge(r, c)) continue;
       const style = styles.get(content.style);
-      const cell = rect(r, c);
       const type = typeOf(input, style);
+      if (isEmpty(content) && type?.paintsEmpty !== true) continue;
+      const cell = rect(r, c);
       if (type !== undefined) {
         // A typed cell is drawn by its type, in its own rectangle: it never overflows.
-        if (k >= lookback.length) drawTyped(input, type, cell, input.value(r, c), style, stats);
+        if (k >= lookback.length)
+          drawTyped(input, type, cell, input.value(r, c), style, stats, r, c);
         continue;
       }
       const shown = display(input.value(r, c), style.format, input.locale);
@@ -403,6 +407,8 @@ function drawTyped(
   value: CellValue,
   style: Style,
   stats: PaintStats,
+  row: number,
+  col: number,
 ): void {
   const { ctx } = input;
   ctx.save();
@@ -415,7 +421,12 @@ function drawTyped(
     height: cell.height - 1,
     zoom: input.viewport.zoom,
   };
-  type.render(ctx, inner, value, style, input.theme);
+  type.render(ctx, inner, value, style, input.theme, {
+    sheet: input.sheet.id,
+    row,
+    col,
+    model: input.model,
+  });
   ctx.restore();
   stats.texts += 1;
 }

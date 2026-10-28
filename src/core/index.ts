@@ -70,6 +70,7 @@ export {
   type ChangeListener,
   createCellsModel,
   type ClipboardMark,
+  type CodeState,
   type EditListener,
   type EditState,
   type Origin,

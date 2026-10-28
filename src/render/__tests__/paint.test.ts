@@ -13,6 +13,7 @@ import { describe, expect, it } from 'vitest';
 import { contribution, definePlugin } from '@datalayer/reactor';
 import {
   type CellsModel,
+  codeCell,
   CellsDataSources,
   createCellsModel,
   type DataSource,
@@ -279,6 +280,66 @@ describe('the paint rules', async () => {
       active: { row: 2, col: 1 },
     });
     await expectSnapshot(paint(m, { overlay: true }), 'selection');
+  });
+
+  it('draws code cells: a result, not run yet (its source), running, stale, an error; light, dark, forced colours', async () => {
+    const coded = () => {
+      const m = model([
+        ['Units', 'Code'],
+        [12, null],
+        [15, null],
+        [19, null],
+        [null, null],
+        [null, null],
+      ]);
+      const at = (
+        row: number,
+        code: Parameters<typeof codeCell>[1],
+        source = 'sum(cells["A2:A4"])',
+      ) => m.dispatch({ type: 'SET_CODE', sheet: 's1', row, col: 1, code: codeCell(source, code) });
+      at(1, { result: 46, lastRun: '2026-10-28T10:42:00.000Z', executionCount: 1 });
+      at(2, {}, 'import pandas as pd\ndf = cells["A1:A4"]');
+      at(3, { result: 46, lastRun: '2026-10-28T10:42:00.000Z' });
+      at(4, { result: 46, lastRun: '2026-10-28T10:42:00.000Z' });
+      at(5, { result: { error: '#ERROR!' }, lastRun: '2026-10-28T10:43:00.000Z' }, '1/0');
+      m.setCodeState('s1', 3, 1, 'running');
+      m.setCodeState('s1', 4, 1, 'stale');
+      return m;
+    };
+    const mono = { monoFontFamily: 'TestSans' };
+    await expectSnapshot(
+      paint(coded(), { width: 320, height: 160, theme: { ...TEST_THEME, ...mono } }),
+      'code-cells',
+    );
+    await expectSnapshot(
+      paint(coded(), {
+        width: 320,
+        height: 160,
+        theme: { ...DARK_THEME, fontFamily: 'TestSans', ...mono },
+      }),
+      'code-cells-dark',
+    );
+    await expectSnapshot(
+      paint(coded(), {
+        width: 320,
+        height: 160,
+        theme: {
+          ...FORCED_COLORS_THEME,
+          background: '#ffffff',
+          text: '#000000',
+          textMuted: '#808080',
+          gridline: '#808080',
+          headerBackground: '#ffffff',
+          headerText: '#000000',
+          headerBorder: '#000000',
+          activeCellBorder: '#1a5fb4',
+          errorText: '#000000',
+          fontFamily: 'TestSans',
+          ...mono,
+        },
+      }),
+      'code-cells-forced',
+    );
   });
 
   it('draws in the dark theme, and in forced colours with an outline for the selection', async () => {
