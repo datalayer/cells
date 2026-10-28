@@ -43,7 +43,10 @@ export default defineConfig({
   plugins: [react(), wasm(), textQuery()],
   optimizeDeps: { exclude: ['loro-crdt', '@datalayer/lexical-loro'] },
   // JupyterLab's packages (through jupyter-react, on the code cells page) read `global`.
-  define: { global: 'globalThis' },
+  // As jupyter-react's own Vite configs: JupyterLab's packages and the ipywidgets
+  // embed read webpack's public path, which Vite does not define (the code editor
+  // overlay threw "__webpack_public_path__ is not defined" on a double-click).
+  define: { global: 'globalThis', __webpack_public_path__: '""', 'process.env': {} },
   worker: { format: 'es' },
   // JupyterLab's wheels, fetched by the browser kernel, travel as assets.
   assetsInclude: ['**/*.whl'],
