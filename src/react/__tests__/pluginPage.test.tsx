@@ -7,7 +7,7 @@
 // @vitest-environment jsdom
 
 /**
- * The examples' *A Reactor plugin* page (C7-01): a grid on the core plugin
+ * The examples' *A Reactor Plugin* page (C7-01): a grid on the core plugin
  * and `@acme/everything` alone, the points table naming what the plugin
  * contributes to each, the toolbar with the plugin's commands, the gate's
  * refusal, and the duplicate refused at start with its sentence.

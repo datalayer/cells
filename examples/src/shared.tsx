@@ -4,16 +4,21 @@
  * MIT License
  */
 
-/** What every example shares: the "coming in" notes, and a frame for a grid. */
+/** What every example shares: the "coming soon" notes, and a frame for a grid. */
 
+import { Flash } from '@primer/react';
 import type { ReactNode } from 'react';
 
-/** Says what is not built yet, and the milestone that brings it. */
-export function Soon({ milestone, children }: { milestone: string; children: ReactNode }) {
+/**
+ * Says what is not built yet (no plan ids: the site is public): Primer's warning flash, in the
+ * site's theme. (primer-addons' CloseableFlash, the same Flash with a close button, logs React
+ * warnings for `justifyContent` and `alignItems` on its inner Box in Primer 38.)
+ */
+export function Soon({ children }: { children: ReactNode }) {
   return (
-    <p className="soon">
-      <strong>Coming in {milestone}.</strong> {children}
-    </p>
+    <Flash variant="warning" className="soon">
+      <strong>Coming soon:</strong> {children}
+    </Flash>
   );
 }
 

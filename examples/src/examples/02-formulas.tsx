@@ -37,11 +37,11 @@ export default function Formulas() {
   );
   return (
     <>
-      <Soon milestone="C4-05">
-        Today formulas are compiled once per shape; a change recalculates only what depends on it,
-        the cells on screen first and the rest in the background; copied, filled, sorted and
-        inserted rows carry their references; 117 functions are built in. Still to come: formula
-        editing with pointing, autocomplete and argument hints (C4-05).
+      <Soon>
+        formula editing with pointing, autocomplete and argument hints. Today formulas are compiled
+        once per shape; a change recalculates only what depends on it, the cells on screen first and
+        the rest in the background; copied, filled, sorted and inserted rows carry their references;
+        117 functions are built in.
       </Soon>
       <Frame height={200}>
         <Spreadsheet model={model} aria-label="Formulas" />

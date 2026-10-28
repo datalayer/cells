@@ -10,8 +10,6 @@
   --muted: #59636e;
   --border: #d1d9e0;
   --accent: #0969da;
-  --soon-bg: #fff8c5;
-  --soon-border: #d4a72c;
   font-family:
     system-ui,
     -apple-system,
@@ -52,10 +50,6 @@ main {
   min-width: 0;
 }
 .soon {
-  background: var(--soon-bg);
-  border: 1px solid var(--soon-border);
-  border-radius: 6px;
-  padding: 8px 12px;
   margin: 8px 0;
 }
 .grid {

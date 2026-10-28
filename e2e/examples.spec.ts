@@ -7,21 +7,21 @@
 import { expect, test } from '@playwright/test';
 
 const EXAMPLES = [
-  ['minimal', 'A few values'],
-  ['formulas', 'Formulas and recalculation'],
-  ['editing', 'Editing, clipboard, fill and sort'],
-  ['large', 'A million rows'],
+  ['minimal', 'A Few Values'],
+  ['formulas', 'Formulas and Recalculation'],
+  ['editing', 'Editing, Clipboard, Fill, Sort'],
+  ['large', 'A Million Rows'],
   ['theming', 'Theming'],
-  ['import-export', 'Import and export'],
+  ['import-export', 'Import and Export'],
   ['react-api', 'The React API'],
-  ['plugin', 'A Reactor plugin'],
+  ['plugin', 'A Reactor Plugin'],
   ['collaboration', 'Collaboration'],
-  ['chrome', 'Toolbar, formula bar and tabs'],
+  ['chrome', 'Toolbar, Formulas and Tabs'],
   ['charts', 'Charts'],
-  ['cell-types', 'Cell types'],
-  ['code-cells', 'Code cells'],
-  ['data-sources', 'Data sources'],
-  ['command-palette', 'Command palette'],
+  ['cell-types', 'Cell Types'],
+  ['code-cells', 'Code Cells'],
+  ['data-sources', 'Data Sources'],
+  ['command-palette', 'Command Palette'],
 ] as const;
 
 test.describe('the examples', () => {

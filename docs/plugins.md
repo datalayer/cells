@@ -9,7 +9,7 @@ written exactly the same way, and a grid runs on the core plugin plus any set
 of them.
 
 This guide walks through [`examples/src/examples/plugin/acme.ts`](../examples/src/examples/plugin/acme.ts),
-the `@acme/everything` plugin of the examples site (the *A Reactor plugin*
+the `@acme/everything` plugin of the examples site (the *A Reactor Plugin*
 page, https://cells.datalayer.tech/#/plugin), which contributes to every
 point. The tests in `src/points/__tests__/everyPoint.test.ts` run each
 contribution on a grid built from `CellsCorePlugin` and that plugin alone.
@@ -299,5 +299,5 @@ export const wordCount = {
 `usePlugin(name)` switches a plugin on and off, `useCellsCommands()` lists
 the Reactor commands with their keybindings and `useExecuteCommand()` runs
 one; `useCellType(ref)`, `useDataSource(sheet)` and `useCharts()` read what
-the points resolved for a cell, a sheet and a chart. The *A Reactor plugin*
+the points resolved for a cell, a sheet and a chart. The *A Reactor Plugin*
 page shows them all.

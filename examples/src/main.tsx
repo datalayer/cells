@@ -45,20 +45,20 @@ interface Example {
 }
 
 export const EXAMPLES: readonly Example[] = [
-  { id: 'minimal', title: 'A few values', file: '01-minimal.tsx', Component: Minimal },
+  { id: 'minimal', title: 'A Few Values', file: '01-minimal.tsx', Component: Minimal },
   {
     id: 'formulas',
-    title: 'Formulas and recalculation',
+    title: 'Formulas and Recalculation',
     file: '02-formulas.tsx',
     Component: Formulas,
   },
   {
     id: 'editing',
-    title: 'Editing, clipboard, fill and sort',
+    title: 'Editing, Clipboard, Fill, Sort',
     file: '03-editing.tsx',
     Component: Editing,
   },
-  { id: 'large', title: 'A million rows', file: '04-large.tsx', Component: Large },
+  { id: 'large', title: 'A Million Rows', file: '04-large.tsx', Component: Large },
   {
     id: 'theming',
     title: 'Theming',
@@ -67,12 +67,12 @@ export const EXAMPLES: readonly Example[] = [
   },
   {
     id: 'import-export',
-    title: 'Import and export',
+    title: 'Import and Export',
     file: '06-import-export.tsx',
     Component: ImportExport,
   },
   { id: 'react-api', title: 'The React API', file: '07-react-api.tsx', Component: ReactApi },
-  { id: 'plugin', title: 'A Reactor plugin', file: '08-plugin.tsx', Component: Plugin },
+  { id: 'plugin', title: 'A Reactor Plugin', file: '08-plugin.tsx', Component: Plugin },
   {
     id: 'collaboration',
     title: 'Collaboration',
@@ -81,22 +81,22 @@ export const EXAMPLES: readonly Example[] = [
   },
   {
     id: 'chrome',
-    title: 'Toolbar, formula bar and tabs',
+    title: 'Toolbar, Formulas and Tabs',
     file: '10-chrome.tsx',
     Component: Chrome,
   },
   { id: 'charts', title: 'Charts', file: '11-charts.tsx', Component: Charts },
-  { id: 'cell-types', title: 'Cell types', file: '12-cell-types.tsx', Component: CellTypes },
-  { id: 'code-cells', title: 'Code cells', file: '13-code-cells.tsx', Component: CodeCells },
+  { id: 'cell-types', title: 'Cell Types', file: '12-cell-types.tsx', Component: CellTypes },
+  { id: 'code-cells', title: 'Code Cells', file: '13-code-cells.tsx', Component: CodeCells },
   {
     id: 'data-sources',
-    title: 'Data sources',
+    title: 'Data Sources',
     file: '14-data-sources.tsx',
     Component: DataSources,
   },
   {
     id: 'command-palette',
-    title: 'Command palette',
+    title: 'Command Palette',
     file: '15-command-palette.tsx',
     Component: CommandPalette,
   },

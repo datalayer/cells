@@ -8,7 +8,7 @@
  * `@acme/everything`: a third-party Reactor plugin, written as any host
  * would write one, that contributes to every `datalayer.cells.*` point. It
  * is what the plugin guide (docs/plugins.md) walks through, point by point,
- * and what the examples' *A Reactor plugin* page runs on a grid built from
+ * and what the examples' *A Reactor Plugin* page runs on a grid built from
  * `CellsCorePlugin` and this plugin alone.
  *
  * @module examples/plugin/acme
