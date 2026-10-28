@@ -3,3 +3,8 @@ node_modules/
 bench/results/
 tests/
 *.md
+!docs/api.md
+integrations/docusaurus/lib/
+integrations/docusaurus/site/build/
+integrations/docusaurus/site/.docusaurus/
+integrations/docusaurus/site/node_modules/

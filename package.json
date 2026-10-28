@@ -19,35 +19,43 @@
   "exports": {
     ".": {
       "types": "./lib/index.d.ts",
-      "import": "./lib/index.js"
+      "import": "./lib/index.js",
+      "default": "./lib/index.js"
     },
     "./core": {
       "types": "./lib/core/index.d.ts",
-      "import": "./lib/core/index.js"
+      "import": "./lib/core/index.js",
+      "default": "./lib/core/index.js"
     },
     "./csv": {
       "types": "./lib/csv/index.d.ts",
-      "import": "./lib/csv/index.js"
+      "import": "./lib/csv/index.js",
+      "default": "./lib/csv/index.js"
     },
     "./xlsx": {
       "types": "./lib/xlsx/index.d.ts",
-      "import": "./lib/xlsx/index.js"
+      "import": "./lib/xlsx/index.js",
+      "default": "./lib/xlsx/index.js"
     },
     "./collab": {
       "types": "./lib/collab/index.d.ts",
-      "import": "./lib/collab/index.js"
+      "import": "./lib/collab/index.js",
+      "default": "./lib/collab/index.js"
     },
     "./chrome": {
       "types": "./lib/chrome/index.d.ts",
-      "import": "./lib/chrome/index.js"
+      "import": "./lib/chrome/index.js",
+      "default": "./lib/chrome/index.js"
     },
     "./charts": {
       "types": "./lib/charts/index.d.ts",
-      "import": "./lib/charts/index.js"
+      "import": "./lib/charts/index.js",
+      "default": "./lib/charts/index.js"
     },
     "./plugin": {
       "types": "./lib/plugin/index.d.ts",
-      "import": "./lib/plugin/index.js"
+      "import": "./lib/plugin/index.js",
+      "default": "./lib/plugin/index.js"
     },
     "./style/cells.css": "./style/cells.css"
   },
@@ -98,13 +106,14 @@
     "e2e": "playwright test",
     "examples": "node scripts/examples.mjs",
     "format": "prettier --write .",
-    "lint": "prettier --check . && node scripts/check-headers.mjs",
+    "lint": "prettier --check . && node scripts/check-headers.mjs && node scripts/check-tsdoc.mjs",
     "size": "node scripts/size.mjs",
     "test": "vitest run && vitest run -c vitest.react18.config.ts",
     "typecheck": "tsc -p tsconfig.typecheck.json && tsc -p examples/tsconfig.json",
     "watch:lib": "tsc -w -p tsconfig.json",
     "functions-page": "node scripts/functions-page.mjs",
-    "collab-server": "node scripts/collab-server.mjs"
+    "collab-server": "node scripts/collab-server.mjs",
+    "api-page": "node scripts/check-tsdoc.mjs --write"
   },
   "peerDependencies": {
     "@datalayer/lexical-loro": "^1.0.8",

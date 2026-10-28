@@ -1,0 +1,17 @@
+---
+title: A live sheet
+slug: /
+---
+
+import Cells from '@theme/Cells';
+import budget from '@site/cells/budget.cells.json';
+
+# A live sheet in a page
+
+A workbook written as data, checked when the site builds:
+
+<Cells data={budget} aria-label="Budget" height={240} />
+
+A CSV file from the site's static files, read in the browser:
+
+<Cells src="/data/sales.csv" aria-label="Sales" height={200} />

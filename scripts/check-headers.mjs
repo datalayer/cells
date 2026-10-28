@@ -24,6 +24,7 @@ const HASH = `# ${COPYRIGHT}\n#\n# ${LICENCE_LINE}\n`;
 
 const ROOTS = [
   'src',
+  'integrations',
   'scripts',
   'bench',
   'e2e',
@@ -41,7 +42,15 @@ const TOP_FILES = [
   'Makefile',
   'pyproject.toml',
 ];
-const SKIP_DIRS = new Set(['node_modules', 'lib', 'results', 'dist', '__pycache__']);
+const SKIP_DIRS = new Set([
+  'node_modules',
+  'lib',
+  'results',
+  'dist',
+  '__pycache__',
+  'build',
+  '.docusaurus',
+]);
 
 function expected(path) {
   const ext = extname(path);

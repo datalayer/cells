@@ -39,14 +39,16 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Check the tag names the version both packages carry
+      - name: Check the tag names the version the three packages carry
         run: |
           set -euo pipefail
           tag="${GITHUB_REF_NAME#v}"
           npm_version="$(node -p "require('./package.json').version")"
+          docusaurus_version="$(node -p "require('./integrations/docusaurus/package.json').version")"
           py_version="$(python -c "import re;print(re.search(r'__version__\s*=\s*\"([^\"]+)\"', open('datalayer_cells/__version__.py').read())[1])")"
-          echo "tag=$tag @datalayer/cells=$npm_version datalayer-cells=$py_version"
+          echo "tag=$tag @datalayer/cells=$npm_version @datalayer/cells-docusaurus=$docusaurus_version datalayer-cells=$py_version"
           test "$tag" = "$npm_version"
+          test "$tag" = "$docusaurus_version"
           test "$tag" = "$py_version"
 
       - name: Find what is not published yet
@@ -81,13 +83,16 @@ jobs:
           npm run check:node
           npm test
           npm run size
+          # The Docusaurus integration, against the lib/ built above (its peer, not yet published).
+          (cd integrations/docusaurus && npm install --no-audit --no-fund --legacy-peer-deps && npm run build && npm test)
 
-      - name: Pack
+      - name: Pack (the grid and the Docusaurus integration; the publish job takes every tarball)
         if: steps.plan.outputs.npm != ''
         run: |
           set -euo pipefail
           mkdir -p dist-npm
           npm pack --pack-destination dist-npm
+          (cd integrations/docusaurus && npm pack --pack-destination ../../dist-npm)
           ls -la dist-npm
 
       - uses: actions/upload-artifact@v4
@@ -172,6 +177,7 @@ jobs:
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 && exit 0
           gh release create "$GITHUB_REF_NAME" --title "Release $version" --generate-notes \
             --notes "- [npm @datalayer/cells](https://www.npmjs.com/package/@datalayer/cells/v/$version)
+          - [npm @datalayer/cells-docusaurus](https://www.npmjs.com/package/@datalayer/cells-docusaurus/v/$version)
           - [PyPI datalayer-cells](https://pypi.org/project/datalayer-cells/$version/)"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
