@@ -8,8 +8,12 @@
 
 import { StrictMode, useEffect, useState, type ComponentType, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BaseStyles } from '@primer/react';
-import { AppearanceControls, DatalayerThemeProvider, themeConfigs } from '@datalayer/primer-addons';
+import { ActionList, BaseStyles } from '@primer/react';
+import {
+  AppearanceMenuWithStore,
+  DatalayerThemeProvider,
+  themeConfigs,
+} from '@datalayer/primer-addons';
 import { useAppearance } from './appearance';
 import Minimal from './examples/01-minimal';
 import Formulas from './examples/02-formulas';
@@ -109,24 +113,9 @@ function useRoute(): string {
   return route;
 }
 
-/** The appearance chooser under the title: colour mode and theme, for every page. */
-function Appearance() {
-  const { colorMode, theme, setColorMode, setTheme } = useAppearance();
-  return (
-    <div className="appearance" data-examples-appearance="">
-      <AppearanceControls
-        colorMode={colorMode}
-        themeVariant={theme}
-        onColorModeChange={setColorMode}
-        onThemeChange={(variant) => setTheme(variant, false)}
-      />
-    </div>
-  );
-}
-
 /**
  * The whole site wears the reader's appearance: the theme and colour mode chosen
- * under the title. The grid's context menu is a Primer Overlay, drawn from
+ * in the menu beside the title. The grid's context menu is a Primer Overlay, drawn from
  * Primer's CSS variables, so every page wears a Datalayer theme (a bare
  * ThemeProvider defines none).
  */
@@ -150,19 +139,26 @@ function App() {
   return (
     <div className="layout">
       <nav aria-label="Examples">
-        <h1>
-          <span aria-hidden="true">🦠</span> Datalayer Cells
-        </h1>
-        <Appearance />
-        <ol>
+        <div className="title">
+          <h1>
+            <span aria-hidden="true">🦠</span> Datalayer Cells
+          </h1>
+          {/* primer-addons' appearance menu, to the right of the title, bound to the site's store. */}
+          <AppearanceMenuWithStore useStore={useAppearance} hoverOverlayPlacement="right-start" />
+        </div>
+        {/* Primer's ActionList, the examples as links; the current one marked. */}
+        <ActionList aria-label="Examples">
           {EXAMPLES.map((e) => (
-            <li key={e.id}>
-              <a href={`#/${e.id}`} aria-current={e.id === route ? 'page' : undefined}>
-                {e.title}
-              </a>
-            </li>
+            <ActionList.LinkItem
+              key={e.id}
+              href={`#/${e.id}`}
+              active={e.id === route}
+              aria-current={e.id === route ? 'page' : undefined}
+            >
+              {e.title}
+            </ActionList.LinkItem>
           ))}
-        </ol>
+        </ActionList>
       </nav>
       <main>
         {example === undefined ? (

@@ -50,7 +50,7 @@ export default function CellTypes() {
         ],
         [true, 'Write the plan', 'https://datalayer.io', 1],
         [true, 'Build the model', 'https://github.com/datalayer/cells', 1],
-        [false, 'Draw the grid', 'www.datalayer.tech', 0.8],
+        [false, 'Draw the grid', 'cells.datalayer.tech', 0.8],
         [false, 'Ship the chrome', 'mailto:hello@datalayer.io', 0.35],
         [false, 'Release 1.0', 'not a link', 0],
         [{ formula: 'D7=1' }, 'Average progress', null, { formula: 'AVERAGE(D2:D6)' }],

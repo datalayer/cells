@@ -36,25 +36,17 @@ nav h1 {
   font-size: 16px;
   margin: 0 0 12px;
 }
-nav .appearance {
-  margin: 0 0 12px;
+nav .title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-nav ol {
-  padding-left: 20px;
+nav .title h1 {
   margin: 0;
 }
-nav li {
-  margin: 6px 0;
-}
-nav a {
-  color: var(--accent);
-  text-decoration: none;
-}
-nav a[aria-current='page'] {
-  font-weight: 600;
-  color: var(--fg);
-}
+
 main {
   padding: 16px 24px;
   min-width: 0;
