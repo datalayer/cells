@@ -4,8 +4,15 @@
  * MIT License
  */
 
-import { createCellsModel, Spreadsheet, useCellsModel, type CellsWorkbook } from '@datalayer/cells';
+import {
+  CellsProvider,
+  createCellsModel,
+  Spreadsheet,
+  useCellsModel,
+  type CellsWorkbook,
+} from '@datalayer/cells';
 import { CellsChartsPlugin } from '@datalayer/cells/charts';
+import { ChartPanel, Toolbar } from '@datalayer/cells/chrome';
 import {
   AppearanceControls,
   createThemeStore,
@@ -171,17 +178,29 @@ export default function Charts() {
         A column, a line, a doughnut and a combo chart, fed by the figures on their left. Change a
         number under a chart: the chart follows the recalculation. The charts come from{' '}
         <code>@datalayer/cells/charts</code>, a lazy plugin that loads ECharts when the first chart
-        is drawn; without it, each chart is a labelled placeholder.
+        is drawn; without it, each chart is a labelled placeholder. Click a chart to select it: the
+        arrow keys move it, Shift with an arrow resizes it, the handles drag, and the panel on the
+        right edits it; <em>Insert chart</em> in the toolbar charts the selected cells.
       </p>
-      <Frame height={620}>
-        <Spreadsheet
-          key={variant}
-          model={model}
-          theme={variant}
-          colorMode={colorMode}
-          aria-label="Figures with charts"
-        />
-      </Frame>
+      <CellsProvider model={model}>
+        <Toolbar />
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Frame height={620}>
+              <Spreadsheet
+                key={variant}
+                model={model}
+                theme={variant}
+                colorMode={colorMode}
+                aria-label="Figures with charts"
+              />
+            </Frame>
+          </div>
+          <div style={{ width: 340, flex: 'none' }}>
+            <ChartPanel aria-label="Chart panel" />
+          </div>
+        </div>
+      </CellsProvider>
     </DatalayerThemeProvider>
   );
 }

@@ -136,6 +136,19 @@ describe('the charts example', () => {
       'Regions as columns, online as a line',
     ]);
     expect(setOption).toHaveBeenCalled();
+    // The chrome beside the grid: the toolbar's Insert chart picker and the chart panel, which
+    // edits the chart once one is selected.
+    expect(div.querySelector('[data-cells-chart-picker]')).not.toBeNull();
+    const panel = div.querySelector('[data-cells-chart-panel]')!;
+    expect(panel.getAttribute('aria-label')).toBe('Chart panel');
+    expect(panel.textContent).toContain('Select a chart');
+    const column = div.querySelector('[data-cells-chart="column"]')!;
+    await act(async () => {
+      column.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    });
+    expect([...panel.querySelectorAll('label')].map((l) => l.textContent)).toEqual(
+      expect.arrayContaining(['Type', 'Title', 'Legend', 'Data labels']),
+    );
     const types = setOption.mock.calls.map(([o]) =>
       (o.series as { type: string }[]).map((s) => s.type).join('+'),
     );
