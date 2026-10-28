@@ -18,6 +18,8 @@ import {
   useCellsRevision,
   CellsProvider,
 } from '@datalayer/cells';
+import { LoroBinding } from '@datalayer/cells/collab';
+import { LoroDoc } from 'loro-crdt';
 import { SegmentedControl } from '@primer/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Frame } from '../shared';
@@ -65,8 +67,21 @@ const PROD1_TOKEN = '60c1661cc408f978c309d04157af55c9588ff9557c9380e4fb507857507
 /** The `./jupyter` entry, fetched once (it carries jupyter-react; JupyterLite and Pyodide come with the first run). */
 const jupyter = () => import('@datalayer/cells/jupyter');
 
+/** What the kernels are bound to (§3.13, C11-09): the page's model and its collaboration document, over the `datalayer.cells` comm. */
+export interface PageBinding {
+  readonly model: CellsModel;
+  readonly doc: LoroDoc;
+}
+
+/** Bind a model to a collaboration document of its own (no room): what the kernel's `datalayer_cells` holds a copy of. */
+export function bindDocument(model: CellsModel): PageBinding {
+  const doc = new LoroDoc();
+  new LoroBinding(model, doc, { peer: 'page' });
+  return { model, doc };
+}
+
 /** The browser kernel: JupyterLite's Pyodide, the page as its server (an empty token). */
-export function browserKernel(): KernelProvider {
+export function browserKernel(binding?: PageBinding): KernelProvider {
   return {
     id: 'lite',
     label: 'Python in the browser (Pyodide)',
@@ -77,13 +92,13 @@ export function browserKernel(): KernelProvider {
       ]);
       setJupyterServerUrl(window.location.origin);
       setJupyterServerToken('');
-      return liteKernel().connect();
+      return liteKernel({ binding }).connect();
     },
   };
 }
 
 /** The prod1 kernel: a `ServiceManager` on the anonymous server, built on the first run. */
-export function prod1Kernel(): KernelProvider {
+export function prod1Kernel(binding?: PageBinding): KernelProvider {
   return {
     id: 'prod1',
     label: 'Jupyter on prod1 (anonymous)',
@@ -99,18 +114,17 @@ export function prod1Kernel(): KernelProvider {
       return serviceManagerKernel(new ServiceManager({ serverSettings }), {
         id: 'prod1',
         label: 'Jupyter on prod1 (anonymous)',
+        binding,
       }).connect();
     },
   };
 }
 
 /** The two kernel plugins; the renderer (jupyter-react's `Output` and `Cell`) arrives with the browser one, through `./jupyter`. */
-export function kernelPlugins(
-  providers: { browser: KernelProvider; jupyter: KernelProvider } = {
-    browser: browserKernel(),
-    jupyter: prod1Kernel(),
-  },
-): PlatformInput[] {
+export function kernelPlugins(providers: {
+  browser: KernelProvider;
+  jupyter: KernelProvider;
+}): PlatformInput[] {
   return [
     definePlugin({
       name: KERNEL_PLUGIN.browser,
@@ -147,9 +161,25 @@ fig.savefig(buf, format="png", dpi=80, bbox_inches="tight")
 plt.close(fig)
 Image(buf.getvalue())`;
 
-/** The page's grid: a small table, a code cell summing it (C2), one plotting it beside the cells (C4). */
-export function codeCellsModel(plugins: readonly PlatformInput[] = kernelPlugins()): CellsModel {
-  const reactor = buildCellsReactor(plugins);
+/** The page's grid: a small table, a code cell summing it (C2), one plotting it beside the cells (C4); bound to its document, the kernels bound to it. */
+export function codeCellsModel(providers?: {
+  browser: KernelProvider;
+  jupyter: KernelProvider;
+}): CellsModel {
+  // The document's binding comes after the model; the kernels, made on the first run, bind to it then.
+  const later: { binding?: PageBinding } = {};
+  const reactor = buildCellsReactor(
+    kernelPlugins(
+      providers ?? {
+        browser: lazyProvider('lite', 'Python in the browser (Pyodide)', () =>
+          browserKernel(later.binding),
+        ),
+        jupyter: lazyProvider('prod1', 'Jupyter on prod1 (anonymous)', () =>
+          prod1Kernel(later.binding),
+        ),
+      },
+    ),
+  );
   const m = createCellsModel({
     reactor,
     data: fromRows([
@@ -190,7 +220,13 @@ export function codeCellsModel(plugins: readonly PlatformInput[] = kernelPlugins
     anchor: { row: 1, col: 2 },
     active: { row: 1, col: 2 },
   });
+  later.binding = bindDocument(m);
   return m;
+}
+
+/** A kernel provider made on the first run, so it may bind to what exists then. */
+function lazyProvider(id: string, label: string, make: () => KernelProvider): KernelProvider {
+  return { id, label, connect: () => make().connect() };
 }
 
 /** Switch the grid's kernel: one plugin enabled, the other off, and the runner forgets its kernel. */
@@ -226,8 +262,10 @@ function Status({ model }: { model: CellsModel }) {
  * kernel. The kernel is the browser's Pyodide (no account) or an anonymous
  * Jupyter server on prod1; the choice is kept between visits.
  */
-export default function CodeCells(props: { readonly plugins?: readonly PlatformInput[] }) {
-  const [model] = useState(() => codeCellsModel(props.plugins));
+export default function CodeCells(props: {
+  readonly providers?: { browser: KernelProvider; jupyter: KernelProvider };
+}) {
+  const [model] = useState(() => codeCellsModel(props.providers));
   const [target, setTarget] = useState<KernelTarget>(readKernelTarget);
   const [message, setMessage] = useState('');
   useEffect(() => {

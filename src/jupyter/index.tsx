@@ -19,6 +19,11 @@
  *   jupyter-react's `Output` (no kernel: scrolling never re-runs anything).
  * - `CodeCellEditor`: *Open in editor*, jupyter-react's `Cell` bound to a
  *   code cell's source, on the sheet's kernel (`startDefaultKernel={false}`).
+ * - `openCellsComm`: the `datalayer.cells` comm (§3.13, C11-09) the page opens
+ *   on the kernel it runs code on, so `datalayer_cells` there holds the
+ *   page's workbook: the collaboration document's snapshot and updates, as
+ *   Loro bytes, both ways (with loro-py), or the workbook as JSON and the
+ *   kernel's writes back (the browser's Pyodide, where loro-py cannot run).
  *
  * @module jupyter
  */
@@ -37,6 +42,9 @@ import type { IOutput } from '@jupyterlab/nbformat';
 import type { ServiceManager } from '@jupyterlab/services';
 import { useEffect, useId, useState } from 'react';
 import { type CodeOutput as CodeOutputData, codeRef } from '../core/code.js';
+import { type CellsBinding, type CellsComm, openCellsComm } from './comm.js';
+
+export { type CellsBinding, type CellsComm, type LoroDocLike, openCellsComm } from './comm.js';
 import { codeRunner } from '../core/codeRun.js';
 import type { CellsModel } from '../core/model.js';
 import {
@@ -57,11 +65,21 @@ export interface JupyterCellsKernel extends CellsKernel {
   readonly kernel: Kernel;
 }
 
-/** Adapt a jupyter-react `Kernel` to the kernel code cells run on. */
-export function jupyterKernel(kernel: Kernel): JupyterCellsKernel {
+/** Adapt a jupyter-react `Kernel` to the kernel code cells run on; with a `binding`, the page's workbook is bound to it over the comm. */
+export function jupyterKernel(kernel: Kernel, binding?: CellsBinding): JupyterCellsKernel {
+  let comm: CellsComm | undefined;
+  const bound = async () => {
+    if (binding === undefined || comm !== undefined) return;
+    await kernel.ready;
+    const connection = kernel.connection;
+    if (connection === null) throw new Error('The kernel is not connected.');
+    comm = openCellsComm(connection, binding);
+    await comm.mode;
+  };
   return {
     kernel,
     async execute(code: string) {
+      await bound();
       const executor = kernel.execute(code, { storeHistory: false });
       if (executor === undefined) throw new Error('The kernel is not connected.');
       await executor.done;
@@ -77,6 +95,8 @@ export interface JupyterKernelOptions {
   readonly label?: string;
   /** The kernel spec to start; `python3` on a server, `python` in the browser. */
   readonly kernelName?: string;
+  /** The page's workbook, bound to the kernel over the `datalayer.cells` comm on the first run. */
+  readonly binding?: CellsBinding;
 }
 
 /** Publish a service manager to jupyter-react's store, so its components (an `Output` with no kernel) adopt it instead of building one. */
@@ -107,7 +127,7 @@ export function serviceManagerKernel(
         sessionManager: manager.sessions,
       });
       await kernel.ready;
-      return jupyterKernel(kernel);
+      return jupyterKernel(kernel, options.binding);
     },
   };
 }
@@ -129,6 +149,7 @@ export function liteKernel(options: JupyterKernelOptions = {}): KernelProvider {
     id: options.id ?? 'lite',
     label: options.label ?? 'Python in the browser (Pyodide)',
     kernelName: options.kernelName ?? 'python',
+    ...(options.binding !== undefined ? { binding: options.binding } : {}),
   });
 }
 

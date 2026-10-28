@@ -20,7 +20,6 @@ import { CellsKernels, type KernelProvider } from '../../index.js';
 import CodeCells, {
   codeCellsModel,
   KERNEL_TARGET_KEY,
-  kernelPlugins,
   readKernelTarget,
 } from '../../../examples/src/examples/13-code-cells.js';
 
@@ -98,7 +97,7 @@ const fake = (id: string): KernelProvider => ({
 
 describe('the code cells page', () => {
   it('holds the table, the two code cells and the formula over C2', () => {
-    const m = codeCellsModel(kernelPlugins({ browser: fake('lite'), jupyter: fake('prod1') }));
+    const m = codeCellsModel({ browser: fake('lite'), jupyter: fake('prod1') });
     expect(m.code('s1', 1, 2)?.source).toContain('cells["B2:B7"]');
     expect(m.code('s1', 3, 2)?.source).toContain('matplotlib');
     expect(m.code('s1', 3, 2)?.frame).toEqual({ width: 380, height: 240 });
@@ -107,11 +106,11 @@ describe('the code cells page', () => {
   });
 
   it('the toggle switches the kernel provider of the point, and keeps the choice', async () => {
-    const plugins = kernelPlugins({ browser: fake('lite'), jupyter: fake('prod1') });
+    const fakes = { browser: fake('lite'), jupyter: fake('prod1') };
     const div = document.createElement('div');
     document.body.append(div);
     root = createRoot(div);
-    act(() => root!.render(<CodeCells plugins={plugins} />));
+    act(() => root!.render(<CodeCells providers={fakes} />));
     const grid = div.querySelector<HTMLElement>('[role="grid"]')!;
     const model = (await import('../../builtins/target.js')).currentCellsCommandTarget()!.model;
     const providers = () => model.reactor.getContributions(CellsKernels).map((c) => c.value.id);

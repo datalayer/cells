@@ -59,13 +59,26 @@ gives it the source and the values read, and it answers with a
 `display_data` output under `RESULT_MIME` (the plugin guide shows one).
 
 The kernel holds a live copy of the workbook, the collaboration document
-(the Loro document of the collab entry), bound to `datalayer_cells.Workbook`
-through loro-py, over one of two transports the page chooses: a room joined
-over the rooms' websocket with the page's token (a server kernel, as a
-second peer), or the `datalayer.cells` Jupyter comm the page opens on the
-kernel it runs code on (every kernel, the browser's Pyodide included),
-carrying the same Loro updates. Until that binding lands (the plan's
-C11-09), the preamble sends the values the source names.
+(the Loro document of the collab entry), bound to
+`datalayer_cells.LiveWorkbook` through loro-py (`pip install
+datalayer-cells[live]`), over one of two transports the page chooses:
+
+- a room joined over the rooms' websocket with the page's token
+  (`datalayer_cells.join(url, room, token)`): a server kernel, a second peer
+  beside the page, its writes merged like another person's;
+- the `datalayer.cells` Jupyter comm the page opens on the kernel it runs
+  code on (`openCellsComm` in `./jupyter`; a kernel with a `binding`
+  opens it on the first run): the page sends the document's snapshot, then
+  every update, and takes the kernel's updates back, the same Loro bytes the
+  websocket carries. Where loro-py cannot run (the browser's Pyodide has no
+  wheel for it) the comm carries the workbook as JSON instead and the
+  kernel's writes come back as `SET_CELLS`, one undo step named after the
+  cell: the same `cells` API, one format less faithful.
+
+`from datalayer_cells import cells` is the workbook the kernel is bound to;
+a run records the ranges it reads and answers them to the grid, which makes
+them the cell's precedents (no parsing of the source). A kernel without the
+package gets a snapshot of the values the source names instead.
 
 ## Files
 

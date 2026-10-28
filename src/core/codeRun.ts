@@ -6,16 +6,17 @@
 
 /**
  * Running code cells (§3.13, C11-04). A run sends the kernel a program: a
- * preamble defining `cells`, whose `cells["A1:B10"]` is the range's values
- * (a pandas DataFrame when pandas is there, rows otherwise; a single cell is
- * its value), then the cell's source with its last expression's value
- * displayed under the Cells result type. The result is written back with
+ * preamble that binds `cells` to the workbook the kernel holds through
+ * `datalayer_cells` (the live workbook of C11-09, over the collaboration
+ * document) or, where the package is not there, to a snapshot of the values
+ * the source names (`cells["…"]` with a literal reference); then the cell's
+ * source with its last expression's value displayed under the Cells result
+ * type, with the ranges the run read. The result is written back with
  * `SET_CODE` (one undo step); an exception is `#ERROR!` with the traceback
- * in the outputs. The ranges a source reads (`cells["…"]` with a literal
- * reference) are its precedents: when what they hold changes after a run, a
- * `manual` cell is marked stale and an `auto` cell runs again, debounced,
- * one at a time, in dependency order. Nothing runs on open; the engine
- * never runs code itself.
+ * in the outputs. The ranges a run read are its precedents: when what they
+ * hold changes after a run, a `manual` cell is marked stale and an `auto`
+ * cell runs again, debounced, one at a time, in dependency order. Nothing
+ * runs on open; the engine never runs code itself.
  *
  * @module core/codeRun
  */
@@ -30,7 +31,14 @@ import {
   optionalContribution,
   type Resolved,
 } from '../points/index.js';
-import { type CodeCell, type CodeOutput, type CodeResult, codeCells, codeKey } from './code.js';
+import {
+  type CodeCell,
+  type CodeOutput,
+  type CodeResult,
+  codeCells,
+  codeKey,
+  codeRef,
+} from './code.js';
 import type { CellsModel } from './model.js';
 import type { CellValue } from './values.js';
 import { isCellError } from './values.js';
@@ -79,10 +87,10 @@ export function readValues(
   return out;
 }
 
-/** The program a run sends: the preamble, the data, the source and the result's display. */
-export function codeProgram(source: string, data: Record<string, unknown>): string {
+/** The program a run sends: the preamble, the data (for a kernel with no live workbook), the source, the cell's name, and the result's display. */
+export function codeProgram(source: string, data: Record<string, unknown>, origin = ''): string {
   return `${PREAMBLE}
-__cells_run(${JSON.stringify(JSON.stringify(data))}, ${JSON.stringify(source)})
+__cells_run(${JSON.stringify(JSON.stringify(data))}, ${JSON.stringify(source)}, ${JSON.stringify(origin)})
 `;
 }
 
@@ -91,8 +99,11 @@ export function programParts(
   code: string,
 ): { data: Record<string, unknown[][]>; source: string } | undefined {
   const last = code.trimEnd().split('\n').pop() ?? '';
-  if (!last.startsWith('__cells_run("') || !last.endsWith('")')) return undefined;
-  const args = last.slice('__cells_run('.length, -1);
+  if (!last.startsWith('__cells_run("') || !last.endsWith(')')) return undefined;
+  // The last argument, the cell's name, comes off first.
+  const cut = last.lastIndexOf(', "');
+  if (cut < 0) return undefined;
+  const args = last.slice('__cells_run('.length, cut);
   // Two JSON strings: the split is the first `", "` after which both parse.
   for (let at = args.indexOf('", "'); at >= 0; at = args.indexOf('", "', at + 1)) {
     try {
@@ -112,7 +123,7 @@ export function programParts(
  * itself) and its result as `RESULT_MIME`. IPython's `display` inside a
  * kernel (every Jupyter kernel), a printed marker line in a bare interpreter.
  */
-export const PREAMBLE = String.raw`def __cells_run(__data, __source):
+export const PREAMBLE = String.raw`def __cells_run(__data, __source, __origin):
     import ast as _ast, json as _json, math as _math
     try:
         from IPython import get_ipython as _ip
@@ -126,8 +137,11 @@ export const PREAMBLE = String.raw`def __cells_run(__data, __source):
         def _emit(bundle):
             print("\x00cells:" + _json.dumps(bundle))
     _data = _json.loads(__data)
+    _reads = []
     class _Cells:
         def __getitem__(self, ref):
+            if ref not in _reads:
+                _reads.append(ref)
             rows = _data[ref]
             if len(rows) == 1 and len(rows[0]) == 1:
                 return rows[0][0]
@@ -141,8 +155,20 @@ export const PREAMBLE = String.raw`def __cells_run(__data, __source):
             ):
                 return _pd.DataFrame(rows[1:], columns=head)
             return _pd.DataFrame(rows)
+    _live = None
+    try:
+        from datalayer_cells import cells as _live_cells
+        from datalayer_cells.transport import current as _current
+        if _current() is not None or getattr(_live_cells, "_workbook", None) is not None:
+            _live = _live_cells
+    except ImportError:
+        _live = None
     _g = globals()
-    _g["cells"] = _Cells()
+    if _live is not None:
+        _live.begin_run(__origin)
+        _g["cells"] = _live
+    else:
+        _g["cells"] = _Cells()
     tree = _ast.parse(__source)
     last = tree.body.pop() if tree.body and isinstance(tree.body[-1], _ast.Expr) else None
     exec(compile(tree, "<cell>", "exec"), _g)
@@ -159,33 +185,54 @@ export const PREAMBLE = String.raw`def __cells_run(__data, __source):
         shape = getattr(value, "shape", None)
         kind = type(value).__name__
         result = kind + (" (" + " × ".join(str(n) for n in shape) + ")" if isinstance(shape, tuple) else "")
-    _emit({${JSON.stringify(RESULT_MIME)}: {"result": result}})
+    reads = _live.end_run() if _live is not None else list(_reads)
+    _emit({${JSON.stringify(RESULT_MIME)}: {"result": result, "reads": reads, "live": _live is not None}})
 `;
 
-/** A run's outputs, with the result's own output taken out: the result, and what the frame shows. */
+/** A run's outputs, with the result's own output taken out: the result, what the frame shows, and the ranges the run read. */
 export function readOutputs(outputs: readonly CodeOutput[]): {
   result: CodeResult;
   outputs: CodeOutput[];
+  /** The ranges the run read, as the kernel reported them (`Sheet1!A1:B7`); `undefined` when it reported none. */
+  reads?: string[];
 } {
   let result: CodeResult = null;
+  let reads: string[] | undefined;
   let failed = false;
   const shown: CodeOutput[] = [];
   for (const o of outputs) {
     const data = (o as { data?: Record<string, unknown> }).data;
-    const carried = data?.[RESULT_MIME] as { result?: CodeResult } | undefined;
+    const carried = data?.[RESULT_MIME] as { result?: CodeResult; reads?: unknown } | undefined;
     if (carried !== undefined) {
       result = carried.result ?? null;
+      if (Array.isArray(carried.reads))
+        reads = carried.reads.filter((r): r is string => typeof r === 'string');
       continue;
     }
     if (o.output_type === 'error') failed = true;
     shown.push(o);
   }
-  return { result: failed ? { error: '#ERROR!' } : result, outputs: shown };
+  return {
+    result: failed ? { error: '#ERROR!' } : result,
+    outputs: shown,
+    ...(reads !== undefined ? { reads } : {}),
+  };
+}
+
+/** The values of the ranges a run read (as the kernel reported them, or as the source names them), to tell when they changed. */
+function readsValues(model: CellsModel, sheet: string, reads: readonly string[]) {
+  const out: Record<string, unknown> = {};
+  for (const ref of reads) {
+    const at = resolveRead(model, sheet, ref);
+    if (at === undefined) continue;
+    out[ref] = model.toRows(at.zone, at.sheet).map((row) => row.map(json));
+  }
+  return out;
 }
 
 /** A fingerprint of what a code cell reads, to tell when it changed since its run. */
-function fingerprint(model: CellsModel, sheet: string, source: string): string {
-  return JSON.stringify(readValues(model, sheet, source));
+function fingerprint(model: CellsModel, sheet: string, reads: readonly string[]): string {
+  return JSON.stringify(readsValues(model, sheet, reads));
 }
 
 /** The code renderer a platform resolves (the first in `order`), or `undefined`. */
@@ -213,6 +260,8 @@ export class CodeRunner {
   #kernel: Promise<CellsKernel> | undefined;
   #queue: Promise<void> = Promise.resolve();
   #seen = new Map<string, string>();
+  /** The ranges each cell's last run read, as the kernel reported them (its precedents). */
+  #reads = new Map<string, readonly string[]>();
   #count = 0;
   #timer: ReturnType<typeof setTimeout> | undefined;
   #stop: () => void;
@@ -288,9 +337,18 @@ export class CodeRunner {
     const data = readValues(m, place.sheet, code.source);
     m.setCodeState(place.sheet, place.row, place.col, 'running');
     let after: CodeCell;
+    let reads: readonly string[] = rangesRead(code.source);
     try {
-      const reply = await kernel.execute(codeProgram(code.source, data));
-      const { result, outputs } = readOutputs(reply.outputs);
+      const reply = await kernel.execute(
+        codeProgram(
+          code.source,
+          data,
+          `${m.workbook.sheet(place.sheet).name}!${codeRef(place.row, place.col)}`,
+        ),
+      );
+      const read = readOutputs(reply.outputs);
+      const { result, outputs } = read;
+      if (read.reads !== undefined) reads = read.reads;
       this.#count += 1;
       after = {
         ...code,
@@ -322,8 +380,15 @@ export class CodeRunner {
       m.dispatch({ type: 'SET_CODE', sheet: place.sheet, row: at.row, col: at.col, code: after }),
     );
     m.setCodeTrusted(place.sheet, at.row, at.col);
-    this.#seen.set(`${place.sheet}:${key}`, fingerprint(m, place.sheet, after.source));
+    this.#reads.set(`${place.sheet}:${key}`, reads);
+    this.#seen.set(`${place.sheet}:${key}`, fingerprint(m, place.sheet, reads));
     this.#check();
+  }
+
+  /** The ranges a cell reads: its last run's, as reported, or the ones its source names. */
+  #readsOf(sheet: string, row: number, col: number, code: CodeCell): readonly string[] {
+    const s = this.model.workbook.sheet(sheet);
+    return this.#reads.get(`${sheet}:${codeKey(s, row, col)}`) ?? rangesRead(code.source);
   }
 
   /** The code cells of a sheet matching `which`, a cell read by another after it. */
@@ -331,7 +396,7 @@ export class CodeRunner {
     const m = this.model;
     const all = codeCells(m.workbook.sheet(sheet)).filter((c) => which(c.code));
     const reads = all.map((c) =>
-      rangesRead(c.code.source)
+      this.#readsOf(sheet, c.row, c.col, c.code)
         .map((r) => resolveRead(m, sheet, r))
         .filter((z) => z !== undefined && z.sheet === sheet)
         .map((z) => z!.zone),
@@ -361,7 +426,8 @@ export class CodeRunner {
         const seen = this.#seen.get(key);
         if (seen === undefined) continue; // never run here: nothing to compare with
         if (m.codeState(sheet.id, c.row, c.col) === 'running') continue;
-        if (fingerprint(m, sheet.id, c.code.source) === seen) continue;
+        if (fingerprint(m, sheet.id, this.#readsOf(sheet.id, c.row, c.col, c.code)) === seen)
+          continue;
         if (c.code.run === 'auto') auto.push(sheet.id);
         else m.setCodeState(sheet.id, c.row, c.col, 'stale');
       }
@@ -375,9 +441,10 @@ export class CodeRunner {
           const s = m.workbook.sheet(sheet);
           const key = `${sheet}:${codeKey(s, place.row, place.col)}`;
           const code = m.code(sheet, place.row, place.col);
-          if (code === undefined || this.#seen.get(key) === fingerprint(m, sheet, code.source))
-            continue;
-          this.#seen.set(key, fingerprint(m, sheet, code.source));
+          if (code === undefined) continue;
+          const reads = this.#readsOf(sheet, place.row, place.col, code);
+          if (this.#seen.get(key) === fingerprint(m, sheet, reads)) continue;
+          this.#seen.set(key, fingerprint(m, sheet, reads));
           void this.run(place).catch(() => undefined);
         }
     }, AUTO_DEBOUNCE_MS);
