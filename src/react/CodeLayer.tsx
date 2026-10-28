@@ -7,7 +7,10 @@
 /**
  * The output frames of code cells (§3.13, C11-05), and *Open in editor*:
  * DOM over the canvas, as the charts' frames are. A frame sits beside its
- * cell (its top-left at the cell's top-right corner), clipped by its pane,
+ * cell (its top-left at the cell's top-right corner, moved by the frame's
+ * `dx`, `dy`), under a strip that drags it (the drop writes the offset, one
+ * undo step) and unpins it (`frame: null`: the outputs show on a hover),
+ * clipped by its pane,
  * moved by the same scroll, mounted only within one viewport of the visible
  * area and at most {@link CODE_FRAMES_CAP} at once; it draws the cell's
  * stored outputs through the `datalayer.cells.codeRenderer` contribution
@@ -30,7 +33,14 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { codeRunner } from '../core/codeRun.js';
-import { type CodeCell, codeCells, codeFrame, codeRef, type CodeOutput } from '../core/code.js';
+import {
+  type CodeCell,
+  codeCells,
+  codeFrame,
+  type CodeFrame,
+  codeRef,
+  type CodeOutput,
+} from '../core/code.js';
 import { codeRendererOf } from '../core/codeRun.js';
 import type { CellsModel } from '../core/model.js';
 import type { Sheet } from '../core/workbook.js';
@@ -149,17 +159,18 @@ export function paneOfCell(sheet: Sheet, row: number, col: number, panes: readon
   return panes.find((p) => p.name === name) ?? panes.find((p) => p.name === 'main')!;
 }
 
-/** Where a code cell's frame goes in a pane: view px from the pane's corner, and whether it is within one viewport. */
+/** Where a code cell's frame goes in a pane (beside the cell, moved by its offset): view px from the pane's corner, and whether it is within one viewport. */
 export function placeFrame(
   sheet: Sheet,
   row: number,
   col: number,
-  frame: { readonly width: number; readonly height: number },
+  frame: CodeFrame,
   pane: Pane,
   zoom: number,
 ): { x: number; y: number; width: number; height: number; near: boolean; distance: number } {
-  const sx = sheet.cols.offsetOf(col) + sheet.cols.effectiveSizeOf(col);
-  const sy = sheet.rows.offsetOf(row);
+  // Beside the cell, moved by where it was dropped.
+  const sx = sheet.cols.offsetOf(col) + sheet.cols.effectiveSizeOf(col) + (frame.dx ?? 0);
+  const sy = sheet.rows.offsetOf(row) + (frame.dy ?? 0);
   const x = Math.round((sx - pane.originX) * zoom);
   const y = Math.round((sy - pane.originY) * zoom);
   const width = Math.max(1, Math.round(frame.width * zoom));
@@ -183,8 +194,12 @@ const CONTROLS = 'button, a, input, select, textarea, [role="button"], [role="me
 export interface DragHandleOptions {
   /** A press on the handle began a drag. */
   readonly onStart?: () => void;
-  /** The drag ended where the pointer was let go: its whole move, view px. */
-  readonly onDrop?: (dx: number, dy: number) => void;
+  /** The drag ended where the pointer was let go: its whole move, and the offset now (every drag's), view px. */
+  readonly onDrop?: (
+    dx: number,
+    dy: number,
+    offset: { readonly dx: number; readonly dy: number },
+  ) => void;
 }
 
 /**
@@ -229,8 +244,9 @@ export function useDragHandle(options: DragHandleOptions = {}) {
       e.stopPropagation();
       drag.current = null;
       setDragging(false);
-      setOffset({ dx: d.base.dx + e.clientX - d.x, dy: d.base.dy + e.clientY - d.y });
-      latest.current.onDrop?.(e.clientX - d.x, e.clientY - d.y);
+      const now = { dx: d.base.dx + e.clientX - d.x, dy: d.base.dy + e.clientY - d.y };
+      setOffset(now);
+      latest.current.onDrop?.(e.clientX - d.x, e.clientY - d.y, now);
     },
     onPointerCancel: () => {
       const d = drag.current;
@@ -252,6 +268,9 @@ const HANDLE_STYLE = {
 /** The approximate size of outputs, bytes. */
 const bytesOf = (outputs: readonly CodeOutput[]) => JSON.stringify(outputs).length;
 
+/** The height of the strip over a pinned frame (its drag handle, its *Unpin*), px. */
+export const CODE_FRAME_STRIP = 18;
+
 function Frame(props: {
   readonly model: CellsModel;
   readonly sheet: string;
@@ -265,6 +284,10 @@ function Frame(props: {
   /** Whether the outputs were made here; an untrusted frame shows their text and images only. */
   readonly trusted: boolean;
   readonly onEscape?: () => void;
+  /** Dropped after a drag of its strip: the whole move, view px. */
+  readonly onMove?: (dx: number, dy: number) => void;
+  /** *Unpin*: no frame; the outputs show on a hover again. */
+  readonly onUnpin?: () => void;
 }) {
   const { code, place, theme } = props;
   const ref = codeRef(props.row, props.col);
@@ -274,14 +297,23 @@ function Frame(props: {
     () => props.model.codeState(props.sheet, props.row, props.col) !== 'running',
     () => true,
   );
+  // Moved live while dragged; the drop writes the offset to the model, and the live move is over.
+  const { offset, setOffset, dragging, handlers } = useDragHandle({
+    onDrop: (dx, dy) => {
+      setOffset({ dx: 0, dy: 0 });
+      if (Math.abs(dx) >= 2 || Math.abs(dy) >= 2) props.onMove?.(dx, dy);
+    },
+  });
   const outputs = props.trusted ? code.outputs : safeOutputs(code.outputs);
   const text = outputsText(outputs);
   const note = props.trusted
     ? ''
     : ' Untrusted: from a file or another person; HTML, scripts and widgets are shown once the cell runs here.';
+  const inner = Math.max(1, place.height - CODE_FRAME_STRIP);
   return (
     <div
       data-cells-code-output={ref}
+      data-cells-dragging={dragging ? '' : undefined}
       role="region"
       aria-label={`Output of ${ref}`}
       aria-description={`${text.slice(0, 500)}${note}`.trim() || undefined}
@@ -289,11 +321,13 @@ function Frame(props: {
       tabIndex={-1}
       style={{
         position: 'absolute',
-        left: place.x,
-        top: place.y,
+        left: place.x + offset.dx,
+        top: place.y + offset.dy,
         width: place.width,
         height: place.height,
-        overflow: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
         boxSizing: 'border-box',
         border: `1px solid ${theme.gridline}`,
         background: theme.background,
@@ -308,18 +342,62 @@ function Frame(props: {
         }
       }}
     >
-      {props.mounted && shown && (
-        <LazyOutputs
-          heavy={heavy}
-          renderer={props.renderer}
-          outputs={outputs}
-          trusted={props.trusted}
-          cell={ref}
-          width={place.width}
-          height={place.height}
-          text={text}
-        />
-      )}
+      <div
+        data-cells-code-output-handle=""
+        title="Drag to move"
+        {...handlers}
+        style={{
+          ...HANDLE_STYLE,
+          flex: `0 0 ${CODE_FRAME_STRIP}px`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 4,
+          padding: '0 2px 0 6px',
+          fontSize: 11,
+          lineHeight: `${CODE_FRAME_STRIP - 1}px`,
+          color: theme.headerText,
+          background: theme.headerBackground,
+          borderBottom: `1px solid ${theme.gridline}`,
+          overflow: 'hidden',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        <span>Output of {ref}</span>
+        <button
+          type="button"
+          data-cells-code-unpin=""
+          aria-label={`Unpin the output of ${ref}`}
+          title="Unpin: show it on hover"
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => props.onUnpin?.()}
+          style={{
+            border: 0,
+            background: 'transparent',
+            color: 'inherit',
+            cursor: 'pointer',
+            padding: '0 4px',
+            font: 'inherit',
+            lineHeight: 'inherit',
+          }}
+        >
+          ×
+        </button>
+      </div>
+      <div style={{ flex: '1 1 auto', overflow: 'auto', minHeight: 0 }}>
+        {props.mounted && shown && (
+          <LazyOutputs
+            heavy={heavy}
+            renderer={props.renderer}
+            outputs={outputs}
+            trusted={props.trusted}
+            cell={ref}
+            width={place.width}
+            height={inner}
+            text={text}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -407,6 +485,38 @@ export function CodeLayer(props: CodeLayerProps) {
     if (list === undefined) byPane.set(p.pane, (list = []));
     list.push(p);
   }
+  // A drop of a frame or of the preview, an *Unpin*: the code cell's frame, one undo step each.
+  const setFrame = (row: number, col: number, frame: CodeFrame | null) => {
+    const code = model.code(sheet.id, row, col);
+    if (code !== undefined)
+      model.dispatch({ type: 'SET_CODE', sheet: sheet.id, row, col, code: { ...code, frame } });
+  };
+  const zoom = viewport.zoom;
+  const moveFrame = (row: number, col: number, dx: number, dy: number) => {
+    const code = model.code(sheet.id, row, col);
+    const frame = code === undefined ? undefined : codeFrame(code);
+    if (frame === undefined) return;
+    setFrame(row, col, {
+      ...frame,
+      dx: Math.round((frame.dx ?? 0) + dx / zoom),
+      dy: Math.round((frame.dy ?? 0) + dy / zoom),
+    });
+  };
+  /** The preview dropped at `rect` (view px of the grid's root): its cell's frame pinned there, its size. */
+  const pin = (
+    row: number,
+    col: number,
+    rect: { x: number; y: number; width: number; height: number },
+  ) => {
+    const pane = paneOfCell(sheet, row, col, viewport.panes);
+    const beside = placeFrame(sheet, row, col, { width: 1, height: 1 }, pane, zoom);
+    setFrame(row, col, {
+      width: Math.round(rect.width / zoom),
+      height: Math.round(rect.height / zoom),
+      dx: Math.round((rect.x - pane.x - beside.x) / zoom),
+      dy: Math.round((rect.y - pane.y - beside.y) / zoom),
+    });
+  };
   const editing = props.editing ?? null;
   const preview = props.preview ?? null;
   const previewed = preview === null ? undefined : model.code(sheet.id, preview.row, preview.col);
@@ -441,6 +551,8 @@ export function CodeLayer(props: CodeLayerProps) {
               mounted={mounted.has(p)}
               trusted={model.codeTrusted(sheet.id, p.row, p.col)}
               onEscape={props.onEscape}
+              onMove={(dx, dy) => moveFrame(p.row, p.col, dx, dy)}
+              onUnpin={() => setFrame(p.row, p.col, null)}
             />
           ))}
         </div>
@@ -479,6 +591,10 @@ export function CodeLayer(props: CodeLayerProps) {
           returnFocusRef={props.returnFocusRef}
           onClose={() => props.onClosePreview?.()}
           onPointer={props.onPreviewPointer}
+          onPin={(rect) => {
+            pin(preview.row, preview.col, rect);
+            props.onClosePreview?.();
+          }}
         />
       )}
     </>
@@ -501,18 +617,53 @@ export interface CodeOutputPreviewProps {
   readonly returnFocusRef?: React.RefObject<HTMLElement | null>;
   readonly onClose: () => void;
   readonly onPointer?: (over: boolean) => void;
+  /** Dropped after a drag of its strip: where it is now and its size, view px of the grid's root. */
+  readonly onPin?: (rect: {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+  }) => void;
 }
 
 /**
  * A code cell's outputs at the cell (§3.13): Primer's `Overlay` in the grid's
  * portal root, opened by a hover of 300 ms or Alt+Down, drawn by the
  * contributed renderer (untrusted outputs filtered as the frames are), up
- * to 480 × 360; closed when the pointer leaves the cell and the overlay, by
- * Escape, or by a click outside.
+ * to 480 × 360, under a strip that drags it: dropped, it is pinned there
+ * (the code cell's `frame`, with its offset, one undo step), and a frame
+ * shows the outputs from then on. Closed when the pointer leaves the cell
+ * and the overlay (never while dragged), by Escape, or by a click outside.
  */
 export function CodeOutputPreview(props: CodeOutputPreviewProps) {
   const outputs = props.trusted ? props.outputs : safeOutputs(props.outputs);
   const text = outputsText(outputs);
+  // While dragged, the pointer leaving it never closes it; dropped, it is pinned there.
+  const moved = useRef(false);
+  const box = useRef<HTMLDivElement>(null);
+  const { offset, dragging, handlers } = useDragHandle({
+    onStart: () => {
+      moved.current = true;
+      props.onPointer?.(true);
+    },
+    onDrop: (dx, dy, now) => {
+      moved.current = false;
+      if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
+      const size = box.current?.getBoundingClientRect();
+      props.onPin?.({
+        x: props.x + now.dx,
+        y: props.y + now.dy,
+        width: Math.min(
+          CODE_PREVIEW_MAX.width,
+          Math.max(80, size?.width ?? CODE_PREVIEW_MAX.width),
+        ),
+        height: Math.min(
+          CODE_PREVIEW_MAX.height + CODE_FRAME_STRIP,
+          Math.max(40, size?.height ?? CODE_PREVIEW_MAX.height),
+        ),
+      });
+    },
+  });
   return (
     <ThemeProvider>
       <Overlay
@@ -523,8 +674,8 @@ export function CodeOutputPreview(props: CodeOutputPreviewProps) {
         onEscape={props.onClose}
         portalContainerName={props.portalName}
         position="absolute"
-        top={props.y}
-        left={props.x}
+        top={props.y + offset.dy}
+        left={props.x + offset.dx}
         width="auto"
         preventFocusOnOpen
         style={{
@@ -534,18 +685,16 @@ export function CodeOutputPreview(props: CodeOutputPreviewProps) {
             'var(--shadow-floating-small, 0 0 0 1px rgba(128, 128, 128, 0.35), 0 8px 24px rgba(0, 0, 0, 0.2))',
         }}
         data-cells-code-preview={props.cell}
+        data-cells-dragging={dragging ? '' : undefined}
       >
         <div
+          ref={box}
           data-cells-code-preview={props.cell}
-          style={{
-            maxWidth: CODE_PREVIEW_MAX.width,
-            maxHeight: CODE_PREVIEW_MAX.height,
-            overflow: 'auto',
-            padding: 4,
-            font: `${props.theme.fontSize}px ${props.theme.fontFamily}`,
-          }}
+          style={{ font: `${props.theme.fontSize}px ${props.theme.fontFamily}` }}
           onPointerEnter={() => props.onPointer?.(true)}
-          onPointerLeave={() => props.onPointer?.(false)}
+          onPointerLeave={() => {
+            if (!moved.current) props.onPointer?.(false);
+          }}
           onPointerDown={(e) => e.stopPropagation()}
           onKeyDown={(e) => {
             e.stopPropagation();
@@ -555,16 +704,39 @@ export function CodeOutputPreview(props: CodeOutputPreviewProps) {
             }
           }}
         >
-          <LazyOutputs
-            heavy={false}
-            renderer={props.renderer}
-            outputs={outputs}
-            trusted={props.trusted}
-            cell={props.cell}
-            width={CODE_PREVIEW_MAX.width - 8}
-            height={CODE_PREVIEW_MAX.height - 8}
-            text={text}
-          />
+          <div
+            data-cells-code-preview-handle=""
+            title="Drag to move"
+            {...handlers}
+            style={{
+              ...HANDLE_STYLE,
+              padding: '2px 8px',
+              fontSize: 11,
+              color: 'var(--fgColor-muted, GrayText)',
+              borderBottom: '1px solid var(--borderColor-muted, rgba(128, 128, 128, 0.3))',
+            }}
+          >
+            Output of {props.cell}
+          </div>
+          <div
+            style={{
+              maxWidth: CODE_PREVIEW_MAX.width,
+              maxHeight: CODE_PREVIEW_MAX.height,
+              overflow: 'auto',
+              padding: 4,
+            }}
+          >
+            <LazyOutputs
+              heavy={false}
+              renderer={props.renderer}
+              outputs={outputs}
+              trusted={props.trusted}
+              cell={props.cell}
+              width={CODE_PREVIEW_MAX.width - 8}
+              height={CODE_PREVIEW_MAX.height - 8}
+              text={text}
+            />
+          </div>
         </div>
       </Overlay>
     </ThemeProvider>

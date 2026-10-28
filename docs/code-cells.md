@@ -19,8 +19,13 @@ A cell with outputs paints a preview of them too: a PNG's thumbnail scaled
 to the cell's height, or the first line of a text output, and an output
 glyph in the corner; hovering the cell (300 ms) or Alt+Down shows the
 outputs in a preview at the cell, drawn by the contributed renderer, up to
-480 × 360. A cell whose `frame` is set keeps them pinned beside the cells
-instead (`frame: null` shows the preview only). A host whose bundler is not
+480 × 360. Dragging the preview by its strip pins it where it is dropped:
+the drop writes the cell's `frame` (its size, and `dx`, `dy`, the offset in
+px at zoom 1 from its place beside the cell), one undo step. A cell whose
+`frame` is set (or unset, the default 360 × 240) shows its outputs in that
+pinned frame instead, and never a preview too: the frame's strip drags it
+(the offset again, one undo step) and its × unpins it (`frame: null`: the
+preview only). A host whose bundler is not
 webpack defines `__webpack_public_path__` (`''`) before loading `./jupyter`,
 as the examples' Vite config and page do: JupyterLab's packages read it.
 
@@ -28,7 +33,7 @@ as the examples' Vite config and page do: JupyterLab's packages read it.
 | -------------------- | ---------------------- | ---------------------------------------------- |
 | Shift+Enter          | `cells.code.run`       | Run it on the sheet's kernel                   |
 | Enter, F2, F4, a double-click | `cells.code.openEditor` | An overlay at the cell with the source in `Cell`; Escape, a click outside or Ctrl+S save and close; Shift+Enter there runs |
-| Alt+Down | `cells.code.preview` | Its outputs in a preview at the cell (a hover of 300 ms too); Escape closes |
+| Alt+Down | `cells.code.preview` | Its outputs in a preview at the cell (a hover of 300 ms too), unless pinned in a frame; Escape closes |
 |                      | `cells.code.goToOutput` | Focus its output frame (Escape returns)       |
 |                      | `cells.code.runAll`    | Every code cell of the sheet, in dependency order |
 |                      | `cells.code.interrupt` | Stop the run in flight                         |
@@ -71,8 +76,10 @@ idle, busy, starting, dead… as the kernel says; the editor overlay's header
 shows it, a page can too. The overlay never waits on the kernel: `Cell`
 needs a connected one to mount, so while the kernel connects (the browser
 kernel downloads Pyodide on its first run), and when it fails or takes over
-20 s (said in a line), a plain editor stands in, editable and saved the same
-way, with the cell's last outputs under it. On the canvas, a running cell
+20 s (said in a line), `SourceCell` stands in: JupyterLab's own code cell
+and CodeMirror with no kernel, in the same theme and colour mode, editable
+and saved the same way, with the cell's last outputs under it; `Cell` starts
+from what was typed there. The overlay moves by a drag of its header. On the canvas, a running cell
 paints a dot in the kernel's state colour beside `#BUSY!`. With no kernel, a run says *No
 kernel*. A kernel that is not Python gets the program too: `programParts`
 gives it the source and the values read, and it answers with a
@@ -104,7 +111,7 @@ package gets a snapshot of the values the source names instead.
 
 `CellsWorkbook` JSON keeps code cells under `sheets[].code["B4"]`: the
 source, the outputs (nbformat's), the result, the execution count, when it
-last ran, `run`, the frame's size and the spill's. XLSX has no place for
+last ran, `run`, the frame's size and offset, and the spill's. XLSX has no place for
 code: the sources and their settings go into `customXml/cells-code.xml`,
 the result is the cell's cached value, and the outputs are dropped, which
 the import report says (`report.code`). The `ipynb` exporter writes the

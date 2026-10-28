@@ -14,7 +14,7 @@
  */
 
 import { contribution, definePlugin } from '@datalayer/reactor';
-import { codeCell } from '../core/code.js';
+import { codeCell, codeFrame } from '../core/code.js';
 import { codeRunner } from '../core/codeRun.js';
 import { notebookText } from '../core/notebook.js';
 import type { CellsModel } from '../core/model.js';
@@ -108,6 +108,9 @@ export const CODE_COMMANDS: readonly CellsCommand[] = [
       if (grid?.previewOutput === undefined)
         throw new Error('cells.code.preview shows a preview on a grid: run it from a grid.');
       const { active } = m.selection;
+      const code = m.code(m.selection.sheet, active.row, active.col);
+      if (code !== undefined && codeFrame(code) !== undefined)
+        throw new Error('Its output is pinned beside the cell: Go to output reaches it.');
       if (!grid.previewOutput(active.row, active.col))
         throw new Error('This cell shows no output.');
     },

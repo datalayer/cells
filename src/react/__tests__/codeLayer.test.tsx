@@ -11,7 +11,9 @@
  * in the grid: a frame beside its cell, named "Output of C4", drawn by the
  * contributed renderer (Acme's text one here) or the `text/plain` fallback;
  * no frame for a cell with no outputs or `frame: null`; at most 20 mounted;
- * *Go to output* focuses the frame and Escape returns to the grid. The editor
+ * *Go to output* focuses the frame and Escape returns to the grid. A drag of
+ * a frame's strip moves it (its offset, one undo step); *Unpin* takes the
+ * frame away (`frame: null`, one undo step). The editor
  * overlay is `codeEditor.test.tsx` (Primer's Overlay, out of the React 18 harness).
  */
 
@@ -118,6 +120,78 @@ describe('the output frames of code cells', () => {
     expect(p.near).toBe(true);
     const far = placeFrame(sheet, 90, 2, { width: 300, height: 200 }, pane as never, 1);
     expect(far.near).toBe(false);
+    // Moved by its offset, scaled by the zoom.
+    const moved = placeFrame(
+      sheet,
+      3,
+      2,
+      { width: 300, height: 200, dx: 40, dy: -10 },
+      pane as never,
+      2,
+    );
+    expect(moved.x).toBe((sheet.cols.offsetOf(3) + 40) * 2);
+    expect(moved.y).toBe((sheet.rows.offsetOf(3) - 10) * 2);
+  });
+
+  it("a drag of a frame's strip moves it, live, then writes its offset as one undo step; Unpin takes it away, one undo step too", async () => {
+    const { m, div } = mount([RendererPlugin]);
+    await tick();
+    m.dispatch({
+      type: 'SET_CODE',
+      sheet: 's1',
+      row: 3,
+      col: 2,
+      code: codeCell('t', { outputs: [stream('table')], frame: { width: 300, height: 200 } }),
+    });
+    await tick();
+    const frame = () => div.querySelector<HTMLElement>('[data-cells-code-output="C4"]');
+    const strip = frame()!.querySelector<HTMLElement>('[data-cells-code-output-handle]')!;
+    expect(strip.textContent).toContain('Output of C4');
+    const left = parseFloat(frame()!.style.left);
+    const top = parseFloat(frame()!.style.top);
+    const pointer = (type: string, x: number, y: number) =>
+      act(() => {
+        strip.dispatchEvent(
+          new MouseEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            button: 0,
+            clientX: x,
+            clientY: y,
+          }),
+        );
+      });
+    const revision = m.revision;
+    pointer('pointerdown', 500, 100);
+    pointer('pointermove', 530, 140);
+    expect([parseFloat(frame()!.style.left), parseFloat(frame()!.style.top)]).toEqual([
+      left + 30,
+      top + 40,
+    ]);
+    expect(m.revision).toBe(revision);
+    pointer('pointerup', 560, 80);
+    expect(m.revision).toBe(revision + 1);
+    expect(m.code('s1', 3, 2)!.frame).toEqual({ width: 300, height: 200, dx: 60, dy: -20 });
+    expect([parseFloat(frame()!.style.left), parseFloat(frame()!.style.top)]).toEqual([
+      left + 60,
+      top - 20,
+    ]);
+    // A press with no move writes nothing.
+    pointer('pointerdown', 10, 10);
+    pointer('pointerup', 11, 10);
+    expect(m.revision).toBe(revision + 1);
+    m.undo();
+    expect(m.code('s1', 3, 2)!.frame).toEqual({ width: 300, height: 200 });
+    m.redo();
+    await tick();
+    act(() => frame()!.querySelector<HTMLElement>('[data-cells-code-unpin]')!.click());
+    await tick();
+    expect(m.code('s1', 3, 2)!.frame).toBeNull();
+    expect(frame()).toBeNull();
+    m.undo();
+    await tick();
+    expect(m.code('s1', 3, 2)!.frame).toEqual({ width: 300, height: 200, dx: 60, dy: -20 });
+    expect(frame()).not.toBeNull();
   });
 
   it('shows a frame named after its cell, drawn by the contributed renderer, and none without outputs or with frame: null', async () => {
@@ -162,7 +236,7 @@ describe('the output frames of code cells', () => {
     expect(frames).toHaveLength(25);
     const drawn = frames.filter((f) => f.querySelector('[data-cells-code-text]') !== null);
     expect(drawn).toHaveLength(CODE_FRAMES_CAP);
-    expect(drawn[0].textContent).toBe('out 0');
+    expect(drawn[0].querySelector('[data-cells-code-text]')!.textContent).toBe('out 0');
   });
 
   it('Go to output focuses the frame, Escape returns to the grid; a cell with no frame refuses', async () => {

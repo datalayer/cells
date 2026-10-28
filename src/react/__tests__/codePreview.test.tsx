@@ -10,7 +10,9 @@
  * The output preview (C11-05): hovering a code cell with outputs for 300 ms
  * opens its outputs in Primer's Overlay at the cell, drawn by the
  * contributed renderer; moving to another cell closes it; Alt+Down opens it
- * on the selected cell and Escape closes it.
+ * on the selected cell and Escape closes it. Its strip drags it: open while
+ * dragged, pinned where dropped (the code cell's frame with its offset, one
+ * undo step), and *Unpin* clears it. A pinned cell opens no preview.
  */
 
 import { act } from 'react';
@@ -191,5 +193,101 @@ describe('the output preview', () => {
     await expect(m.reactor.executeCommand('cells.code.preview')).rejects.toThrow(
       'This cell shows no output.',
     );
+  });
+
+  it('its strip drags it, open while dragged; the drop pins it there (the frame and its offset, one undo step), and Unpin clears it', async () => {
+    const { m, div, grid } = await mount();
+    vi.useFakeTimers();
+    move(grid, 1, 1);
+    act(() => {
+      vi.advanceTimersByTime(CODE_HOVER_MS + 50);
+    });
+    const box = preview(div)!;
+    const handle = div.querySelector<HTMLElement>('[data-cells-code-preview-handle]')!;
+    expect(handle.textContent).toBe('Output of B2');
+    const at = () => ({ left: parseFloat(box.style.left), top: parseFloat(box.style.top) });
+    const start = at();
+    const pointer = (el: HTMLElement, type: string, x: number, y: number, init = {}) =>
+      act(() => {
+        el.dispatchEvent(
+          new MouseEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            button: 0,
+            clientX: x,
+            clientY: y,
+            ...init,
+          }),
+        );
+      });
+    pointer(handle, 'pointerover', 300, 100);
+    pointer(handle, 'pointerdown', 300, 100);
+    pointer(handle, 'pointermove', 500, 300);
+    // The pointer leaves it mid-drag: it stays.
+    pointer(handle, 'pointerout', 700, 380, { relatedTarget: grid });
+    expect(preview(div)).toBe(box);
+    expect(at()).toEqual({ left: start.left + 200, top: start.top + 200 });
+    const revision = m.revision;
+    pointer(handle, 'pointerup', 520, 320);
+    await act(async () => {
+      vi.advanceTimersByTime(10);
+    });
+    // Pinned: one step writes the frame, the preview gives way to it, at the drop.
+    expect(m.revision).toBe(revision + 1);
+    const frame = m.code('s1', 1, 1)!.frame!;
+    const s = m.sheet('s1');
+    const h = headerSizes(LIMITS.rows, true);
+    expect(frame.dx).toBe(start.left + 220 - (h.width + s.cols.offsetOf(2)));
+    expect(frame.dy).toBe(start.top + 220 - (h.height + s.rows.offsetOf(1)));
+    expect(frame.width).toBeGreaterThan(0);
+    expect(preview(div)).toBeNull();
+    const pinned = div.querySelector<HTMLElement>('[role="region"][data-cells-code-output="B2"]')!;
+    expect(parseFloat(pinned.style.left)).toBe(start.left + 220 - h.width);
+    // Unpin: no frame again, one step, and the hover shows the outputs.
+    act(() => pinned.querySelector<HTMLElement>('[data-cells-code-unpin]')!.click());
+    await act(async () => {
+      vi.advanceTimersByTime(10);
+    });
+    expect(m.code('s1', 1, 1)!.frame).toBeNull();
+    expect(m.revision).toBe(revision + 2);
+    expect(div.querySelector('[data-cells-code-output="B2"]')).toBeNull();
+    move(grid, 3, 1);
+    move(grid, 1, 1);
+    act(() => {
+      vi.advanceTimersByTime(CODE_HOVER_MS + 50);
+    });
+    expect(preview(div)).not.toBeNull();
+  });
+
+  it('a cell whose outputs are pinned in a frame opens no preview: neither a hover nor Alt+Down', async () => {
+    const { m, div, grid } = await mount();
+    m.dispatch({
+      type: 'SET_CODE',
+      sheet: 's1',
+      row: 1,
+      col: 1,
+      code: { ...m.code('s1', 1, 1)!, frame: { width: 200, height: 100, dx: 10, dy: 10 } },
+    });
+    await tick();
+    expect(div.querySelector('[data-cells-code-output="B2"]')).not.toBeNull();
+    vi.useFakeTimers();
+    move(grid, 1, 1);
+    act(() => {
+      vi.advanceTimersByTime(CODE_HOVER_MS + 50);
+    });
+    expect(preview(div)).toBeNull();
+    vi.useRealTimers();
+    act(() =>
+      m.select({
+        sheet: 's1',
+        zones: [{ top: 1, left: 1, bottom: 1, right: 1 }],
+        anchor: { row: 1, col: 1 },
+        active: { row: 1, col: 1 },
+      }),
+    );
+    await expect(m.reactor.executeCommand('cells.code.preview')).rejects.toThrow(
+      'Its output is pinned beside the cell',
+    );
+    expect(preview(div)).toBeNull();
   });
 });

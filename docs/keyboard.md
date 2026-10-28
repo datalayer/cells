@@ -56,7 +56,7 @@ a command acts on the grid that last had the focus.
 | Mod+D, Mod+R               | `cells.fillDown`, `cells.fillRight`                                             |
 | Shift+Enter, on a code cell | `cells.code.run`: run it on the sheet's kernel (elsewhere, `cells.nextUp`)     |
 | Enter, F2 or F4, on a code cell | `cells.code.openEditor`: the overlay with the source in jupyter-react's `Cell` (a double-click too); Escape or Ctrl+S saves and closes, Shift+Enter there runs |
-| Alt+Down, on a code cell | `cells.code.preview`: its outputs in a preview at the cell (a hover of 300 ms shows it too); Escape closes |
+| Alt+Down, on a code cell | `cells.code.preview`: its outputs in a preview at the cell (a hover of 300 ms shows it too), unless they are pinned in a frame; Escape closes |
 | Typing                     | Replace the active cell's content (not on a cell type that says so)             |
 | Enter, Tab                 | In the editor: commit and move (Alt+Enter: a new line in the cell)              |
 | Escape                     | In the editor: leave the cell as it was; on the grid: drop the copy marquee     |
