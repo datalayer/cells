@@ -20,6 +20,7 @@ const EXAMPLES = [
   ['charts', 'Charts'],
   ['cell-types', 'Cell types'],
   ['data-sources', 'Data sources'],
+  ['command-palette', 'Command palette'],
 ] as const;
 
 test.describe('the examples', () => {

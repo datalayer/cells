@@ -23,6 +23,7 @@ import Chrome from './examples/10-chrome';
 import Charts from './examples/11-charts';
 import CellTypes from './examples/12-cell-types';
 import DataSources from './examples/13-data-sources';
+import CommandPalette from './examples/14-command-palette';
 
 const SOURCES = import.meta.glob('./examples/*.tsx', {
   query: '?raw',
@@ -85,6 +86,12 @@ export const EXAMPLES: readonly Example[] = [
     title: 'Data sources',
     file: '13-data-sources.tsx',
     Component: DataSources,
+  },
+  {
+    id: 'command-palette',
+    title: 'Command palette',
+    file: '14-command-palette.tsx',
+    Component: CommandPalette,
   },
 ];
 

@@ -54,6 +54,8 @@ export default defineConfig({
   resolve: {
     preserveSymlinks: true,
     alias: [
+      // An example page a test mounts imports `@datalayer/cells`: the source, as in the main config.
+      { find: /^@datalayer\/cells$/, replacement: join(root, 'src', 'index.ts') },
       { find: /^react-dom\/client$/, replacement: at('react-dom/client.js') },
       { find: /^react-dom$/, replacement: at('react-dom/index.js') },
       { find: /^react\/jsx-runtime$/, replacement: at('react/jsx-runtime.js') },
