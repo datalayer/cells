@@ -16,7 +16,7 @@ const EXAMPLES = [
   ['react-api', 'The React API'],
   ['plugin', 'A Reactor plugin'],
   ['collaboration', 'Collaboration'],
-  ['chrome', 'Toolbar, formula bar and sheet tabs'],
+  ['chrome', 'Toolbar, formula bar and tabs'],
   ['charts', 'Charts'],
   ['cell-types', 'Cell types'],
   ['data-sources', 'Data sources'],

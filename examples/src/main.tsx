@@ -74,7 +74,7 @@ export const EXAMPLES: readonly Example[] = [
   },
   {
     id: 'chrome',
-    title: 'Toolbar, formula bar and sheet tabs',
+    title: 'Toolbar, formula bar and tabs',
     file: '10-chrome.tsx',
     Component: Chrome,
   },
