@@ -5,6 +5,8 @@
  */
 
 import react from '@vitejs/plugin-react';
+import topLevelAwait from 'vite-plugin-top-level-await';
+import wasm from 'vite-plugin-wasm';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 
@@ -15,7 +17,10 @@ const page = (name: string): string => fileURLToPath(new URL(name, import.meta.u
 
 export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
-  plugins: [react()],
+  // loro-crdt (through ./collab and lexical-loro) is WebAssembly: the dev server needs
+  // these two to load it; a production build does not.
+  plugins: [react(), wasm(), topLevelAwait()],
+  optimizeDeps: { exclude: ['loro-crdt', '@datalayer/lexical-loro'] },
   resolve: {
     alias: [
       {
