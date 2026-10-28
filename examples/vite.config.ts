@@ -86,6 +86,11 @@ export default defineConfig({
   },
   server: { port: PORT, strictPort: true, host: '127.0.0.1' },
   build: {
+    // @jupyter-widgets/controls (through jupyter-react's widget manager) mixes
+    // `import` with a bare `require('../package.json')`: the build must
+    // transform such modules, or the Code cells page throws `require is not
+    // defined` at load in production (the dev server pre-bundles it).
+    commonjsOptions: { transformMixedEsModules: true },
     // loro-crdt's WebAssembly loads with a top-level await: the modern target carries it as is
     // (vite-plugin-top-level-await's transform refused the production build's default target).
     target: 'esnext',
