@@ -8,6 +8,7 @@
     "paths": {
       "@datalayer/cells": ["../src/index.ts"],
       "@datalayer/cells/csv": ["../src/csv/index.ts"],
+      "@datalayer/cells/chrome": ["../src/chrome/index.ts"],
       "@datalayer/cells/xlsx": ["../src/xlsx/index.ts"]
     }
   },

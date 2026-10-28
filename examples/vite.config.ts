@@ -23,6 +23,10 @@ export default defineConfig({
         replacement: fileURLToPath(new URL('../src/index.ts', import.meta.url)),
       },
       {
+        find: /^@datalayer\/cells\/chrome$/,
+        replacement: fileURLToPath(new URL('../src/chrome/index.ts', import.meta.url)),
+      },
+      {
         find: /^@datalayer\/cells\/csv$/,
         replacement: fileURLToPath(new URL('../src/csv/index.ts', import.meta.url)),
       },

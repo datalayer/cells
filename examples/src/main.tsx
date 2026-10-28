@@ -17,6 +17,7 @@ import ImportExport from './examples/06-import-export';
 import ReactApi from './examples/07-react-api';
 import Plugin from './examples/08-plugin';
 import Collaboration from './examples/09-collaboration';
+import Chrome from './examples/10-chrome';
 
 const SOURCES = import.meta.glob('./examples/*.tsx', {
   query: '?raw',
@@ -65,6 +66,12 @@ export const EXAMPLES: readonly Example[] = [
     title: 'Collaboration',
     file: '09-collaboration.tsx',
     Component: Collaboration,
+  },
+  {
+    id: 'chrome',
+    title: 'Toolbar, formula bar and sheet tabs',
+    file: '10-chrome.tsx',
+    Component: Chrome,
   },
 ];
 

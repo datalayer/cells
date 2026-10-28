@@ -95,6 +95,7 @@ test.describe('the grid', () => {
       '/#/plugin',
       '/#/collaboration',
       '/#/import-export',
+      '/#/chrome',
     ]) {
       await page.goto(url);
       await page.locator('[role="grid"]').first().waitFor();

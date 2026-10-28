@@ -16,6 +16,7 @@ const EXAMPLES = [
   ['react-api', 'The React API'],
   ['plugin', 'A Reactor plugin'],
   ['collaboration', 'Collaboration'],
+  ['chrome', 'Toolbar, formula bar and sheet tabs'],
 ] as const;
 
 test.describe('the examples', () => {

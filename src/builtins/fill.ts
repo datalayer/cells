@@ -26,6 +26,7 @@ import {
   CellsCommands,
   CellsFillRules,
   CellsMenuItems,
+  CellsToolbarItems,
   type CommandHandler,
   type FillRule,
   type FillSource,
@@ -509,6 +510,16 @@ export const CellsFillPlugin = definePlugin({
     ),
     contribution(
       CellsMenuItems,
+      { command: 'cells.sortDescending', group: 'sort' },
+      { id: 'cells.sortDescending', order: 161 },
+    ),
+    contribution(
+      CellsToolbarItems,
+      { command: 'cells.sortAscending', group: 'sort' },
+      { id: 'cells.sortAscending', order: 160 },
+    ),
+    contribution(
+      CellsToolbarItems,
       { command: 'cells.sortDescending', group: 'sort' },
       { id: 'cells.sortDescending', order: 161 },
     ),

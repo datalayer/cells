@@ -19,7 +19,7 @@ import type { CommandResult } from '../core/commands.js';
 import type { CellsModel } from '../core/model.js';
 import type { Style } from '../core/styles.js';
 import type { Zone } from '../core/zone.js';
-import { CellsMenuItems } from '../points/index.js';
+import { CellsMenuItems, CellsToolbarItems } from '../points/index.js';
 
 /** What a Cells command is run with: the grid's model, and how its text measures (for fitting). */
 export interface CellsCommandArgument {
@@ -224,12 +224,18 @@ export const EDITING_COMMANDS: readonly ReactorCommand<CellsCommandArgument, unk
     keybinding: 'Mod+5',
     octicon: 'strikethrough',
   }),
-  command('formatNumber', 'Format as number', formatAs('#,##0.00'), { keybinding: 'Mod+Shift+!' }),
+  command('formatNumber', 'Format as number', formatAs('#,##0.00'), {
+    keybinding: 'Mod+Shift+!',
+    octicon: 'number',
+  }),
   command('formatCurrency', 'Format as currency', formatAs('$#,##0.00;($#,##0.00)'), {
     keybinding: 'Mod+Shift+$',
   }),
   command('formatPercent', 'Format as percent', formatAs('0%'), { keybinding: 'Mod+Shift+%' }),
-  command('formatDate', 'Format as date', formatAs('yyyy-mm-dd'), { keybinding: 'Mod+Shift+#' }),
+  command('formatDate', 'Format as date', formatAs('yyyy-mm-dd'), {
+    keybinding: 'Mod+Shift+#',
+    octicon: 'calendar',
+  }),
   command('formatGeneral', 'Clear the number format', formatAs('General'), {
     keybinding: 'Mod+Shift+~',
   }),
@@ -322,7 +328,26 @@ const MENU: readonly (readonly [string, string])[] = [
   ['unfreeze', 'view'],
 ];
 
-/** The built-in editing actions: Reactor commands, and the context menu's items. */
+/** The toolbar's items, in order, with their groups (`./chrome`'s `<Toolbar>` shows them). */
+const TOOLBAR: readonly (readonly [string, string])[] = [
+  ['undo', 'history'],
+  ['redo', 'history'],
+  ['bold', 'text'],
+  ['italic', 'text'],
+  ['underline', 'text'],
+  ['strikethrough', 'text'],
+  ['formatNumber', 'number'],
+  ['formatCurrency', 'number'],
+  ['formatPercent', 'number'],
+  ['formatDate', 'number'],
+  ['formatGeneral', 'number'],
+  ['merge', 'cells'],
+  ['unmerge', 'cells'],
+  ['freezeHere', 'view'],
+  ['unfreeze', 'view'],
+];
+
+/** The built-in editing actions: Reactor commands, the context menu's items and the toolbar's. */
 export const CellsEditingPlugin = definePlugin({
   name: CELLS_EDITING_PLUGIN,
   displayName: 'Cells editing',
@@ -330,11 +355,20 @@ export const CellsEditingPlugin = definePlugin({
     'Insert, delete, move, hide, merge and freeze from the keyboard and the context menu.',
   octicon: 'pencil',
   commands: [...EDITING_COMMANDS],
-  contributes: MENU.map(([id, group], i) =>
-    contribution(
-      CellsMenuItems,
-      { command: `cells.${id}`, group },
-      { id: `cells.${id}`, order: 100 + i },
+  contributes: [
+    ...MENU.map(([id, group], i) =>
+      contribution(
+        CellsMenuItems,
+        { command: `cells.${id}`, group },
+        { id: `cells.${id}`, order: 100 + i },
+      ),
     ),
-  ),
+    ...TOOLBAR.map(([id, group], i) =>
+      contribution(
+        CellsToolbarItems,
+        { command: `cells.${id}`, group },
+        { id: `cells.${id}`, order: 100 + i },
+      ),
+    ),
+  ],
 });
