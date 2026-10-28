@@ -176,6 +176,79 @@ export function placeFrame(
   return { x, y, width, height, near, distance };
 }
 
+/** The elements a drag handle leaves to themselves: a press on one is a click, not a drag. */
+const CONTROLS = 'button, a, input, select, textarea, [role="button"], [role="menuitem"]';
+
+/** The options of `useDragHandle`. */
+export interface DragHandleOptions {
+  /** A press on the handle began a drag. */
+  readonly onStart?: () => void;
+  /** The drag ended where the pointer was let go: its whole move, view px. */
+  readonly onDrop?: (dx: number, dy: number) => void;
+}
+
+/**
+ * A drag by a handle (the editor's header, the preview's strip, a frame's
+ * strip): the pointer captured from the press to the release, the offset
+ * followed live in view px, a press on a control within (a button, a menu)
+ * left to it. The press is not the browser's (no focus moves, no text is
+ * selected), and the grid under it never hears it.
+ */
+export function useDragHandle(options: DragHandleOptions = {}) {
+  const [offset, setOffset] = useState({ dx: 0, dy: 0 });
+  const [dragging, setDragging] = useState(false);
+  const latest = useRef(options);
+  latest.current = options;
+  const drag = useRef<{
+    readonly id: number;
+    readonly x: number;
+    readonly y: number;
+    readonly base: { readonly dx: number; readonly dy: number };
+  } | null>(null);
+  const handlers = {
+    onPointerDown: (e: React.PointerEvent<HTMLElement>) => {
+      if (e.button !== 0) return;
+      const control = (e.target as Element).closest?.(CONTROLS);
+      if (control !== null && control !== undefined && control !== e.currentTarget) return;
+      e.preventDefault();
+      e.stopPropagation();
+      drag.current = { id: e.pointerId, x: e.clientX, y: e.clientY, base: offset };
+      e.currentTarget.setPointerCapture?.(e.pointerId);
+      setDragging(true);
+      latest.current.onStart?.();
+    },
+    onPointerMove: (e: React.PointerEvent<HTMLElement>) => {
+      const d = drag.current;
+      if (d === null || e.pointerId !== d.id) return;
+      e.stopPropagation();
+      setOffset({ dx: d.base.dx + e.clientX - d.x, dy: d.base.dy + e.clientY - d.y });
+    },
+    onPointerUp: (e: React.PointerEvent<HTMLElement>) => {
+      const d = drag.current;
+      if (d === null || e.pointerId !== d.id) return;
+      e.stopPropagation();
+      drag.current = null;
+      setDragging(false);
+      setOffset({ dx: d.base.dx + e.clientX - d.x, dy: d.base.dy + e.clientY - d.y });
+      latest.current.onDrop?.(e.clientX - d.x, e.clientY - d.y);
+    },
+    onPointerCancel: () => {
+      const d = drag.current;
+      drag.current = null;
+      setDragging(false);
+      if (d !== null) setOffset(d.base);
+    },
+  };
+  return { offset, setOffset, dragging, handlers };
+}
+
+/** The style of a drag handle: the move cursor, no text selection, no touch scrolling. */
+const HANDLE_STYLE = {
+  cursor: 'move',
+  userSelect: 'none',
+  touchAction: 'none',
+} as const satisfies React.CSSProperties;
+
 /** The approximate size of outputs, bytes. */
 const bytesOf = (outputs: readonly CodeOutput[]) => JSON.stringify(outputs).length;
 
@@ -522,12 +595,15 @@ export interface CodeEditorOverlayProps {
 
 /**
  * *Open in editor* (§3.13, C11-06): Primer's `Overlay` in the grid's own
- * portal root, anchored at the cell, holding the contributed editor. Escape,
- * a click outside, *Save* and Ctrl+S save the source back (one undo step)
- * and close; Shift+Enter saves and runs the cell as the grid's run does.
+ * portal root, anchored at the cell, holding the contributed editor, moved
+ * by a drag of its header (the focus stays in the editor). Escape, a click
+ * outside, *Save* and Ctrl+S save the source back (one undo step) and close;
+ * Shift+Enter saves and runs the cell as the grid's run does.
  */
 export function CodeEditorOverlay(props: CodeEditorOverlayProps) {
   const { model, sheet, row, col } = props;
+  // Dragged by its header: moved for as long as it is open.
+  const { offset, dragging, handlers } = useDragHandle();
   const controls = useRef<{ save: () => void } | null>(null);
   const closed = useRef(false);
   const save = () => controls.current?.save();
@@ -567,8 +643,8 @@ export function CodeEditorOverlay(props: CodeEditorOverlayProps) {
         onEscape={close}
         portalContainerName={props.portalName}
         position="absolute"
-        top={props.y}
-        left={props.x}
+        top={props.y + offset.dy}
+        left={props.x + offset.dx}
         width="auto"
         style={{
           backgroundColor: 'var(--overlay-bgColor, Canvas)',
@@ -577,6 +653,7 @@ export function CodeEditorOverlay(props: CodeEditorOverlayProps) {
             'var(--shadow-floating-small, 0 0 0 1px rgba(128, 128, 128, 0.35), 0 8px 24px rgba(0, 0, 0, 0.2))',
         }}
         data-cells-code-overlay=""
+        data-cells-dragging={dragging ? '' : undefined}
       >
         <div
           data-cells-code-overlay=""
@@ -605,7 +682,10 @@ export function CodeEditorOverlay(props: CodeEditorOverlayProps) {
         >
           <div
             data-cells-code-overlay-header=""
+            title="Drag to move"
+            {...handlers}
             style={{
+              ...HANDLE_STYLE,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',

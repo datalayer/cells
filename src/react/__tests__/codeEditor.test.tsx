@@ -12,7 +12,8 @@
  * editor (jupyter-react's `Cell`, mocked here) and never the grid's own
  * text editor; an edit lands in the grid cell as one undo step when the
  * overlay closes (Escape, *Save*); Shift+Enter in it saves and runs the
- * cell; focus returns to the grid.
+ * cell; focus returns to the grid. A drag of its header moves it, the focus
+ * left in the editor and its keys as they were.
  */
 
 import { act } from 'react';
@@ -242,5 +243,51 @@ describe('the code editor overlay', () => {
     // The grid did not see the key: the selection stayed.
     expect(m.selection.active).toEqual({ row: 1, col: 1 });
     expect(overlay(div)).not.toBeNull();
+  });
+
+  it('a drag of its header moves it, live, the focus left in the editor; Escape still saves and closes', async () => {
+    const { m, div, grid } = await mount([CellPlugin]);
+    select(m, 1, 1);
+    press(grid, { key: 'F4' });
+    await tick();
+    const area = div.querySelector<HTMLTextAreaElement>('[data-test-editor="1,1"]')!;
+    act(() => area.focus());
+    const box = overlay(div)!;
+    const at = () => ({ left: parseFloat(box.style.left), top: parseFloat(box.style.top) });
+    const start = at();
+    const header = div.querySelector<HTMLElement>('[data-cells-code-overlay-header]')!;
+    const pointer = (type: string, x: number, y: number) =>
+      act(() => {
+        // jsdom has no PointerEvent: React's pointer handlers take a MouseEvent of the type.
+        header.dispatchEvent(
+          new MouseEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            button: 0,
+            clientX: x,
+            clientY: y,
+          }),
+        );
+      });
+    pointer('pointerdown', 300, 200);
+    pointer('pointermove', 340, 150);
+    expect(at()).toEqual({ left: start.left + 40, top: start.top - 50 });
+    pointer('pointerup', 360, 260);
+    expect(at()).toEqual({ left: start.left + 60, top: start.top + 60 });
+    expect(document.activeElement).toBe(area);
+    // A second drag starts from where the first left it.
+    pointer('pointerdown', 0, 0);
+    pointer('pointerup', -10, 5);
+    expect(at()).toEqual({ left: start.left + 50, top: start.top + 65 });
+    const setValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!;
+    act(() => {
+      setValue.call(area, '5 + 5');
+      area.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    press(area, { key: 'Escape' });
+    await tick();
+    expect(overlay(div)).toBeNull();
+    expect(m.code('s1', 1, 1)?.source).toBe('5 + 5');
+    expect(document.activeElement).toBe(grid);
   });
 });
