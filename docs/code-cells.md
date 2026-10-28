@@ -64,7 +64,16 @@ offers `liteKernel()` (JupyterLite's Pyodide, in the page, no server) and
 and `CellsJupyterPlugin(provider)` contributes one with jupyter-react's
 `Output` and `Cell` as the code renderer, each under jupyter-react's theme
 (`JupyterReactTheme`: the JupyterLab CSS and variables) in the host's colour
-mode, Primer's resolved one or the document's `data-color-mode`. With no kernel, a run says *No
+mode, Primer's resolved one or the document's `data-color-mode`.
+`KernelStatus` is jupyter-react's `KernelIndicator` on the runner's kernel
+with *Interrupt* and *Restart*: *not started* before the first connect, then
+idle, busy, starting, dead… as the kernel says; the editor overlay's header
+shows it, a page can too. The overlay never waits on the kernel: `Cell`
+needs a connected one to mount, so while the kernel connects (the browser
+kernel downloads Pyodide on its first run), and when it fails or takes over
+20 s (said in a line), a plain editor stands in, editable and saved the same
+way, with the cell's last outputs under it. On the canvas, a running cell
+paints a dot in the kernel's state colour beside `#BUSY!`. With no kernel, a run says *No
 kernel*. A kernel that is not Python gets the program too: `programParts`
 gives it the source and the values read, and it answers with a
 `display_data` output under `RESULT_MIME` (the plugin guide shows one).

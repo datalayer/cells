@@ -382,6 +382,18 @@ export const code: CellType = {
     }
     if (state === 'running') {
       drawPlainText(ctx, after, '#BUSY!', style, theme, theme.errorText, 'right');
+      // A dot in the corner in the kernel's state colour, while the cell runs (no query: the model's last word).
+      const status = m?.kernelStatus;
+      const d = Math.max(3, 4 * z);
+      ctx.fillStyle =
+        status === 'busy' || status === 'starting' || status === 'restarting'
+          ? theme.activeCellBorder
+          : status === 'dead' || status === 'terminating'
+            ? theme.errorText
+            : theme.textMuted;
+      ctx.beginPath();
+      ctx.arc(rect.x + rect.width - d - 2 * z, rect.y + d + 2 * z, d, 0, Math.PI * 2);
+      ctx.fill();
     } else if (value !== null) {
       const shown = display(value, style.format);
       const color = isCellError(value) ? theme.errorText : (style.color ?? theme.text);

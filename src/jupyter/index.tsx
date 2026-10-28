@@ -19,6 +19,8 @@
  *   jupyter-react's `Output` (no kernel: scrolling never re-runs anything).
  * - `CodeCellEditor`: *Open in editor*, jupyter-react's `Cell` bound to a
  *   code cell's source, on the sheet's kernel (`startDefaultKernel={false}`).
+ * - `KernelStatus`: jupyter-react's `KernelIndicator` on the runner's kernel,
+ *   with *Interrupt* and *Restart*; the overlay's header shows it.
  * - `openCellsComm`: the `datalayer.cells` comm (§3.13, C11-09) the page opens
  *   on the kernel it runs code on, so `datalayer_cells` there holds the
  *   page's workbook: the collaboration document's snapshot and updates, as
@@ -34,19 +36,27 @@ import {
   cellsStore,
   createLiteServiceManager,
   jupyterReactStore,
-  JupyterReactTheme,
   Kernel,
   Output,
   ServiceManagerLess,
 } from '@datalayer/jupyter-react';
-import { Button, useTheme } from '@primer/react';
+import { Button } from '@primer/react';
 import type { IOutput } from '@jupyterlab/nbformat';
 import type { ServiceManager } from '@jupyterlab/services';
 import { useEffect, useId, useState } from 'react';
 import { type CodeOutput as CodeOutputData, codeRef } from '../core/code.js';
+import { Themed } from './theme.js';
+import { CODE_EDITOR_MIN_WIDTH, PlainEditor, safeOutputs } from '../react/CodeLayer.js';
 import { type CellsBinding, type CellsComm, openCellsComm } from './comm.js';
 
 export { type CellsBinding, type CellsComm, type LoroDocLike, openCellsComm } from './comm.js';
+export { Themed, useHostColorMode } from './theme.js';
+export {
+  connectionOf,
+  KernelStatus,
+  type KernelStatusProps,
+  useRunnerKernel,
+} from './kernelStatus.js';
 import { codeRunner } from '../core/codeRun.js';
 import type { CellsModel } from '../core/model.js';
 import {
@@ -88,6 +98,17 @@ export function jupyterKernel(kernel: Kernel, binding?: CellsBinding): JupyterCe
       return { outputs: executor.outputs as unknown as CodeOutputData[] };
     },
     interrupt: () => kernel.interrupt(),
+    restart: () => kernel.restart(),
+    onStatus: (listener) => {
+      const connection = kernel.connection;
+      if (connection === null) return () => undefined;
+      const on = (_c: unknown, status: string) => listener(status);
+      connection.statusChanged.connect(on);
+      listener(connection.status);
+      return () => {
+        connection.statusChanged.disconnect(on);
+      };
+    },
   };
 }
 
@@ -156,26 +177,6 @@ export function liteKernel(options: JupyterKernelOptions = {}): KernelProvider {
 }
 
 /**
- * jupyter-react's theme around its components (`JupyterReactTheme`: the
- * JupyterLab CSS and variables, Primer's primitives), in the host's colour
- * mode: Primer's resolved one when a `ThemeProvider` is above (the examples'
- * appearance menu), else the document's `data-color-mode`, else light.
- * Without it CodeMirror and the outputs render as plain text.
- */
-export function Themed({ children }: { readonly children: React.ReactNode }) {
-  const { resolvedColorMode } = useTheme();
-  const fromDocument =
-    typeof document === 'undefined' ? undefined : document.documentElement.dataset.colorMode;
-  const dark =
-    resolvedColorMode === 'night' || (resolvedColorMode === undefined && fromDocument === 'dark');
-  return (
-    <JupyterReactTheme colormode={dark ? 'dark' : 'light'}>
-      <div data-cells-jupyter-theme={dark ? 'dark' : 'light'}>{children}</div>
-    </JupyterReactTheme>
-  );
-}
-
-/**
  * A code cell's outputs, rendered by jupyter-react's `Output` from what the
  * model stores, with no kernel (remounting never re-runs). A `ServiceManagerLess`
  * is published for it when nothing was: an `Output` with no manager would
@@ -207,11 +208,70 @@ export function CodeOutput({ outputs, cell, width, height }: CodeOutputRendererP
   );
 }
 
+/** How long a kernel may take to connect before the overlay says so and goes on without it, ms. */
+export const KERNEL_CONNECT_TIMEOUT_MS = 20_000;
+
+/** The kernel as the editor sees it: connecting, connected (jupyter-react's `Cell` mounts), or failed (the error shown, the plain editor stays). */
+export type EditorKernelState =
+  | { readonly kind: 'connecting' }
+  | { readonly kind: 'connected'; readonly kernel: Kernel }
+  | { readonly kind: 'failed'; readonly message: string };
+
+/** The runner's kernel for the editor: connected now, connecting, or failed (an error, or {@link KERNEL_CONNECT_TIMEOUT_MS} gone by). */
+export function useEditorKernel(model: CellsModel): EditorKernelState {
+  const runner = codeRunner(model);
+  const held = runner.kernel();
+  const [state, setState] = useState<EditorKernelState>(() =>
+    held !== undefined && 'kernel' in held
+      ? { kind: 'connected', kernel: (held as JupyterCellsKernel).kernel }
+      : { kind: 'connecting' },
+  );
+  useEffect(() => {
+    let live = true;
+    const timer = setTimeout(() => {
+      if (live)
+        setState((s) =>
+          s.kind === 'connecting'
+            ? {
+                kind: 'failed',
+                message: `The kernel is not connected after ${KERNEL_CONNECT_TIMEOUT_MS / 1000} s (the browser kernel downloads Pyodide on its first run); the cell can be edited meanwhile.`,
+              }
+            : s,
+        );
+    }, KERNEL_CONNECT_TIMEOUT_MS);
+    runner
+      .connect()
+      .then((k) => {
+        if (!live) return;
+        if ('kernel' in k)
+          setState({ kind: 'connected', kernel: (k as JupyterCellsKernel).kernel });
+        else
+          setState({
+            kind: 'failed',
+            message: 'The kernel is not a Jupyter kernel: the cell is edited here and run on it.',
+          });
+      })
+      .catch((error: Error) => {
+        if (live) setState({ kind: 'failed', message: error.message });
+      });
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [runner]);
+  return state;
+}
+
 /**
  * *Open in editor* (§3.13, C11-06): jupyter-react's `Cell` bound to a code
  * cell's source, on the sheet's own kernel (`startDefaultKernel={false}`, so
  * no second session starts; the kernel connects through the runner, as a
- * run does). *Save* writes the source back as one undo step.
+ * run does). `Cell` needs a connected kernel to mount (it waits for the
+ * kernel's `ready` before building its editor), so while the kernel
+ * connects, and when it fails or takes over 20 s (said in a line), the plain
+ * editor stands in: never a spinner with no editor. The cell's last outputs
+ * show under the editor, statically. *Save* writes the source back as one
+ * undo step.
  */
 export function CodeCellEditor({
   model: m,
@@ -224,43 +284,68 @@ export function CodeCellEditor({
   const model = m as CellsModel;
   const id = `cells-code-${useId()}`;
   const code = model.code(sheet, row, col);
-  const [kernel, setKernel] = useState<Kernel | undefined>(undefined);
-  useEffect(() => {
-    let live = true;
-    codeRunner(model)
-      .connect()
-      .then((k) => {
-        if (live && 'kernel' in k) setKernel((k as JupyterCellsKernel).kernel);
-      })
-      .catch(() => undefined);
-    return () => {
-      live = false;
-    };
-  }, [model]);
+  const kernel = useEditorKernel(model);
   const write = () => {
     const current = model.code(sheet, row, col);
     const source = cellsStore.getState().getSource(id);
     if (current !== undefined && source !== undefined && source !== current.source)
       model.dispatch({ type: 'SET_CODE', sheet, row, col, code: { ...current, source } });
   };
-  register?.({ save: write });
+  if (kernel.kind === 'connected') register?.({ save: write });
   if (code === undefined) return null;
   const save = () => {
     write();
     onClose();
   };
+  const ref = codeRef(row, col);
+  const outputs = code.outputs.length > 0 && (
+    <div data-cells-code-editor-outputs="" style={{ marginTop: 8 }}>
+      <CodeOutput
+        outputs={model.codeTrusted(sheet, row, col) ? code.outputs : safeOutputs(code.outputs)}
+        trusted={model.codeTrusted(sheet, row, col)}
+        cell={ref}
+        width={CODE_EDITOR_MIN_WIDTH - 16}
+        height={200}
+      />
+    </div>
+  );
+  if (kernel.kind !== 'connected') {
+    // The plain editor until the kernel is there (or instead of it): editable at once, saved the same way.
+    return (
+      <Themed>
+        <div data-cells-code-editor-waiting={kernel.kind}>
+          <p
+            style={{ margin: '0 0 6px', fontSize: 12 }}
+            data-cells-code-editor-kernel={kernel.kind}
+          >
+            {kernel.kind === 'connecting' ? 'Connecting the kernel…' : kernel.message}
+          </p>
+          <PlainEditor
+            model={model}
+            sheet={sheet}
+            row={row}
+            col={col}
+            onClose={onClose}
+            register={register}
+          />
+          {outputs}
+        </div>
+      </Themed>
+    );
+  }
   return (
     <Themed>
-      <div data-cells-code-editor="" role="dialog" aria-label={`Code of ${codeRef(row, col)}`}>
+      <div data-cells-code-editor="" role="dialog" aria-label={`Code of ${ref}`}>
         <Cell
           id={id}
           source={code.source}
           outputs={code.outputs as unknown as IOutput[]}
           startDefaultKernel={false}
           autoStart={false}
-          kernel={kernel}
+          kernel={kernel.kernel}
           showToolbar={false}
         />
+        {outputs}
         <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
           <Button size="small" variant="primary" onClick={save}>
             Save

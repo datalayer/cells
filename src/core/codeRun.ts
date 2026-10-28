@@ -258,6 +258,9 @@ export const AUTO_DEBOUNCE_MS = 300;
 export class CodeRunner {
   readonly model: CellsModel;
   #kernel: Promise<CellsKernel> | undefined;
+  #connected: CellsKernel | undefined;
+  #stopStatus: (() => void) | undefined;
+  readonly #kernelListeners = new Set<(kernel: CellsKernel | undefined) => void>();
   #queue: Promise<void> = Promise.resolve();
   #seen = new Map<string, string>();
   /** The ranges each cell's last run read, as the kernel reported them (its precedents). */
@@ -286,11 +289,34 @@ export class CodeRunner {
   connect(): Promise<CellsKernel> {
     const provider = this.provider();
     if (provider === undefined) return Promise.reject(new Error(NO_KERNEL));
-    this.#kernel ??= provider.connect().catch((error: unknown) => {
-      this.#kernel = undefined;
-      throw error;
-    });
+    this.#kernel ??= provider
+      .connect()
+      .then((kernel) => {
+        this.#connected = kernel;
+        // The kernel's state reaches the model (the canvas's dot, a host's indicator).
+        this.#stopStatus?.();
+        this.#stopStatus = kernel.onStatus?.((status) => this.model.setKernelStatus(status));
+        for (const l of [...this.#kernelListeners]) l(kernel);
+        return kernel;
+      })
+      .catch((error: unknown) => {
+        this.#kernel = undefined;
+        throw error;
+      });
     return this.#kernel;
+  }
+
+  /** The kernel connected, or `undefined` before the first connect (a kernel indicator reads it). */
+  kernel(): CellsKernel | undefined {
+    return this.#connected;
+  }
+
+  /** Be told when a kernel connects, or is forgotten (`undefined`); returns the function that stops it. */
+  onKernel(listener: (kernel: CellsKernel | undefined) => void): () => void {
+    this.#kernelListeners.add(listener);
+    return () => {
+      this.#kernelListeners.delete(listener);
+    };
   }
 
   /** Run one code cell; resolves once its result is written. Refused (thrown) with no kernel, or with code cells off. */
@@ -312,6 +338,11 @@ export class CodeRunner {
   /** Forget the kernel (a host switched kernels): the next run connects to the provider of that moment. The old kernel is not shut down. */
   reset(): void {
     this.#kernel = undefined;
+    this.#connected = undefined;
+    this.#stopStatus?.();
+    this.#stopStatus = undefined;
+    this.model.setKernelStatus(undefined);
+    for (const l of [...this.#kernelListeners]) l(undefined);
   }
 
   /** Interrupt the run in flight. */

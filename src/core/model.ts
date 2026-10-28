@@ -172,6 +172,7 @@ export class CellsModel {
   readonly #codeStates = new Map<string, Map<string, CodeState>>();
   /** The code cells run here, by `sheet:rowId.colId`: their outputs are trusted (HTML and scripts drawn). */
   readonly #codeTrusted = new Set<string>();
+  #kernelStatus: string | undefined;
   readonly #sourceErrorListeners = new Set<(error: DataSourceError) => void>();
   readonly #engine: FormulaEngine;
   readonly #history: LocalHistory<SelectionState>;
@@ -847,6 +848,18 @@ export class CellsModel {
   codeTrusted(sheet: string, row: number, col: number): boolean {
     const s = this.workbook.sheet(sheet);
     return this.#codeTrusted.has(`${sheet}:${s.rows.idAt(row)}.${s.cols.idAt(col)}`);
+  }
+
+  /** The kernel's state as the runner's kernel last reported it (`idle`, `busy`, `starting`, `dead`…), or `undefined` before one connected. Never saved. */
+  get kernelStatus(): string | undefined {
+    return this.#kernelStatus;
+  }
+
+  /** Set the kernel's state (the `./jupyter` kernel, on every status change); the grid repaints. */
+  setKernelStatus(status: string | undefined): void {
+    if (this.#kernelStatus === status) return;
+    this.#kernelStatus = status;
+    this.#emit({ label: 'code', commands: [], patches: [], origin: 'code' });
   }
 
   /** Ask the grid to repaint (a code cell's thumbnail decoded): a change with no patches, `origin: 'code'`. */

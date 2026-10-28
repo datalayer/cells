@@ -357,6 +357,7 @@ export function CodeLayer(props: CodeLayerProps) {
             codeFrame(model.code(sheet.id, editing.row, editing.col)!)?.width ?? 0,
           )}
           editor={Editor}
+          status={renderer?.status as ComponentType<{ readonly model: CellsModel }> | undefined}
           portalName={props.portalName}
           returnFocusRef={props.returnFocusRef}
           onClose={() => props.onCloseEditor?.()}
@@ -483,6 +484,8 @@ export interface CodeEditorOverlayProps {
   readonly width: number;
   /** The contributed editor (jupyter-react's `Cell`); the plain textarea without one. */
   readonly editor: ComponentType<CodeEditorRendererProps> | undefined;
+  /** The contributed kernel indicator, shown in the header beside the cell's address. */
+  readonly status?: ComponentType<{ readonly model: CellsModel }>;
   readonly portalName?: string;
   readonly returnFocusRef?: React.RefObject<HTMLElement | null>;
   readonly onClose: () => void;
@@ -511,6 +514,7 @@ export function CodeEditorOverlay(props: CodeEditorOverlayProps) {
       .run({ sheet, row, col })
       .catch(() => undefined);
   };
+  const Status = props.status;
   const editorProps: CodeEditorRendererProps = {
     sheet,
     row,
@@ -570,6 +574,24 @@ export function CodeEditorOverlay(props: CodeEditorOverlayProps) {
             }
           }}
         >
+          <div
+            data-cells-code-overlay-header=""
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              marginBottom: 6,
+              fontSize: 12,
+            }}
+          >
+            <strong>{codeRef(row, col)}</strong>
+            {Status !== undefined && (
+              <Suspense fallback={<span>Kernel: …</span>}>
+                <Status model={model} />
+              </Suspense>
+            )}
+          </div>
           {props.editor !== undefined ? (
             <Suspense fallback={<span data-cells-code-loading="">Loading the editor…</span>}>
               {createElement(props.editor, editorProps)}

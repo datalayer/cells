@@ -280,6 +280,10 @@ export interface CellsKernel {
   execute(code: string): Promise<KernelRun>;
   /** Stop the run in flight. */
   interrupt?(): Promise<void>;
+  /** Start the kernel again. */
+  restart?(): Promise<void>;
+  /** Be told of the kernel's state (`idle`, `busy`, `starting`, `dead`…); returns the function that stops it. */
+  onStatus?(listener: (status: string) => void): () => void;
 }
 
 /** What a code output renderer draws: a code cell's stored outputs, the cell's name, the frame's size. */
@@ -316,6 +320,8 @@ export interface CodeRenderer {
   readonly id: string;
   readonly output: unknown;
   readonly editor?: unknown;
+  /** A kernel indicator (`{ model }`): the overlay's header shows it beside the cell's address. */
+  readonly status?: unknown;
 }
 
 /** A kernel provider (`datalayer.cells.kernel`): an id, a label, and how to connect, once, on a first run. */

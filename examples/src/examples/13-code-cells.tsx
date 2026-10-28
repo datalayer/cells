@@ -23,7 +23,15 @@ import {
 import { LoroBinding } from '@datalayer/cells/collab';
 import { LoroDoc } from 'loro-crdt';
 import { Button, SegmentedControl } from '@primer/react';
-import { lazy, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { Frame } from '../shared';
 
 /** Where the code runs: the browser's Pyodide, or an anonymous Jupyter server on prod1. */
@@ -137,7 +145,26 @@ export function lazyCodeRenderer(): CodeRenderer {
     id: 'jupyter-lazy',
     output: lazy(() => jupyter().then((m) => ({ default: m.CodeOutput }))),
     editor: lazy(() => jupyter().then((m) => ({ default: m.CodeCellEditor }))),
+    status: lazy(() => jupyter().then((m) => ({ default: m.KernelStatus }))),
   };
+}
+
+const LazyKernelStatus = lazy(() => jupyter().then((m) => ({ default: m.KernelStatus })));
+
+/** The kernel's state beside the chooser: *not started* until the runner connects one (jupyter-react loads then), the indicator after. */
+function KernelBadge({ model }: { readonly model: CellsModel }) {
+  const runner = codeRunner(model);
+  const kernel = useSyncExternalStore(
+    useCallback((notify: () => void) => runner.onKernel(notify), [runner]),
+    () => runner.kernel(),
+    () => runner.kernel(),
+  );
+  if (kernel === undefined) return <span data-kernel-badge="not-started">Kernel: not started</span>;
+  return (
+    <Suspense fallback={<span data-kernel-badge="loading">Kernel: …</span>}>
+      <LazyKernelStatus model={model} />
+    </Suspense>
+  );
 }
 
 /** The name of the renderer plugin, always enabled. */
@@ -362,6 +389,7 @@ export default function CodeCells(props: {
             </SegmentedControl.Button>
           ))}
         </SegmentedControl>
+        <KernelBadge model={model} />
         <Button size="small" type="button" onClick={() => run('cells.code.runAll')}>
           Run all
         </Button>
