@@ -3,7 +3,7 @@
 #
 # MIT License
 
-"""Write the three round-trip workbooks of tests/xlsx with LibreOffice.
+"""Write the four round-trip workbooks of tests/xlsx with LibreOffice.
 
 Runs a headless LibreOffice over UNO, builds each workbook cell by cell and
 saves it as Office Open XML (the "Calc MS Excel 2007 XML" filter):
@@ -13,7 +13,12 @@ saves it as Office Open XML (the "Calc MS Excel 2007 XML" filter):
 - styles.xlsx: bold, italic, underline, strike, colours, a fill, borders,
   alignment, wrap, a font size, and number formats (built-in and custom);
 - layout.xlsx: merges, column widths and row heights, a hidden row and
-  column, frozen panes, three sheets.
+  column, frozen panes, three sheets;
+- charts.xlsx (C10-07): twelve months of two series, and one chart of each
+  type, a stacked and a percent column, a doughnut, a combo on a secondary
+  axis, with titles, axis titles and limits, a legend, a series colour; the
+  anchors LibreOffice writes are two-cell, so one chart's is rewritten as a
+  one-cell anchor and one as an absolute anchor in the saved package.
 
     /usr/bin/python3 scripts/xlsx-fixtures.py
 """
@@ -27,7 +32,9 @@ import time
 from pathlib import Path
 
 import uno  # type: ignore[import-not-found]
+from com.sun.star.awt import Rectangle  # type: ignore[import-not-found]
 from com.sun.star.beans import PropertyValue  # type: ignore[import-not-found]
+from com.sun.star.table import CellRangeAddress  # type: ignore[import-not-found]
 from com.sun.star.lang import Locale  # type: ignore[import-not-found]
 from com.sun.star.table import BorderLine2  # type: ignore[import-not-found]
 
@@ -156,6 +163,110 @@ def layout(desktop) -> None:
     freeze(OUT / "layout.xlsx", "xl/worksheets/sheet1.xml", cols=1, rows=2)
 
 
+MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+
+def charts(desktop, ctx) -> None:
+    doc = desktop.loadComponentFromURL("private:factory/scalc", "_blank", 0, (prop("Hidden", True),))
+    s = doc.Sheets.getByIndex(0)
+    s.Name = "Figures"
+    for c, h in enumerate(("Month", "North", "South")):
+        s.getCellByPosition(c, 0).String = h
+    for r, m in enumerate(MONTHS):
+        s.getCellByPosition(0, r + 1).String = m
+        s.getCellByPosition(1, r + 1).Value = 10 + (r * 7) % 11
+        s.getCellByPosition(2, r + 1).Value = 5 + (r * 5) % 9
+    # A scatter's x and y.
+    s.getCellByPosition(4, 0).String = "x"
+    s.getCellByPosition(5, 0).String = "y"
+    for r in range(6):
+        s.getCellByPosition(4, r + 1).Value = r + 1
+        s.getCellByPosition(5, r + 1).Value = (r + 1) ** 2
+
+    def rng(c0: int, r0: int, c1: int, r1: int) -> CellRangeAddress:
+        a = CellRangeAddress()
+        a.Sheet, a.StartColumn, a.StartRow, a.EndColumn, a.EndRow = 0, c0, r0, c1, r1
+        return a
+
+    def rect(x_mm: int, y_mm: int) -> Rectangle:
+        r = Rectangle()
+        r.X, r.Y, r.Width, r.Height = x_mm * 100, y_mm * 100, 9000, 6000
+        return r
+
+    def add(name: str, pos: tuple[int, int], ranges, diagram: str, title: str, **props) -> object:
+        s.Charts.addNewByName(name, rect(*pos), ranges, True, True)
+        chart = s.Charts.getByName(name).EmbeddedObject
+        chart.Diagram = chart.createInstance(f"com.sun.star.chart.{diagram}")
+        for k, v in props.items():
+            setattr(chart.Diagram, k, v)
+        chart.HasMainTitle = True
+        chart.Title.String = title
+        chart.HasLegend = True
+        chart.Legend.Alignment = uno.Enum("com.sun.star.chart.ChartLegendPosition", "BOTTOM")
+        return chart
+
+    both = (rng(0, 0, 2, 12),)
+    column = add("column", (120, 10), both, "BarDiagram", "Column")
+    column.Diagram.getDataRowProperties(0).FillColor = 0x1F77B4
+    column.Diagram.HasYAxisTitle = True
+    column.Diagram.YAxisTitle.String = "Units"
+    column.Diagram.YAxis.AutoMin = False
+    column.Diagram.YAxis.Min = 0.0
+    column.Diagram.YAxis.AutoMax = False
+    column.Diagram.YAxis.Max = 25.0
+    column.Diagram.HasXAxisTitle = True
+    column.Diagram.XAxisTitle.String = "Month"
+    add("stacked", (120, 80), both, "BarDiagram", "Stacked", Stacked=True, HasYAxisGrid=False)
+    add("percent", (120, 150), both, "BarDiagram", "Percent", Percent=True)
+    add("bar", (120, 220), both, "BarDiagram", "Bar", Vertical=True)
+    line = add("line", (220, 10), both, "LineDiagram", "Line")
+    line.Diagram.HasYAxisGrid = True
+    add("area", (220, 80), both, "AreaDiagram", "Area")
+    add("pie", (220, 150), (rng(0, 0, 1, 12),), "PieDiagram", "Pie")
+    add("doughnut", (220, 220), (rng(0, 0, 1, 12),), "DonutDiagram", "Doughnut")
+    add("scatter", (320, 10), (rng(4, 0, 5, 6),), "XYDiagram", "Scatter")
+    combo = add("combo", (320, 80), both, "BarDiagram", "Combo")
+    # The combo: the second series as a line on a secondary axis, through the chart2 API.
+    diagram = combo.getFirstDiagram()
+    cs = diagram.getCoordinateSystems()[0]
+    bars = cs.getChartTypes()[0]
+    series = bars.getDataSeries()
+    smgr = ctx.ServiceManager
+    lines = smgr.createInstanceWithContext("com.sun.star.chart2.LineChartType", ctx)
+    cs.addChartType(lines)
+    bars.setDataSeries((series[0],))
+    lines.setDataSeries((series[1],))
+    series[1].AttachedAxisIndex = 1
+    axis = smgr.createInstanceWithContext("com.sun.star.chart2.Axis", ctx)
+    cs.setAxisByDimension(1, axis, 1)
+    save(doc, "charts.xlsx")
+    anchors(OUT / "charts.xlsx")
+
+
+def anchors(path: Path) -> None:
+    """LibreOffice writes two-cell anchors only: the pie's becomes a one-cell anchor, the doughnut's an absolute one."""
+    import re
+
+    with zipfile.ZipFile(path) as z:
+        items = [(i, z.read(i.filename)) for i in z.infolist()]
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+        for info, data in items:
+            if info.filename.startswith("xl/drawings/drawing") and info.filename.endswith(".xml"):
+                xml = data.decode()
+                anchors_ = re.findall(r"<xdr:twoCellAnchor.*?</xdr:twoCellAnchor>", xml, flags=re.S)
+                for n, a in enumerate(anchors_):
+                    frm = re.search(r"<xdr:from>.*?</xdr:from>", a, flags=re.S).group(0)
+                    body = re.search(r"</xdr:to>(.*)</xdr:twoCellAnchor>", a, flags=re.S).group(1)
+                    if n == 6:  # the pie
+                        new = f'<xdr:oneCellAnchor>{frm}<xdr:ext cx="3240000" cy="2160000"/>{body}</xdr:oneCellAnchor>'
+                        xml = xml.replace(a, new)
+                    elif n == 7:  # the doughnut
+                        new = f'<xdr:absoluteAnchor><xdr:pos x="7620000" y="8572500"/><xdr:ext cx="3240000" cy="2160000"/>{body}</xdr:absoluteAnchor>'
+                        xml = xml.replace(a, new)
+                data = xml.encode()
+            z.writestr(info, data)
+
+
 def freeze(path: Path, part: str, cols: int, rows: int) -> None:
     with zipfile.ZipFile(path) as z:
         items = [(i, z.read(i.filename)) for i in z.infolist()]
@@ -202,6 +313,7 @@ def main() -> None:
         values_formulas(desktop)
         styles(desktop)
         layout(desktop)
+        charts(desktop, ctx)
     finally:
         office.terminate()
         office.wait(timeout=30)

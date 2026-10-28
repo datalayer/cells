@@ -7,7 +7,8 @@
 
 A file LibreOffice would ask to repair does not load here: loading it with
 "RepairPackage" off fails. Each file must load, and its first sheet's used
-cells are printed with their values, for a reader to compare.
+cells are printed with their values, for a reader to compare; its charts are
+printed too, each with its chart types and its series count (C10-07).
 
     CELLS_XLSX_OUT=/tmp/cells-xlsx npx vitest run src/xlsx/__tests__/roundtrip.test.ts
     /usr/bin/python3 scripts/xlsx-check.py /tmp/cells-xlsx/*.xlsx
@@ -85,7 +86,18 @@ def main(paths: list[str]) -> int:
             cells = []
             for r in range(min(end.EndRow, 11) + 1):
                 cells.append([first.getCellByPosition(c, r).String for c in range(min(end.EndColumn, 5) + 1)])
-            print(f"OK   {path}: sheets {names}; {cells}")
+            charts = []
+            for i in range(first.Charts.Count):
+                chart = first.Charts.getByIndex(i).EmbeddedObject
+                kinds = []
+                series = 0
+                for cs in chart.getFirstDiagram().getCoordinateSystems():
+                    for ct in cs.getChartTypes():
+                        kinds.append(ct.getChartType().rsplit(".", 1)[-1])
+                        series += len(ct.getDataSeries())
+                title = chart.Title.String if chart.HasMainTitle else ""
+                charts.append(f"{title or '?'}: {'+'.join(kinds)}, {series} series")
+            print(f"OK   {path}: sheets {names}; {cells}" + (f"; charts {charts}" if charts else ""))
             doc.close(True)
     finally:
         office.terminate()

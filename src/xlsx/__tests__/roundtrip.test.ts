@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { type CellsModel, createCellsModel } from '../../core/index.js';
 import { readXlsx, writeXlsx } from '../index.js';
 
-const FIXTURES = ['values-formulas', 'styles', 'layout'];
+const FIXTURES = ['values-formulas', 'styles', 'layout', 'charts'];
 
 const open = (bytes: Uint8Array) => createCellsModel({ data: readXlsx(bytes).workbook });
 
@@ -34,6 +34,7 @@ function contents(m: CellsModel) {
       cols: sizes(s.cols, 6),
       merges: s.merges,
       frozen: s.frozen,
+      charts: [...s.charts.values()].map(({ id: _id, ...spec }) => spec),
     };
   });
 }

@@ -25,7 +25,14 @@ const shown = (m: ReturnType<typeof open>['model'], sheet: string, row: number, 
 describe('the XLSX reader, on the round-trip workbooks', () => {
   it('values-formulas: values, formulas filled down, an error, a second sheet', () => {
     const { model: m, report } = open('values-formulas');
-    expect(report).toEqual({ sheets: 2, cells: 25, formulas: 11, skipped: [] });
+    expect(report).toEqual({
+      sheets: 2,
+      cells: 25,
+      formulas: 11,
+      skipped: [],
+      chartsImported: 0,
+      charts: [],
+    });
     expect(m.sheets.map((s) => s.name)).toEqual(['Sheet1', 'Data']);
     expect(m.toRows({ top: 0, left: 0, bottom: 3, right: 3 })).toEqual([
       ['Item', 'Amount', 'Double', 'Running'],

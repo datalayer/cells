@@ -16,6 +16,7 @@
  */
 
 import { strToU8, zipSync } from 'fflate';
+import { CHART_CONTENT_TYPE, chartPartXml, DRAWING_CONTENT_TYPE, drawingXml } from './charts.js';
 import type { CellsModel } from '../core/model.js';
 import type { BorderSide, Style } from '../core/styles.js';
 import { type CellValue, isCellError } from '../core/values.js';
@@ -125,6 +126,8 @@ function stylesPart(styles: readonly Style[]): { xml: string; xfOf: number[] } {
 
 /** Write a model's workbook as XLSX bytes. */
 export function writeXlsx(model: CellsModel): Uint8Array {
+  const chartParts: string[] = []; // the chart parts' numbers, across sheets
+  const extraTypes: string[] = [];
   const json = model.toJSON();
   const { xml: stylesXml, xfOf } = stylesPart(json.styles ?? [{}]);
   const strings: string[] = [];
@@ -231,6 +234,30 @@ export function writeXlsx(model: CellsModel): Uint8Array {
         );
       parts.push('</mergeCells>');
     }
+    const charts = [...s.charts.values()];
+    if (charts.length > 0) {
+      parts.push('<drawing r:id="rId1"/>');
+      const d = n + 1;
+      files[`xl/worksheets/_rels/sheet${n + 1}.xml.rels`] = strToU8(
+        `${XML}<Relationships xmlns="${PKG_REL}"><Relationship Id="rId1" Type="${REL}/drawing" Target="../drawings/drawing${d}.xml"/></Relationships>`,
+      );
+      files[`xl/drawings/drawing${d}.xml`] = strToU8(drawingXml(charts));
+      extraTypes.push(
+        `<Override PartName="/xl/drawings/drawing${d}.xml" ContentType="${DRAWING_CONTENT_TYPE}"/>`,
+      );
+      const rels = charts.map((c, i) => {
+        const m = chartParts.length + 1;
+        chartParts.push(`chart${m}`);
+        files[`xl/charts/chart${m}.xml`] = strToU8(chartPartXml(model, sheet.id, c));
+        extraTypes.push(
+          `<Override PartName="/xl/charts/chart${m}.xml" ContentType="${CHART_CONTENT_TYPE}"/>`,
+        );
+        return `<Relationship Id="rId${i + 1}" Type="${REL}/chart" Target="../charts/chart${m}.xml"/>`;
+      });
+      files[`xl/drawings/_rels/drawing${d}.xml.rels`] = strToU8(
+        `${XML}<Relationships xmlns="${PKG_REL}">${rels.join('')}</Relationships>`,
+      );
+    }
     parts.push('</worksheet>');
     files[`xl/worksheets/sheet${n + 1}.xml`] = strToU8(parts.join(''));
   });
@@ -257,6 +284,7 @@ export function writeXlsx(model: CellsModel): Uint8Array {
         .join('') +
       '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
       '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>' +
+      extraTypes.join('') +
       '</Types>',
   );
   files['_rels/.rels'] = strToU8(

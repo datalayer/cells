@@ -25,6 +25,7 @@ import type { Zone } from '../core/zone.js';
 import { translateFormula } from '../formula/normal.js';
 import { BUILTIN_FORMATS } from './formats.js';
 import { type Attributes, decode, scan } from './xml.js';
+import { readSheetCharts } from './charts.js';
 
 /** What an import met and left out, and what it changed, for the person who opened the file. */
 export interface ImportReport {
@@ -33,6 +34,10 @@ export interface ImportReport {
   readonly formulas: number;
   /** Features of the file 1.0 does not read, each with how many there were. */
   readonly skipped: readonly { readonly feature: string; readonly count: number }[];
+  /** Charts read into the workbook (§3.12). */
+  readonly chartsImported: number;
+  /** One line per chart, or part of one, that is not drawn: 3-D (imported as 2-D), radar, bubble, `cx:` parts, chart sheets, literal series, trendlines… */
+  readonly charts: readonly string[];
 }
 
 /** Column letters to an index: `A` is 0. */
@@ -251,6 +256,8 @@ interface SheetResult {
   sheet: Omit<CellsSheet, 'id' | 'name'>;
   cells: number;
   formulas: number;
+  /** The `r:id` of the sheet's `<drawing>`, where its charts are. */
+  drawing?: string;
 }
 
 function readSheet(xml: string, strings: string[], skipped: Map<string, number>): SheetResult {
@@ -261,6 +268,7 @@ function readSheet(xml: string, strings: string[], skipped: Map<string, number>)
   const hiddenCols: number[] = [];
   const merges: Zone[] = [];
   let frozen: { rows: number; cols: number } | undefined;
+  let drawing: string | undefined;
   const shared = new Map<string, { formula: string; row: number; col: number }>();
   let cells = 0;
   let formulas = 0;
@@ -419,10 +427,12 @@ function readSheet(xml: string, strings: string[], skipped: Map<string, number>)
           if (a.state === 'frozen' || a.state === 'frozenSplit')
             frozen = { rows: Number(a.ySplit ?? 0), cols: Number(a.xSplit ?? 0) };
           return;
+        case 'drawing':
+          drawing = a.id;
+          return;
         case 'conditionalFormatting':
         case 'dataValidation':
         case 'hyperlink':
-        case 'drawing':
         case 'legacyDrawing':
         case 'tablePart':
         case 'sheetProtection':
@@ -460,6 +470,7 @@ function readSheet(xml: string, strings: string[], skipped: Map<string, number>)
     },
     cells,
     formulas,
+    ...(drawing !== undefined ? { drawing } : {}),
   };
 }
 
@@ -507,6 +518,8 @@ export function readXlsx(bytes: Uint8Array): { workbook: CellsWorkbook; report: 
   const styles = readStyles(text('xl/styles.xml'));
   let cells = 0;
   let formulas = 0;
+  let chartsImported = 0;
+  const chartLines: string[] = [];
   const used = new Set<string>();
   const sheets: CellsSheet[] = sheetsMeta.map((meta, i) => {
     const xml = text(meta.path);
@@ -519,10 +532,21 @@ export function readXlsx(bytes: Uint8Array): { workbook: CellsWorkbook; report: 
     let id = `s${i + 1}`;
     while (used.has(id)) id += '_';
     used.add(id);
-    return { id, name: meta.name, ...read.sheet };
+    const charts =
+      read.drawing === undefined
+        ? {}
+        : readSheetCharts(text, meta.path, read.drawing, meta.name, chartLines);
+    chartsImported += Object.keys(charts).length;
+    return {
+      id,
+      name: meta.name,
+      ...read.sheet,
+      ...(Object.keys(charts).length > 0 ? { charts } : {}),
+    };
   });
   for (const path of Object.keys(files)) {
-    if (path.startsWith('xl/charts/')) skipped.set('chart', (skipped.get('chart') ?? 0) + 1);
+    if (/^xl\/chartsheets\/sheet\d+\.xml$/.test(path))
+      chartLines.push(`${path}: a chart sheet was not imported.`);
     else if (path.startsWith('xl/media/')) skipped.set('image', (skipped.get('image') ?? 0) + 1);
     else if (/^xl\/comments\d*\.xml$/.test(path) || path.startsWith('xl/threadedComments/'))
       skipped.set('comments', (skipped.get('comments') ?? 0) + 1);
@@ -541,6 +565,8 @@ export function readXlsx(bytes: Uint8Array): { workbook: CellsWorkbook; report: 
       cells,
       formulas,
       skipped: [...skipped].map(([feature, count]) => ({ feature, count })),
+      chartsImported,
+      charts: chartLines,
     },
   };
 }
