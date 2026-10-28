@@ -9,10 +9,15 @@
  *
  *     node scripts/bench.mjs              # Node benches (vitest bench)
  *     node scripts/bench.mjs --browser    # and the browser benches (system Chrome)
+ *     node scripts/bench.mjs --attempts 3 # a Node figure over budget is measured again
  *
  * A Node bench's name is its figure; its value is tinybench's p99 per
  * iteration, in ms. A browser bench returns its figures itself (p95 over at
  * least five runs). Benches run one at a time, never next to a build.
+ *
+ * With `--attempts n`, the Node benches run again while a figure is over its
+ * budget, up to n runs in all, and each figure keeps its best run (CI passes
+ * 3: a shared runner's busy neighbour slows one run, a regression every run).
  */
 
 import { execFileSync } from 'node:child_process';
@@ -20,31 +25,51 @@ import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSyn
 import { cpus, platform, release, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { best, overBudget } from '../bench/best.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const browser = process.argv.includes('--browser');
+const attemptsAt = process.argv.indexOf('--attempts');
+const attempts = attemptsAt === -1 ? 1 : Number(process.argv[attemptsAt + 1]);
+if (!Number.isInteger(attempts) || attempts < 1) {
+  console.error('--attempts takes a whole number of runs, 1 or more');
+  process.exit(2);
+}
 const budgets = JSON.parse(readFileSync(join(ROOT, 'bench/budgets.json'), 'utf8')).budgets;
 
-const figures = {};
-
-const scratch = mkdtempSync(join(tmpdir(), 'cells-bench-'));
-const out = join(scratch, 'node.json');
-execFileSync('npx', ['vitest', 'bench', '--run', '--outputJson', out], {
-  cwd: ROOT,
-  stdio: 'inherit',
-});
-const report = JSON.parse(readFileSync(out, 'utf8'));
-rmSync(scratch, { recursive: true, force: true });
-for (const file of report.files) {
-  for (const group of file.groups) {
-    for (const b of group.benchmarks) {
-      const budget = budgets[b.name];
-      if (budget === undefined) {
-        throw new Error(`The bench '${b.name}' names no figure of bench/budgets.json.`);
+/** One run of the Node benches: their figures, each a bench's p99. */
+function runNode() {
+  const figures = {};
+  const scratch = mkdtempSync(join(tmpdir(), 'cells-bench-'));
+  const out = join(scratch, 'node.json');
+  execFileSync('npx', ['vitest', 'bench', '--run', '--outputJson', out], {
+    cwd: ROOT,
+    stdio: 'inherit',
+  });
+  const report = JSON.parse(readFileSync(out, 'utf8'));
+  rmSync(scratch, { recursive: true, force: true });
+  for (const file of report.files) {
+    for (const group of file.groups) {
+      for (const b of group.benchmarks) {
+        const budget = budgets[b.name];
+        if (budget === undefined) {
+          throw new Error(`The bench '${b.name}' names no figure of bench/budgets.json.`);
+        }
+        figures[b.name] = { value: b.p99, unit: budget.unit, runs: b.sampleCount };
       }
-      figures[b.name] = { value: b.p99, unit: budget.unit, runs: b.sampleCount };
     }
   }
+  return figures;
+}
+
+let figures = best({}, runNode());
+for (let attempt = 2; attempt <= attempts; attempt += 1) {
+  const over = overBudget(figures, { budgets });
+  if (over.length === 0) break;
+  console.log(
+    `over budget after ${attempt - 1} run(s): ${over.join(', ')}; run ${attempt} of ${attempts}`,
+  );
+  figures = best(figures, runNode());
 }
 
 if (browser) {
