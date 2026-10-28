@@ -104,7 +104,9 @@ function App() {
   return (
     <div className="layout">
       <nav aria-label="Examples">
-        <h1>Datalayer Cells</h1>
+        <h1>
+          <span aria-hidden="true">🦠</span> Datalayer Cells
+        </h1>
         <ol>
           {EXAMPLES.map((e) => (
             <li key={e.id}>
