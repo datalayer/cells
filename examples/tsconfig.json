@@ -10,7 +10,8 @@
       "@datalayer/cells/csv": ["../src/csv/index.ts"],
       "@datalayer/cells/chrome": ["../src/chrome/index.ts"],
       "@datalayer/cells/xlsx": ["../src/xlsx/index.ts"],
-      "@datalayer/cells/charts": ["../src/charts/index.ts"]
+      "@datalayer/cells/charts": ["../src/charts/index.ts"],
+      "@datalayer/cells/collab": ["../src/collab/index.ts"]
     }
   },
   "include": ["src", "vite.config.ts", "../src"],

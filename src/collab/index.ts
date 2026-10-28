@@ -20,3 +20,14 @@ export {
   remove,
 } from './axis.js';
 export { type BindingOptions, LoroBinding } from './binding.js';
+export {
+  bindRoom,
+  bridgeDocs,
+  CELLS_WS_COLLAB_PLUGIN,
+  cellsWsCollabPlugin,
+  joinRoom,
+  type Room,
+  type RoomOptions,
+  type RoomProvider,
+  type RoomUser,
+} from './transport.js';

@@ -35,6 +35,10 @@ export default defineConfig({
         replacement: fileURLToPath(new URL('../src/xlsx/index.ts', import.meta.url)),
       },
       {
+        find: /^@datalayer\/cells\/collab$/,
+        replacement: fileURLToPath(new URL('../src/collab/index.ts', import.meta.url)),
+      },
+      {
         find: /^@datalayer\/cells\/charts$/,
         replacement: fileURLToPath(new URL('../src/charts/index.ts', import.meta.url)),
       },
