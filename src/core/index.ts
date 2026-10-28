@@ -247,7 +247,14 @@ export {
 } from '../formula/values.js';
 export {
   CELLS_EDITING_PLUGIN,
+  type CellsCommand,
   type CellsCommandArgument,
   CellsEditingPlugin,
+  type CellsGridAccess,
   EDITING_COMMANDS,
 } from '../builtins/editing.js';
+export {
+  CELLS_NAVIGATION_PLUGIN,
+  CellsNavigationPlugin,
+  NAVIGATION_COMMANDS,
+} from '../builtins/navigation.js';

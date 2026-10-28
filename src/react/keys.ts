@@ -5,9 +5,11 @@
  */
 
 /**
- * The grid's own keys: navigation, as Excel and Sheets bind them. These are
- * not commands (§ Reactor commands carry the editing actions); they belong to
- * the focus target, so two grids on a page never hear each other.
+ * Navigation keys, as Excel and Sheets bind them, read as a `Navigation`.
+ * The grid itself binds them through the Reactor commands of
+ * `CellsNavigationPlugin` (`cells.moveDown`, `cells.selectAll`, …), whose
+ * grid keys belong to its focus target, so two grids on a page never hear
+ * each other; this reading stays for hosts that map keys themselves.
  *
  * @module react/keys
  */

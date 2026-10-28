@@ -21,7 +21,8 @@ import {
   type PlatformInput,
   type ReactorPlatform,
 } from '@datalayer/reactor';
-import type { CellsCommandArgument } from '../builtins/editing.js';
+import type { CellsCommandArgument, CellsGridAccess } from '../builtins/editing.js';
+import { clearCellsCommandTarget, setCellsCommandTarget } from '../builtins/target.js';
 import { CellsMenuItems, type CommandItem } from '../points/index.js';
 import type { Style } from '../core/styles.js';
 import {
@@ -79,7 +80,6 @@ import {
   toggleAnchors,
 } from '../formula/editing.js';
 import { CellsProvider } from './hooks.js';
-import { navigationFor } from './keys.js';
 import { announce, type Messages } from './messages.js';
 import { autoTheme, type ColorMode, variantTheme } from './theme.js';
 
@@ -518,11 +518,51 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
         theme === null ? text.length * 8 : measureText(fontOf(style, theme, 1), text),
       [theme],
     );
+    /** What this grid lends its commands: the sheet it shows, its page, its scrolling, its menu. */
+    const gridAccess = useMemo<CellsGridAccess>(
+      () => ({
+        get sheet() {
+          return rendererRef.current?.sheet ?? model.selection.sheet;
+        },
+        get pageRows() {
+          const r = rendererRef.current;
+          if (r === null) return 1;
+          const main = r.viewport.panes.find((p) => p.name === 'main')!;
+          return Math.max(1, main.lastRow - main.firstRow);
+        },
+        scrollTo: (row: number, col: number) => scrollToCell(row, col),
+        openMenu: () => {
+          const r = rendererRef.current;
+          if (r === null) return;
+          const sheetNow = model.sheet(r.sheet);
+          const pane = r.viewport.panes.find((p) => p.name === 'main')!;
+          const rect = cellRect(
+            pane,
+            r.viewport.zoom,
+            sheetNow.rows,
+            sheetNow.cols,
+            model.selection.active.row,
+            model.selection.active.col,
+          );
+          setMenu({ x: rect.x + rect.width / 2, y: rect.y + rect.height });
+        },
+      }),
+      [model, scrollToCell],
+    );
+    /** The argument this grid runs its commands with; also the one a palette's run reaches. */
+    const commandArgument = useMemo<CellsCommandArgument>(
+      () => ({ model, measure, grid: gridAccess }),
+      [model, measure, gridAccess],
+    );
+    // A command run with no argument (a palette, an agent) acts on the grid that last had the focus.
+    useEffect(() => {
+      setCellsCommandTarget(commandArgument);
+      return () => clearCellsCommandTarget(commandArgument);
+    }, [commandArgument]);
     /** Run a Reactor command on this grid's model; a refusal is said in the live region and to the host. */
     const runCommand = useCallback(
       (id: string) => {
-        const argument: CellsCommandArgument = { model, measure };
-        model.reactor.executeCommand(id, argument).catch((error: Error) => {
+        model.reactor.executeCommand(id, commandArgument).catch((error: Error) => {
           setAnnouncement(error.message);
           props_.current.onCommandRejected?.({
             ok: false,
@@ -530,7 +570,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
           });
         });
       },
-      [model, measure],
+      [model, commandArgument],
     );
 
     /**
@@ -618,8 +658,6 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
         if (e.target !== rootRef.current) return;
         const r = rendererRef.current;
         if (r === null) return;
-        const main = r.viewport.panes.find((p) => p.name === 'main')!;
-        const pageRows = Math.max(1, main.lastRow - main.firstRow);
         if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'v')
           pasteValues.current = true;
         if (chartKey(e)) return;
@@ -638,29 +676,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
           return; // the browser moves the focus on
         }
         leaving.current = false;
-        // Commands with keybindings (the built-in editing plugin's, and any plugin's in the Cells category).
-        const command = commandFor(model, e.nativeEvent, props_.current.keymap);
-        if (command !== undefined) {
-          e.preventDefault();
-          runCommand(command);
-          return;
-        }
-        if (e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey)) {
-          e.preventDefault();
-          const sheetNow = model.sheet(r.sheet);
-          const pane = r.viewport.panes.find((p) => p.name === 'main')!;
-          const rect = cellRect(
-            pane,
-            r.viewport.zoom,
-            sheetNow.rows,
-            sheetNow.cols,
-            model.selection.active.row,
-            model.selection.active.col,
-          );
-          setMenu({ x: rect.x + rect.width / 2, y: rect.y + rect.height });
-          return;
-        }
-        // A typed cell's own keys (Space on a checkbox, Enter on a link) come before navigation.
+        // A typed cell's own keys (Space on a checkbox, Enter on a link) come before any command.
         if (!e.ctrlKey && !e.metaKey && !e.altKey && model.selection.sheet === r.sheet) {
           const active = model.selection.active;
           const type = model.cellType(r.sheet, active.row, active.col)?.value;
@@ -670,64 +686,22 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
             return;
           }
         }
-        const nav = navigationFor(e, pageRows);
-        if (nav === undefined) {
-          const mod = e.ctrlKey || e.metaKey;
-          if (!model.readOnly && !mod && !e.altKey) {
-            if (e.key === 'F2') {
-              e.preventDefault();
-              scrollToCell(model.selection.active.row, model.selection.active.col);
-              model.startEdit();
-              return;
-            }
-            if (e.key === 'Backspace') {
-              e.preventDefault();
-              model.startEdit(undefined, '');
-              return;
-            }
-            if (e.key === 'Delete') {
-              e.preventDefault();
-              const sel = model.selection;
-              const result = model.transact('Clear', () =>
-                sel.zones.map((zone) =>
-                  model.dispatch({ type: 'CLEAR', sheet: sel.sheet, zone, what: 'contents' }),
-                ),
-              );
-              const refused = result.find((x) => !x.ok);
-              if (refused && !refused.ok) props_.current.onCommandRejected?.(refused);
-              return;
-            }
-            if (e.key.length === 1 || e.key === 'Process') {
-              // Typing over a cell replaces it; an IME's first key opens the editor empty.
-              e.preventDefault();
-              const active = model.selection.active;
-              if (model.cellType(r.sheet, active.row, active.col)?.value.editable === false) return;
-              scrollToCell(model.selection.active.row, model.selection.active.col);
-              model.startEdit(undefined, e.key === 'Process' ? '' : e.key);
-              return;
-            }
-          }
-          if (mod && e.shiftKey && e.key.toLowerCase() === 'z') {
-            // Redo's second binding, as Sheets and macOS have it.
-            e.preventDefault();
-            model.redo();
-          }
+        // Every other key is a command's (editing, navigation, any plugin's in the Cells category), after the host's keymap.
+        const command = commandFor(model, e.nativeEvent, props_.current.keymap);
+        if (command !== undefined) {
+          e.preventDefault();
+          runCommand(command);
           return;
         }
-        e.preventDefault();
-        const before = model.selection;
-        const s = before.sheet === r.sheet ? before : initialSelection(r.sheet);
-        const next = navigate(s, nav, navigationGrid(model.sheet(r.sheet)));
-        model.select(next);
-        const z = next.zones[next.zones.length - 1];
-        const target =
-          nav.type === 'move' && nav.extend
-            ? {
-                row: z.top === next.anchor.row ? z.bottom : z.top,
-                col: z.left === next.anchor.col ? z.right : z.left,
-              }
-            : next.active;
-        scrollToCell(target.row, target.col);
+        // Typing over a cell replaces it; an IME's first key opens the editor empty.
+        const mod = e.ctrlKey || e.metaKey;
+        if (!model.readOnly && !mod && !e.altKey && (e.key.length === 1 || e.key === 'Process')) {
+          e.preventDefault();
+          const active = model.selection.active;
+          if (model.cellType(r.sheet, active.row, active.col)?.value.editable === false) return;
+          scrollToCell(model.selection.active.row, model.selection.active.col);
+          model.startEdit(undefined, e.key === 'Process' ? '' : e.key);
+        }
       },
       [model, scrollToCell, runCommand, activateCell],
     );
@@ -1347,6 +1321,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
             aria-activedescendant={activeId}
             data-cells-sheet={sheet.id}
             onKeyDown={onKeyDown}
+            onFocus={() => setCellsCommandTarget(commandArgument)}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
@@ -1938,13 +1913,27 @@ function CellEditor(props: {
   );
 }
 
-/** The keybinding of a command, after the host's keymap. */
+/** The keybindings of a command (its Reactor one, then its grid ones), after the host's keymap. */
+function bindingsOf(
+  command: { id: string; keybinding?: string; gridKeybindings?: readonly string[] },
+  keymap?: Readonly<Record<string, string | null>>,
+): readonly string[] {
+  if (keymap !== undefined && command.id in keymap) {
+    const bound = keymap[command.id];
+    return bound === null || bound === undefined ? [] : [bound];
+  }
+  return [
+    ...(command.keybinding !== undefined ? [command.keybinding] : []),
+    ...(command.gridKeybindings ?? []),
+  ];
+}
+
+/** The keybinding a command shows (its first), after the host's keymap. */
 function bindingOf(
-  command: { id: string; keybinding?: string },
+  command: { id: string; keybinding?: string; gridKeybindings?: readonly string[] },
   keymap?: Readonly<Record<string, string | null>>,
 ): string | undefined {
-  if (keymap !== undefined && command.id in keymap) return keymap[command.id] ?? undefined;
-  return command.keybinding;
+  return bindingsOf(command, keymap)[0];
 }
 
 /** The Cells command a key press means, if any. */
@@ -1955,10 +1944,10 @@ function commandFor(
 ): string | undefined {
   for (const c of model.reactor.listCommands()) {
     if (c.category !== 'Cells') continue;
-    const binding = bindingOf(c, keymap);
-    if (binding === undefined) continue;
-    const parsed = parseKeybinding(binding);
-    if (parsed !== null && matchesKeybinding(event, parsed)) return c.id;
+    for (const binding of bindingsOf(c, keymap)) {
+      const parsed = parseKeybinding(binding);
+      if (parsed !== null && matchesKeybinding(event, parsed)) return c.id;
+    }
   }
   return undefined;
 }

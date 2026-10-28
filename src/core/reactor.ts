@@ -27,6 +27,7 @@ import { bindDataSource, dataSourceOp } from './dataSources.js';
 import { CellsClipboardPlugin } from '../builtins/clipboard.js';
 import { CellsEditingPlugin } from '../builtins/editing.js';
 import { CellsFillPlugin } from '../builtins/fill.js';
+import { CellsNavigationPlugin } from '../builtins/navigation.js';
 import { CellsChartCommandsPlugin } from '../builtins/charts.js';
 import { CellsCellTypesPlugin } from '../builtins/cellTypes.js';
 import { CellsFunctionsPlugin } from '../builtins/functions/index.js';
@@ -59,6 +60,7 @@ export const CellsCorePlugin = definePlugin({
 export function cellsBuiltins(): PlatformInput[] {
   return [
     CellsEditingPlugin,
+    CellsNavigationPlugin,
     CellsClipboardPlugin,
     CellsFillPlugin,
     CellsFunctionsPlugin,

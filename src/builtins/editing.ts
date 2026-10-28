@@ -7,19 +7,40 @@
 /**
  * The built-in editing actions, as Reactor commands contributed by a plugin
  * like any other: insert, delete, move, hide and unhide rows and columns,
- * merge, freeze, fit columns to their text, undo and redo. Each acts on the
- * selection of the model it is handed, carries its keybinding, and joins the
- * grid's context menu through the `datalayer.cells.menuItem` point.
+ * merge, freeze, fit columns to their text, undo and redo, and the grid's
+ * own editing keys: edit the cell, empty it, clear the selection, open the
+ * context menu. Each acts on the selection of the model it is handed (or of
+ * the grid that last had the focus, when it is run with no argument),
+ * carries its keys, and joins the grid's context menu through the
+ * `datalayer.cells.menuItem` point.
  *
  * @module builtins/editing
  */
 
-import { contribution, definePlugin, type ReactorCommand } from '@datalayer/reactor';
+import {
+  contribution,
+  definePlugin,
+  formatKeybinding,
+  type ReactorCommand,
+} from '@datalayer/reactor';
 import type { CommandResult } from '../core/commands.js';
 import type { CellsModel } from '../core/model.js';
 import type { Style } from '../core/styles.js';
 import type { Zone } from '../core/zone.js';
 import { CellsMenuItems, CellsToolbarItems } from '../points/index.js';
+import { cellsArgument } from './target.js';
+
+/** What a grid lends the commands that need more than its model: where it is scrolled, its menu, its page. */
+export interface CellsGridAccess {
+  /** The sheet the grid shows (keys act on it). */
+  readonly sheet: string;
+  /** The rows a page of the grid holds, for PageUp and PageDown. */
+  readonly pageRows: number;
+  /** Scroll so a cell shows. */
+  scrollTo(row: number, col: number): void;
+  /** Open the context menu at the active cell. */
+  openMenu(): void;
+}
 
 /** What a Cells command is run with: the grid's model, and how its text measures (for fitting). */
 export interface CellsCommandArgument {
@@ -28,6 +49,25 @@ export interface CellsCommandArgument {
   readonly measure?: (text: string, style: Style) => number;
   /** The chart type `cells.chart.insert` makes (the toolbar's picker); column by default. */
   readonly chartType?: string;
+  /** The grid the command runs from, when a grid runs it (its keys, its menu). */
+  readonly grid?: CellsGridAccess;
+}
+
+/**
+ * A Cells command: a Reactor command over a grid's model, with the keys only
+ * the grid binds. `keybinding` is the Reactor one, which a command palette
+ * binds on the whole document while it is mounted; `gridKeybindings` are
+ * bound on the grid's own focus target alone, so an arrow, Enter, Delete or
+ * Mod+A typed in any other field on the page stays that field's. A host's
+ * `keymap` entry replaces both.
+ */
+export type CellsCommand = ReactorCommand<CellsCommandArgument, unknown> & {
+  readonly gridKeybindings?: readonly string[];
+};
+
+/** How a command's grid keys read in a palette, as its description. */
+export function gridKeysDescription(keys: readonly string[], also: boolean): string {
+  return `${also ? 'In the grid, also' : 'In the grid'}: ${keys.map((k) => formatKeybinding(k)).join(', ')}`;
 }
 
 /** The name of `CellsEditingPlugin`. */
@@ -47,21 +87,54 @@ function command(
   id: string,
   name: string,
   run: Action,
-  extra: Partial<ReactorCommand<CellsCommandArgument, unknown>> = {},
-): ReactorCommand<CellsCommandArgument, unknown> {
+  extra: Partial<CellsCommand> = {},
+): CellsCommand {
+  const keys = extra.gridKeybindings;
   return {
     id: `cells.${id}`,
     name,
     category: 'Cells',
+    ...(keys !== undefined && keys.length > 0
+      ? { description: gridKeysDescription(keys, extra.keybinding !== undefined) }
+      : {}),
     ...extra,
-    execute: (argument: CellsCommandArgument) => {
-      if (argument === undefined || argument.model === undefined) {
-        throw new Error(`cells.${id} runs on a grid's model: execute it with { model }.`);
-      }
-      return run(argument);
-    },
+    execute: (argument: CellsCommandArgument) => run(cellsArgument(`cells.${id}`, argument)),
   };
 }
+
+/** Edit the active cell, keeping its content (F2), scrolled into view. */
+const editCell: Action = ({ model: m, grid }) => {
+  if (m.readOnly) return;
+  const at = m.selection.active;
+  grid?.scrollTo(at.row, at.col);
+  m.startEdit();
+};
+
+/** Empty the active cell and edit it (Backspace). */
+const clearAndEdit: Action = ({ model: m }) => {
+  if (m.readOnly) return;
+  m.startEdit(undefined, '');
+};
+
+/** Clear the contents of every zone of the selection, as one undo step (Delete). */
+const clearContents: Action = ({ model: m }) => {
+  if (m.readOnly) return;
+  const sel = m.selection;
+  const results = m.transact('Clear', () =>
+    sel.zones.map((zone) =>
+      m.dispatch({ type: 'CLEAR', sheet: sel.sheet, zone, what: 'contents' }),
+    ),
+  );
+  const refused = results.find((x) => !x.ok);
+  if (refused !== undefined) check(refused);
+};
+
+/** Open the grid's context menu at the active cell (Shift+F10, the ContextMenu key). */
+const openContextMenu: Action = ({ grid }) => {
+  if (grid === undefined)
+    throw new Error("cells.openContextMenu opens a grid's menu: run it from a grid.");
+  grid.openMenu();
+};
 
 const insertRows =
   (below: boolean): Action =>
@@ -228,7 +301,22 @@ const formatAs =
   };
 
 /** The built-in editing commands (bold, insert rows, undo, fit columns, …) as Reactor commands with their keybindings. */
-export const EDITING_COMMANDS: readonly ReactorCommand<CellsCommandArgument, unknown>[] = [
+export const EDITING_COMMANDS: readonly CellsCommand[] = [
+  command('editCell', 'Edit the cell', editCell, {
+    gridKeybindings: ['F2'],
+    octicon: 'pencil',
+  }),
+  command('clearAndEdit', 'Empty the cell and edit it', clearAndEdit, {
+    gridKeybindings: ['Backspace'],
+  }),
+  command('clearContents', 'Clear contents', clearContents, {
+    gridKeybindings: ['Delete'],
+    octicon: 'trash',
+  }),
+  command('openContextMenu', 'Open the context menu', openContextMenu, {
+    gridKeybindings: ['Shift+F10', 'ContextMenu'],
+    octicon: 'kebab-horizontal',
+  }),
   command('bold', 'Bold', toggle('bold'), { keybinding: 'Mod+B', octicon: 'bold' }),
   command('italic', 'Italic', toggle('italic'), { keybinding: 'Mod+I', octicon: 'italic' }),
   command('underline', 'Underline', toggle('underline'), { keybinding: 'Mod+U' }),
@@ -312,7 +400,11 @@ export const EDITING_COMMANDS: readonly ReactorCommand<CellsCommandArgument, unk
     check(m.dispatch({ type: 'FREEZE', sheet: m.selection.sheet, rows: 0, cols: 0 })),
   ),
   command('undo', 'Undo', ({ model: m }) => m.undo(), { keybinding: 'Mod+Z', octicon: 'undo' }),
-  command('redo', 'Redo', ({ model: m }) => m.redo(), { keybinding: 'Mod+Y', octicon: 'redo' }),
+  command('redo', 'Redo', ({ model: m }) => m.redo(), {
+    keybinding: 'Mod+Y',
+    gridKeybindings: ['Mod+Shift+Z'],
+    octicon: 'redo',
+  }),
 ];
 
 /** The context menu's items, in order, with their groups. */
