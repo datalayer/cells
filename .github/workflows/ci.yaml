@@ -55,6 +55,14 @@ jobs:
       - name: The examples, opened in Chrome (the runner's /usr/bin/google-chrome)
         run: npm run e2e
 
+      # What Playwright kept of a failed flow: its ARIA snapshot of the page and screenshots.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-results
+          path: test-results/
+          if-no-files-found: ignore
+
       - name: Bundle sizes against their budgets
         run: npm run size
 

@@ -33,6 +33,12 @@ async function roundTrip(page: Page, check: () => Promise<void>, before: () => P
 
 test.describe('structural editing (C3-02)', () => {
   test.beforeEach(async ({ page }) => {
+    // What the page says when a flow fails: printed with the failed test's output.
+    page.on('pageerror', (e) => console.log(`PAGE ERROR ${e.message}`));
+    page.on('console', (m) => {
+      if (m.type() === 'error' || m.type() === 'warning')
+        console.log(`PAGE ${m.type()} ${m.text()}`);
+    });
     await page.goto('/e2e.html');
     await left(page).click({ position: { x: 118, y: 35 } }); // A1
   });
