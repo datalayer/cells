@@ -51,6 +51,15 @@ jobs:
       - name: The built core loads in plain Node
         run: npm run check:node
 
+      # The monkey party's Python peer (src/collab/__tests__/monkeyPython.test.ts) runs
+      # datalayer_cells over loro-py: without them that test skips.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: The Python peer of the monkey party
+        run: python -m pip install -e ".[live]"
+
       - name: Test
         run: npm test
 
