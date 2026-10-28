@@ -8,7 +8,8 @@
 
 import { StrictMode, useEffect, useState, type ComponentType } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BaseStyles, ThemeProvider } from '@primer/react';
+import { BaseStyles } from '@primer/react';
+import { DatalayerThemeProvider, themeConfigs } from '@datalayer/primer-addons';
 import Minimal from './examples/01-minimal';
 import Formulas from './examples/02-formulas';
 import Editing from './examples/03-editing';
@@ -139,11 +140,17 @@ const root = document.getElementById('root');
 if (root === null) throw new Error('The examples page has no #root.');
 createRoot(root).render(
   <StrictMode>
-    {/* The grid's context menu is a Primer Overlay: the pages without a theme chooser get Primer's theme here. */}
-    <ThemeProvider colorMode="auto">
+    {/* The grid's context menu is a Primer Overlay, drawn from Primer's CSS variables: every page
+        wears the Datalayer theme, as the Toolbar page does, so the menu has its colours and its
+        hover on the pages without a theme chooser too (a bare ThemeProvider defines none). */}
+    <DatalayerThemeProvider
+      colorMode="auto"
+      theme={themeConfigs.datalayer.primerTheme}
+      themeStyles={themeConfigs.datalayer.themeStyles}
+    >
       <BaseStyles>
         <App />
       </BaseStyles>
-    </ThemeProvider>
+    </DatalayerThemeProvider>
   </StrictMode>,
 );

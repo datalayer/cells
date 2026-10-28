@@ -2014,6 +2014,16 @@ function ContextMenu(props: {
         top={props.y}
         left={props.x}
         width="auto"
+        // Primer draws the Overlay from its CSS variables, which a host only
+        // has when its theme defines them (a plain ThemeProvider does not):
+        // without them the menu had no background (28 October 2026). The
+        // system's canvas colours stand in, and follow light and dark.
+        style={{
+          backgroundColor: 'var(--overlay-bgColor, Canvas)',
+          color: 'var(--fgColor-default, CanvasText)',
+          boxShadow:
+            'var(--shadow-floating-small, 0 0 0 1px rgba(128, 128, 128, 0.35), 0 8px 24px rgba(0, 0, 0, 0.2))',
+        }}
         data-cells-menu=""
       >
         <div
