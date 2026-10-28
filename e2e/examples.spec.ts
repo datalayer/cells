@@ -18,6 +18,7 @@ const EXAMPLES = [
   ['collaboration', 'Collaboration'],
   ['chrome', 'Toolbar, formula bar and sheet tabs'],
   ['charts', 'Charts'],
+  ['cell-types', 'Cell types'],
 ] as const;
 
 test.describe('the examples', () => {
@@ -47,6 +48,25 @@ test.describe('the examples', () => {
     await page.getByRole('button', { name: 'Disable it' }).click();
     await page.getByRole('button', { name: 'UPPERCASE the selection' }).click();
     await expect(page.getByText(/No plugin handles the command 'UPPERCASE'/)).toBeVisible();
+  });
+
+  test('a checkbox cell toggles with Space and a click, a link cell is named as one', async ({
+    page,
+  }) => {
+    await page.goto('/#/cell-types');
+    const grid = page.getByRole('grid', { name: 'Tasks' });
+    await expect(grid.getByRole('gridcell', { name: 'checked', exact: true })).toHaveCount(2);
+    await expect(grid.getByRole('gridcell', { name: 'https://datalayer.io, link' })).toHaveCount(1);
+    await expect(grid.getByRole('gridcell', { name: '80 percent' })).toHaveCount(1);
+    // A2 (not checked) is the active cell: Space checks it, and the COUNTIF above follows.
+    await grid.focus();
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press(' ');
+    await expect(grid.getByRole('gridcell', { name: 'checked', exact: true })).toHaveCount(3);
+    await expect(page.getByText('3 of 6 tasks done')).toBeVisible();
+    await page.keyboard.press(' ');
+    await expect(grid.getByRole('gridcell', { name: 'checked', exact: true })).toHaveCount(2);
   });
 
   test('an asynchronous plugin function resolves into the grid, its dependent follows', async ({

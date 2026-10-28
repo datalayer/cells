@@ -81,6 +81,70 @@ describe('the paint rules', async () => {
     await expectSnapshot(paint(m), 'borders');
   });
 
+  it('draws the built-in cell types: checkbox, link and progress bar, in light and forced colours', async () => {
+    const typed = () => {
+      const m = model(
+        [
+          ['Done', 'Site', 'Progress'],
+          [true, 'https://datalayer.io', 0.42],
+          [false, 'plain words', 1],
+          [1, 'www.example.org', 0],
+          [{ error: '#N/A' }, null, 'n/a'],
+          [{ formula: 'A2' }, { formula: 'B2' }, { formula: 'C2*2' }],
+        ],
+        { A1: { bold: true }, B1: { bold: true }, C1: { bold: true } },
+      );
+      for (const [col, type] of [
+        [0, 'checkbox'],
+        [1, 'link'],
+        [2, 'progress'],
+      ] as const)
+        m.dispatch({
+          type: 'SET_STYLE',
+          sheet: 's1',
+          zone: { top: 1, left: col, bottom: 5, right: col },
+          style: { type },
+        });
+      // A left-aligned checkbox with a fill, and a type no plugin contributes, drawn plain.
+      m.dispatch({
+        type: 'SET_STYLE',
+        sheet: 's1',
+        zone: { top: 3, left: 0, bottom: 3, right: 0 },
+        style: { align: 'left', fill: '#dafbe1' },
+      });
+      m.dispatch({
+        type: 'SET_STYLE',
+        sheet: 's1',
+        zone: { top: 3, left: 1, bottom: 3, right: 1 },
+        style: { type: 'acme.stars' },
+      });
+      return m;
+    };
+    await expectSnapshot(paint(typed(), { width: 400, height: 160 }), 'cell-types');
+    await expectSnapshot(
+      paint(typed(), {
+        width: 400,
+        height: 160,
+        // System colour names, which the Node canvas cannot parse, stand in as black on white.
+        theme: {
+          ...FORCED_COLORS_THEME,
+          background: '#ffffff',
+          text: '#000000',
+          textMuted: '#808080',
+          gridline: '#808080',
+          headerBackground: '#ffffff',
+          headerText: '#000000',
+          headerBorder: '#000000',
+          activeCellBorder: '#1a5fb4',
+          linkText: '#0000ee',
+          errorText: '#000000',
+          fontFamily: 'TestSans',
+        },
+      }),
+      'cell-types-forced',
+    );
+  });
+
   it('splits frozen panes, scrolls only the main pane, and draws the frozen edges', async () => {
     const rows = Array.from({ length: 60 }, (_, r) =>
       Array.from({ length: 12 }, (_, c) => (r === 0 ? `H${c}` : c === 0 ? `R${r}` : r * c)),

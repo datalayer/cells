@@ -60,7 +60,12 @@ import {
 import type { Style } from '../core/styles.js';
 import type { CellValue } from '../core/values.js';
 import { type Position, type Zone } from '../core/zone.js';
-import { type Resolved, optionalContribution, firstContribution } from '../points/index.js';
+import {
+  type CellType,
+  type Resolved,
+  optionalContribution,
+  firstContribution,
+} from '../points/index.js';
 
 const CellsContext = createContext<CellsModel | null>(null);
 
@@ -184,6 +189,23 @@ export function useStyle(ref: string): {
     [model, ref],
   );
   return { style, set };
+}
+
+/**
+ * The cell type a cell is drawn and edited with (its style's `type`, resolved
+ * through `datalayer.cells.cellType`), with the plugin contributing it, or
+ * `undefined` for a plain cell (§3.11). Read again when the cell or the
+ * plugins change.
+ */
+export function useCellType(ref: string): Resolved<CellType> | undefined {
+  const revision = useReactorRevision();
+  return useDerived(
+    (m) => {
+      const { sheet, row, col } = resolveCell(m, ref);
+      return m.cellType(sheet, row, col);
+    },
+    [ref, revision],
+  );
 }
 
 /** Run commands of a type: `useCommand('INSERT_AXIS')(args)`. Returns the result, refusals and all. */

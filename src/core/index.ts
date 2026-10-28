@@ -152,6 +152,14 @@ export {
 } from './clipboard.js';
 export { CELLS_CLIPBOARD_PLUGIN, CellsClipboardPlugin } from '../builtins/clipboard.js';
 export {
+  CELL_TYPES,
+  CELLS_CELL_TYPES_PLUGIN,
+  CellsCellTypesPlugin,
+  isChecked,
+  linkHref,
+  progressOf,
+} from '../builtins/cellTypes.js';
+export {
   anchorBeside,
   CELLS_CHART_COMMANDS_PLUGIN,
   CellsChartCommandsPlugin,

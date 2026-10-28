@@ -17,14 +17,17 @@
 import type { ContributionPoint, PlatformInput, ReactorPlatform } from '@datalayer/reactor';
 import { type PasteOptions, type Slice, SLICE_VERSION } from './clipboard.js';
 import {
+  CellsCellTypes,
   CellsClipboard,
   CellsCommands,
   CellsEditGate,
   CellsFunctions,
+  type CellType,
   type CommandHandler,
   type FormulaFunction,
   CellsPatchOps,
   PointTable,
+  type Resolved,
 } from '../points/index.js';
 import { FormulaEngine } from '../formula/engine.js';
 import { type ChartData, chartData, chartRanges, type ChartSpec } from './charts.js';
@@ -122,6 +125,7 @@ export class CellsModel {
   readonly #commands: PointTable<CommandHandler<any>>;
   readonly #patchOps: PointTable<PatchOp<any>>;
   readonly #functions: PointTable<FormulaFunction>;
+  readonly #cellTypes: PointTable<CellType>;
   readonly #engine: FormulaEngine;
   readonly #history: LocalHistory<SelectionState>;
   readonly #listeners = new Set<ChangeListener>();
@@ -188,6 +192,17 @@ export class CellsModel {
           throw new Error(`the function ${f.name} has no compute`);
       },
     });
+    this.#cellTypes = new PointTable(this.reactor, CellsCellTypes, {
+      label: 'cell type',
+      key: (t) => t.id,
+      check: (t) => {
+        if (typeof t.id !== 'string' || t.id === '') throw new Error('a cell type has an id');
+        if (typeof t.render !== 'function')
+          throw new Error(`the cell type '${t.id}' has no render`);
+        if (t.activateOn !== undefined && !Array.isArray(t.activateOn))
+          throw new Error(`the cell type '${t.id}' lists the keys that activate it in activateOn`);
+      },
+    });
     const functions = this.#functions;
     this.#engine = new FormulaEngine(
       this.workbook,
@@ -206,8 +221,9 @@ export class CellsModel {
         },
       },
     );
-    // Resolved now, so two plugins contributing one function name are refused at once, by name.
+    // Resolved now, so two plugins contributing one function name (or cell type id) are refused at once, by name.
     functions.keys();
+    this.#cellTypes.keys();
     if (options.data !== undefined) {
       loadInto(this.workbook, options.data);
       // Values a file carries for its formulas are recomputed, not trusted.
@@ -216,11 +232,18 @@ export class CellsModel {
     if (this.workbook.sheets.length === 0) throw new Error('A workbook holds at least one sheet.');
     this.#selection = initialSelection(this.workbook.sheets[0].id);
     let known = this.#functions.all().map((r) => r.value);
+    let knownTypes = this.#cellTypes.all().map((r) => r.value);
     this.reactor.subscribe(() => {
       const now = this.#functions.all().map((r) => r.value);
-      if (now.length === known.length && now.every((f, i) => f === known[i])) return;
+      const types = this.#cellTypes.all().map((r) => r.value);
+      const sameFunctions = now.length === known.length && now.every((f, i) => f === known[i]);
+      const sameTypes =
+        types.length === knownTypes.length && types.every((t, i) => t === knownTypes[i]);
+      if (sameFunctions && sameTypes) return;
       known = now;
-      if (this.workbook.formulas.size > 0)
+      knownTypes = types;
+      // Formulas show other values, or typed cells draw otherwise: the view reads everything again.
+      if ((!sameFunctions && this.workbook.formulas.size > 0) || !sameTypes)
         this.#emit({ label: 'plugins', commands: [], patches: [], origin: 'plugins' });
     });
   }
@@ -657,6 +680,27 @@ export class CellsModel {
   style(sheet: string, row: number, col: number): Style {
     const c = this.content(sheet, row, col);
     return this.workbook.styles.get(c?.style ?? 0);
+  }
+
+  /**
+   * The cell type a cell is drawn and edited with (§3.11): the contribution
+   * its style's `type` names, with the plugin that contributes it; `undefined`
+   * for a cell with no type, or whose type no enabled plugin contributes (it
+   * then draws as a plain value).
+   */
+  cellType(sheet: string, row: number, col: number): Resolved<CellType> | undefined {
+    const type = this.style(sheet, row, col).type;
+    return type === undefined ? undefined : this.#cellTypes.get(type);
+  }
+
+  /** A cell type by its id, or `undefined`. */
+  cellTypeOf(id: string): Resolved<CellType> | undefined {
+    return this.#cellTypes.get(id);
+  }
+
+  /** The ids of the cell types plugins contribute, sorted. */
+  cellTypeIds(): string[] {
+    return [...this.#cellTypes.keys()].sort();
   }
 
   /**

@@ -27,6 +27,7 @@ import { columnLetters, type Zone, zonesOverlap } from '../core/zone.js';
 import type { TextMeasure } from './lru.js';
 import type { NumberLocale } from '../core/numfmt.js';
 import { type Align, type Displayed, display } from './numberFormat.js';
+import type { CellType } from '../points/index.js';
 import type { CellsTheme } from './theme.js';
 import { cellRect, type Pane, type Viewport } from './viewport.js';
 
@@ -44,6 +45,8 @@ export interface PaintInput {
   readonly showGridlines: boolean;
   /** What a cell of the sheet shows: its value, or its formula evaluated. */
   readonly value: (row: number, col: number) => CellValue;
+  /** The cell type of that id (§3.11), when a plugin contributes it; a cell whose style names one is drawn by it. */
+  readonly cellType?: (id: string) => CellType | undefined;
   /** Decimal and group separators, month and day names; en-US by default. */
   readonly locale?: NumberLocale;
   /** Only this rectangle (view px) is repainted; the whole canvas by default. */
@@ -227,14 +230,17 @@ function paintPane(input: PaintInput, pane: Pane, stats: PaintStats): void {
     ctx.fillStyle = style.fill ?? theme.background;
     ctx.fillRect(box.x, box.y, box.width, box.height);
     if (content !== null && !isEmpty(content)) {
-      drawText(
-        input,
-        display(input.value(m.top, m.left), style.format, input.locale),
-        style,
-        box,
-        box,
-        stats,
-      );
+      const type = typeOf(input, style);
+      if (type !== undefined) drawTyped(input, type, box, input.value(m.top, m.left), style, stats);
+      else
+        drawText(
+          input,
+          display(input.value(m.top, m.left), style.format, input.locale),
+          style,
+          box,
+          box,
+          stats,
+        );
     }
   }
   const inMerge = (r: number, c: number) =>
@@ -256,8 +262,14 @@ function paintPane(input: PaintInput, pane: Pane, stats: PaintStats): void {
       const content = sheet.cells.get(r, c);
       if (content === null || isEmpty(content) || inMerge(r, c)) continue;
       const style = styles.get(content.style);
-      const shown = display(input.value(r, c), style.format, input.locale);
       const cell = rect(r, c);
+      const type = typeOf(input, style);
+      if (type !== undefined) {
+        // A typed cell is drawn by its type, in its own rectangle: it never overflows.
+        if (k >= lookback.length) drawTyped(input, type, cell, input.value(r, c), style, stats);
+        continue;
+      }
+      const shown = display(input.value(r, c), style.format, input.locale);
       let span = cell;
       if (shown.kind === 'text' && !style.wrap) {
         const font = fontOf(style, theme, z);
@@ -318,6 +330,38 @@ function paintPane(input: PaintInput, pane: Pane, stats: PaintStats): void {
       }
     }
   }
+}
+
+/** The cell type a style names, when the grid resolves it. */
+function typeOf(input: PaintInput, style: Style): CellType | undefined {
+  return style.type === undefined || input.cellType === undefined
+    ? undefined
+    : input.cellType(style.type);
+}
+
+/** A cell drawn by its type, clipped to its rectangle (the fill was painted with the other fills). */
+function drawTyped(
+  input: PaintInput,
+  type: CellType,
+  cell: { x: number; y: number; width: number; height: number },
+  value: CellValue,
+  style: Style,
+  stats: PaintStats,
+): void {
+  const { ctx } = input;
+  ctx.save();
+  clipTo(ctx, cell);
+  // A hairline's width is kept out: the grid lines sit on the cell's right and bottom edge.
+  const inner = {
+    x: cell.x,
+    y: cell.y,
+    width: cell.width - 1,
+    height: cell.height - 1,
+    zoom: input.viewport.zoom,
+  };
+  type.render(ctx, inner, value, style, input.theme);
+  ctx.restore();
+  stats.texts += 1;
 }
 
 /** Draw a cell's shown value in `span` (its own rectangle, or the run it overflows into), clipped. */

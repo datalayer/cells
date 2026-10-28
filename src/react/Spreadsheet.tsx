@@ -64,7 +64,7 @@ import { EN_US, type NumberLocale } from '../core/numfmt.js';
 import { CanvasRenderer, type RendererCounters } from '../render/renderer.js';
 import { ScrollMapper, spacerSize } from '../render/scroll.js';
 import { type CellsTheme, checkTheme } from '../render/theme.js';
-import { cellAt, cellRect, headerAt, type Viewport } from '../render/viewport.js';
+import { cellAt, cellRect, headerAt, paneAt, type Viewport } from '../render/viewport.js';
 import { fontOf } from '../render/paint.js';
 import { ChartsLayer } from './ChartsLayer.js';
 import { ActionList, Overlay, registerPortalRoot, ThemeProvider } from '@primer/react';
@@ -178,7 +178,11 @@ export function accessibleName(model: CellsModel, sheet: string, row: number, co
   if (content === null) return '';
   const value: CellValue = model.value(sheet, row, col);
   const style = model.style(sheet, row, col);
-  let name = display(value, style.format).text;
+  const type = model.cellType(sheet, row, col)?.value;
+  let name =
+    type?.accessibleName !== undefined
+      ? type.accessibleName(value, style)
+      : display(value, style.format).text;
   if (content.formula !== undefined) name += `, formula: =${content.formula}`;
   if (isCellError(value)) name += `, ${errorMeaning(value.error)}`;
   return name;
@@ -512,6 +516,38 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
       [model, measure],
     );
 
+    /**
+     * Activate a typed cell (§3.11): a click in its hit area or one of its keys. A command is
+     * dispatched (a refusal is said), a URL opens in a new tab. `true` when the type took it.
+     */
+    const activateCell = useCallback(
+      (cell: { sheet: string; row: number; col: number }): boolean => {
+        const type = model.cellType(cell.sheet, cell.row, cell.col)?.value;
+        if (type?.activate === undefined) return false;
+        const value = model.value(cell.sheet, cell.row, cell.col);
+        const context = {
+          workbook: model.workbook,
+          value: (s: string, r: number, c: number) => model.value(s, r, c),
+          contributions: <T,>(point: Parameters<CellsModel['reactor']['getContributions']>[0]) =>
+            model.reactor.getContributions(point).map((x) => x.value) as T[],
+        };
+        const action = type.activate(cell, value, context as never);
+        if (action === undefined) return true;
+        if ('open' in action) {
+          if (typeof window !== 'undefined')
+            window.open(action.open, '_blank', 'noopener,noreferrer');
+          return true;
+        }
+        const result = model.dispatch(action.command as Command);
+        if (!result.ok) {
+          setAnnouncement(result.refusals[0]?.message ?? `${type.id} refused.`);
+          props_.current.onCommandRejected?.(result);
+        }
+        return true;
+      },
+      [model],
+    );
+
     /** With a chart selected: arrows move it by one cell, Shift+arrows resize it, Delete removes it, Escape returns to the cells. */
     const chartKey = useCallback(
       (e: React.KeyboardEvent): boolean => {
@@ -538,6 +574,26 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
         return true;
       },
       [model, runCommand],
+    );
+
+    /** The cell under a point in the main or a frozen pane, with its rectangle in view px. */
+    const cellBoxAt = useCallback(
+      (e: { clientX: number; clientY: number }, cell: { row: number; col: number }) => {
+        const r = rendererRef.current;
+        const root = rootRef.current;
+        if (r === null || root === null) return undefined;
+        const rect = root.getBoundingClientRect();
+        const pane = paneAt(r.viewport, e.clientX - rect.left, e.clientY - rect.top);
+        if (pane === undefined) return undefined;
+        const sheet = model.sheet(r.sheet);
+        const box = cellRect(pane, r.viewport.zoom, sheet.rows, sheet.cols, cell.row, cell.col);
+        return {
+          ...box,
+          px: e.clientX - rect.left - box.x,
+          py: e.clientY - rect.top - box.y,
+        };
+      },
+      [model],
     );
 
     const onKeyDown = useCallback(
@@ -587,6 +643,16 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
           setMenu({ x: rect.x + rect.width / 2, y: rect.y + rect.height });
           return;
         }
+        // A typed cell's own keys (Space on a checkbox, Enter on a link) come before navigation.
+        if (!e.ctrlKey && !e.metaKey && !e.altKey && model.selection.sheet === r.sheet) {
+          const active = model.selection.active;
+          const type = model.cellType(r.sheet, active.row, active.col)?.value;
+          if (type?.activateOn?.includes(e.key) && type.activate !== undefined) {
+            e.preventDefault();
+            activateCell({ sheet: r.sheet, row: active.row, col: active.col });
+            return;
+          }
+        }
         const nav = navigationFor(e, pageRows);
         if (nav === undefined) {
           const mod = e.ctrlKey || e.metaKey;
@@ -617,6 +683,8 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
             if (e.key.length === 1 || e.key === 'Process') {
               // Typing over a cell replaces it; an IME's first key opens the editor empty.
               e.preventDefault();
+              const active = model.selection.active;
+              if (model.cellType(r.sheet, active.row, active.col)?.value.editable === false) return;
               scrollToCell(model.selection.active.row, model.selection.active.col);
               model.startEdit(undefined, e.key === 'Process' ? '' : e.key);
               return;
@@ -644,7 +712,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
             : next.active;
         scrollToCell(target.row, target.col);
       },
-      [model, scrollToCell, runCommand],
+      [model, scrollToCell, runCommand, activateCell],
     );
 
     /** Ctrl+Shift+V asks the next paste for values only. */
@@ -933,8 +1001,21 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
         dragging.current = true;
         (e.target as Element).setPointerCapture?.(e.pointerId);
         props_.current.onCellClick?.({ sheet: r.sheet, ...cell }, e);
+        // A click in a typed cell's hit area activates it (a checkbox toggles, a link opens).
+        if (!e.shiftKey && !e.ctrlKey && !e.metaKey && e.isPrimary !== false) {
+          const type = model.cellType(r.sheet, cell.row, cell.col)?.value;
+          if (type?.activate !== undefined) {
+            const box = cellBoxAt(e, cell);
+            if (
+              box !== undefined &&
+              (type.hitTest === undefined ||
+                type.hitTest({ x: box.px, y: box.py }, { width: box.width, height: box.height }))
+            )
+              activateCell({ sheet: r.sheet, ...cell });
+          }
+        }
       },
-      [model, pointToCell],
+      [model, pointToCell, cellBoxAt, activateCell],
     );
 
     const onPointerMove = useCallback(

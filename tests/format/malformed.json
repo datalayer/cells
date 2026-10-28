@@ -245,6 +245,26 @@
       "message": "^styles\\[1\\]: 'blink' is not a style property"
     },
     {
+      "name": "a cell type that is not an id",
+      "data": {
+        "version": 1,
+        "styles": [
+          {},
+          {
+            "type": 3
+          }
+        ],
+        "sheets": [
+          {
+            "id": "a",
+            "name": "A",
+            "rows": {}
+          }
+        ]
+      },
+      "message": "^styles\\[1\\].type: the id of a cell type, a non-empty string"
+    },
+    {
       "name": "a negative size",
       "data": {
         "version": 1,

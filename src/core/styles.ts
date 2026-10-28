@@ -44,6 +44,12 @@ export interface Style {
   };
   /** An Excel number format, such as `#,##0.00` or `yyyy-mm-dd`. */
   readonly format?: string;
+  /**
+   * The cell type drawing and editing the cell (`checkbox`, `link`,
+   * `progress`, or a plugin's), the id of a `datalayer.cells.cellType`
+   * contribution. A type no plugin contributes draws as a plain value.
+   */
+  readonly type?: string;
 }
 
 const KEYS: readonly (keyof Style)[] = [
@@ -60,6 +66,7 @@ const KEYS: readonly (keyof Style)[] = [
   'wrap',
   'borders',
   'format',
+  'type',
 ];
 const KEY_SET: ReadonlySet<string> = new Set(KEYS);
 const MAX_STYLES = 0xffff;
@@ -100,6 +107,8 @@ export function checkStyle(style: unknown, where = 'style'): asserts style is St
     if (s[key] !== undefined && typeof s[key] !== 'string')
       throw new Error(`${where}.${key}: a string.`);
   }
+  if (s.type !== undefined && !(typeof s.type === 'string' && s.type !== ''))
+    throw new Error(`${where}.type: the id of a cell type, a non-empty string.`);
   if (s.format !== undefined) {
     try {
       checkFormatCode(s.format as string);

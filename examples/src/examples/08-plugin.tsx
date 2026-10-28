@@ -24,7 +24,7 @@ import {
   Spreadsheet,
 } from '@datalayer/cells';
 import { useState } from 'react';
-import { Frame, Soon } from '../shared';
+import { Frame } from '../shared';
 
 /**
  * A Reactor plugin, written as any third party would: a command and a
@@ -80,10 +80,20 @@ const ShoutPlugin = definePlugin({
       description: 'The text, twice, after a while.',
       examples: ['=ECHO("hey") → hey…hey'],
     }),
+    // A cell type: drawn by the plugin (the value in capitals, with a megaphone), named for a screen reader.
     contribution(CellsCellTypes, {
       id: 'megaphone',
-      render: () => {},
-      accessibleName: (v) => `Shouted: ${String(v)}`,
+      render: (ctx, rect, value, style, theme) => {
+        ctx.font = `bold ${(style.size ?? theme.fontSize) * rect.zoom}px ${theme.fontFamily}`;
+        ctx.fillStyle = style.color ?? theme.text;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(
+          `📣 ${toText(value).toUpperCase()}`,
+          rect.x + 3 * rect.zoom,
+          rect.y + rect.height / 2,
+        );
+      },
+      accessibleName: (v) => `Shouted: ${toText(v).toUpperCase()}`,
     }),
   ],
 });
@@ -149,6 +159,12 @@ export default function Plugin() {
         [{ formula: 'ECHO(A1)' }, { formula: 'LEN(A4)' }],
       ],
     });
+    m.dispatch({
+      type: 'SET_STYLE',
+      sheet: 's1',
+      zone: { top: 1, left: 0, bottom: 1, right: 0 },
+      style: { type: 'megaphone' },
+    });
     m.select({
       sheet: 's1',
       zones: [{ top: 0, left: 0, bottom: 1, right: 1 }],
@@ -159,12 +175,13 @@ export default function Plugin() {
   });
   return (
     <CellsProvider model={model}>
-      <Soon milestone="C7-02">
-        Drawing a contributed cell type on the canvas. The command and <code>=SHOUT(…)</code> work
-        now: disable the plugin and the command is refused as unknown, and the third row shows{' '}
-        <code>#NAME?</code>. <code>=ECHO(…)</code> is asynchronous: <code>#BUSY!</code>, then its
-        value, and <code>LEN</code> beside it follows.
-      </Soon>
+      <p>
+        The command and <code>=SHOUT(…)</code> work: disable the plugin and the command is refused
+        as unknown, the third row shows <code>#NAME?</code>, and A2 (styled{' '}
+        <code>{'{ type: "megaphone" }'}</code>) draws as a plain value again. <code>=ECHO(…)</code>{' '}
+        is asynchronous: <code>#BUSY!</code>, then its value, and <code>LEN</code> beside it
+        follows.
+      </p>
       <Frame height={160}>
         <Spreadsheet model={model} aria-label="Plugin" />
       </Frame>

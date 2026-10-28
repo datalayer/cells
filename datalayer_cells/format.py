@@ -46,6 +46,7 @@ STYLE_KEYS = (
     "wrap",
     "borders",
     "format",
+    "type",
 )
 
 _COLORS = {"black", "blue", "cyan", "green", "magenta", "red", "white", "yellow"}
@@ -157,6 +158,8 @@ def check_style(style: Any, where: str = "style") -> None:
     for key in ("font", "color", "fill", "format"):
         if key in style and not isinstance(style[key], str):
             raise FormatError(f"{where}.{key}: a string.")
+    if "type" in style and not (isinstance(style["type"], str) and style["type"] != ""):
+        raise FormatError(f"{where}.type: the id of a cell type, a non-empty string.")
     if "format" in style:
         if not isinstance(style["format"], str):
             raise FormatError(f"{where}.format: a string.")

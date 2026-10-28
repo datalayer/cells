@@ -152,11 +152,19 @@ const fitColumns: Action = ({ model: m, measure }) => {
         right: col,
       })) {
         if (content.value === null && content.formula === undefined) continue;
+        const style = m.style(sheet.id, row, col);
+        const type = m.cellType(sheet.id, row, col)?.value;
+        if (type?.measure !== undefined) {
+          // A typed cell says how wide it wants to be (a checkbox: its square; a link: its text).
+          const wanted = type.measure(m.value(sheet.id, row, col), style, (t) => measure(t, style));
+          if (wanted !== undefined) widest = Math.max(widest, wanted);
+          continue;
+        }
         const shown =
           typeof content.value === 'object' && content.value !== null
             ? content.value.error
             : String(content.value ?? '#NAME?');
-        widest = Math.max(widest, measure(shown, m.style(sheet.id, row, col)));
+        widest = Math.max(widest, measure(shown, style));
       }
       if (widest > 0)
         check(

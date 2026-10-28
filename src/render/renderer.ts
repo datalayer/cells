@@ -246,6 +246,7 @@ export class CanvasRenderer {
       showGridlines: this.#showGridlines,
       locale: this.#locale,
       value: (row: number, col: number) => this.#model.value(sheet.id, row, col),
+      cellType: (id: string) => this.#model.cellTypeOf(id)?.value,
     };
     let painted = { cells: 0, texts: 0 };
     const main = vp.panes.find((p) => p.name === 'main')!;

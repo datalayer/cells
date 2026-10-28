@@ -99,21 +99,65 @@ export interface FormulaFunction {
   readonly examples: readonly string[];
 }
 
-/** A cell type drawn on canvas: a checkbox, a link, a progress bar. */
+/** A cell's rectangle in CSS px of the canvas, zoom applied; font sizes multiply by `zoom` to match. */
+export interface CellRect {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly zoom: number;
+}
+
+/**
+ * What activating a cell type's cell does (a click in its hit area, or one of
+ * its `activateOn` keys on the active cell): a command the grid dispatches
+ * (undoable, refused by gates and read-only workbooks like any other), a URL
+ * the grid opens in a new tab, or nothing.
+ */
+export type CellActivation =
+  | { readonly command: { readonly type: string } & Record<string, unknown> }
+  | { readonly open: string }
+  | undefined
+  | void;
+
+/**
+ * A cell type drawn on canvas: a checkbox, a link, a progress bar. A cell
+ * takes a type through its style (`style.type` is the type's `id`, set with
+ * `SET_STYLE` as any style property, persisted and synced with the style), so
+ * a type applies per cell, row or column; a type no plugin contributes draws
+ * as a plain value. A type contributes what it draws, how wide it wants to
+ * be, what a click or a key does, and what a screen reader hears. Typing over
+ * the cell edits its value as text, as for any cell, unless `editable` is
+ * `false`.
+ */
 export interface CellType {
   readonly id: string;
+  /** Draw the cell's value in its rectangle (already clipped to it); `style` is the cell's, `theme` the grid's. */
   render(
     ctx: CanvasRenderingContext2D,
-    rect: { x: number; y: number; width: number; height: number },
+    rect: CellRect,
     value: CellValue,
     style: Style,
-    theme: Readonly<Record<string, unknown>>,
+    theme: CellsTheme,
   ): void;
+  /** The width the cell wants (`cells.fitColumns`), in px; `text` measures a string in the cell's font. */
+  measure?(value: CellValue, style: Style, text: (s: string) => number): number | undefined;
+  /** Whether a point of the cell (relative to its rectangle) activates it; the whole cell when absent and `activate` is given. */
   hitTest?(point: { x: number; y: number }, rect: { width: number; height: number }): boolean;
-  onClick?(cell: { sheet: string; row: number; col: number }, value: CellValue): Patch[] | void;
+  /** A click in the hit area, or one of `activateOn` on the active cell. */
+  activate?(
+    cell: { sheet: string; row: number; col: number },
+    value: CellValue,
+    context: CommandContext,
+  ): CellActivation;
+  /** The keys (`KeyboardEvent.key`) that activate the active cell: `' '` for a checkbox, `'Enter'` for a link. */
+  readonly activateOn?: readonly string[];
+  /** `false`: typing over the cell does not open the editor (F2 still does). */
+  readonly editable?: boolean;
+  /** What a screen reader hears for the cell, instead of the value's text. */
+  accessibleName?(value: CellValue, style: Style): string;
   /** A React component editing this type; typed loosely so the core needs no React. */
   readonly editor?: unknown;
-  accessibleName?(value: CellValue): string;
 }
 
 /** A render layer, drawn after the core layers of the same kind (§3.3). */

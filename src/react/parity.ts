@@ -57,6 +57,13 @@ export const CORE_EXPORTS: Readonly<Record<string, Surface>> = {
   firstContribution: hook('useSingleContribution'),
   optionalContribution: hook('useSingleContribution'),
   CellsFunctionsPlugin: hook('useCellsReactor'),
+  // Cell types (§3.11): resolved per cell through useCellType
+  CellsCellTypesPlugin: hook('useCellsReactor'),
+  CELLS_CELL_TYPES_PLUGIN: hook('usePlugin'),
+  CELL_TYPES: hook('useContributions'),
+  isChecked: hook('useCellType'),
+  linkHref: hook('useCellType'),
+  progressOf: hook('useCellType'),
   // Charts (§3.12): the commands through useCharts, one chart through useChart
   inferChartData: hook('useCharts'),
   chartPoints: hook('useChart'),
@@ -180,6 +187,9 @@ export const MODEL_MEMBERS: Readonly<Record<string, Surface>> = {
   content: hook('useCell'),
   value: hook('useCellValue'),
   style: hook('useStyle'),
+  cellType: hook('useCellType'),
+  cellTypeOf: hook('useCellType'),
+  cellTypeIds: hook('useContributions'),
   toJSON: hook('useExport'),
   toRows: hook('useExport'),
   loadColumns: hook('useLoad'),

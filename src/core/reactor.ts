@@ -27,6 +27,7 @@ import { CellsClipboardPlugin } from '../builtins/clipboard.js';
 import { CellsEditingPlugin } from '../builtins/editing.js';
 import { CellsFillPlugin } from '../builtins/fill.js';
 import { CellsChartCommandsPlugin } from '../builtins/charts.js';
+import { CellsCellTypesPlugin } from '../builtins/cellTypes.js';
 import { CellsFunctionsPlugin } from '../builtins/functions/index.js';
 
 export const CELLS_CORE_PLUGIN = '@datalayer/cells-core';
@@ -60,6 +61,7 @@ export function cellsBuiltins(): PlatformInput[] {
     CellsFillPlugin,
     CellsFunctionsPlugin,
     CellsChartCommandsPlugin,
+    CellsCellTypesPlugin,
   ];
 }
 

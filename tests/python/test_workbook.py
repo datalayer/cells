@@ -63,3 +63,14 @@ def test_refuses_with_a_sentence():
 )
 def test_parses_input_as_typing_does(text, cell):
     assert parse_input(text) == cell
+
+
+def test_a_cell_type_is_a_style_property():
+    wb = Workbook.from_rows([[True, "https://datalayer.io", 0.42]])
+    wb.style("A1", {"type": "checkbox"})
+    wb.style("B1", {"type": "link"})
+    wb.style("C1", {"type": "progress"})
+    assert wb.to_json()["styles"] == [{}, {"type": "checkbox"}, {"type": "link"}, {"type": "progress"}]
+    assert Workbook(wb.to_json()).to_json() == wb.to_json()
+    with pytest.raises(Exception, match=r"style\.type: the id of a cell type, a non-empty string"):
+        wb.style("A1", {"type": ""})
