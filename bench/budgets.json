@@ -157,7 +157,11 @@
       "max": 10,
       "unit": "kB",
       "where": "size",
-      "note": "The entry over jupyter-react (a peer, external): the kernel adapter, the output and editor components, the plugin."
+      "note": "The entry over jupyter-react (a peer, external): the kernel adapter, the output and editor components, the plugin.",
+      "accepted": {
+        "value": 8.37,
+        "why": "Accepted by the user on 28 October 2026 (\"Accept the growth\"): the code-cell work (the datalayer.cells comm, the kernel status, the editor overlay, SourceCell) grew the entry from 4.7 kB (main run 40684239014) to 8.37 kB (afc92c0, run 40719685153); the base moves up to it until a green run makes the size the base."
+      }
     }
   }
 }

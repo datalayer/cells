@@ -25,11 +25,29 @@ describe('the bench comparison', () => {
   });
 
   it('a size growing over the threshold but under the floor is not a regression; over both, it is', () => {
-    const size = (value: number) => ({ figures: { 'bundle.jupyter.kB': { value, unit: 'kB' } } });
+    const size = (value: number) => ({ figures: { 'bundle.chrome.kB': { value, unit: 'kB' } } });
     expect(compare(size(4.7), size(5.58), budgets).ok).toBe(true);
     const { ok, failures } = compare(size(4.7), size(7.5), budgets);
     expect(ok).toBe(false);
-    expect(failures[0]).toMatch(/bundle\.jupyter\.kB: 7\.5 kB regressed/);
+    expect(failures[0]).toMatch(/bundle\.chrome\.kB: 7\.5 kB regressed/);
+  });
+
+  it('a growth the user accepted is measured from the accepted value; past it, a regression still is', () => {
+    const size = (value: number) => ({ figures: { 'bundle.jupyter.kB': { value, unit: 'kB' } } });
+    // bundle.jupyter.kB accepts 8.37 (28 October 2026): from a 4.7 base, 8.37 is no regression.
+    const accepted = compare(size(4.7), size(8.37), budgets);
+    expect(accepted.ok).toBe(true);
+    expect(accepted.lines[0]).toMatch(/against 8\.37 \(accepted: /);
+    // Past the accepted value by more than the floor: a regression, and over the budget too.
+    const past = compare(size(4.7), size(10.5), budgets);
+    expect(past.ok).toBe(false);
+    expect(past.failures).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/bundle\.jupyter\.kB: 10\.5 kB regressed .* against 8\.37/),
+      ]),
+    );
+    // A base already past the accepted value is the base.
+    expect(compare(size(9), size(9.5), budgets).lines[0]).toMatch(/against 9$/);
   });
 
   it('passes on a 10 % regression, under the threshold', () => {

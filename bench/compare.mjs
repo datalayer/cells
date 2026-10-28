@@ -21,7 +21,7 @@
 /**
  * @param {{ figures: Record<string, { value: number, unit: string }> } | null} base
  * @param {{ figures: Record<string, { value: number, unit: string }> }} current
- * @param {{ budgets: Record<string, { max: number, unit: string }> }} budgets
+ * @param {{ budgets: Record<string, { max: number, unit: string, accepted?: { value: number, why: string } }> }} budgets
  * @param {{ threshold?: number }} [options]
  * @returns {{ ok: boolean, lines: string[], failures: string[] }}
  */
@@ -59,13 +59,20 @@ export function compare(base, current, budgets, options = {}) {
     }
     const before = base?.figures?.[name];
     if (before !== undefined && before.value > 0) {
-      const change = (figure.value - before.value) / before.value;
-      line += `, ${change >= 0 ? '+' : ''}${(change * 100).toFixed(1)} % against ${round(before.value)}`;
-      const small = figure.unit === 'kB' && figure.value - before.value < SIZE_FLOOR_KB;
+      // A growth the user accepted (`accepted` on the budget: the value and
+      // why) moves the base up to that value, until a green run makes the
+      // measured size the base itself; a base already past it is the base.
+      const accepted = budget.accepted;
+      const raised = accepted !== undefined && accepted.value > before.value;
+      const from = raised ? accepted.value : before.value;
+      const change = (figure.value - from) / from;
+      line += `, ${change >= 0 ? '+' : ''}${(change * 100).toFixed(1)} % against ${round(from)}`;
+      if (raised) line += ` (accepted: ${accepted.why})`;
+      const small = figure.unit === 'kB' && figure.value - from < SIZE_FLOOR_KB;
       if (change > threshold && !small) {
         failures.push(
           `${name}: ${round(figure.value)} ${figure.unit} regressed ${(change * 100).toFixed(1)} % ` +
-            `against ${round(before.value)} (more than ${(threshold * 100).toFixed(0)} %)`,
+            `against ${round(from)} (more than ${(threshold * 100).toFixed(0)} %)`,
         );
       }
     }
