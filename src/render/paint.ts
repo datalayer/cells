@@ -27,7 +27,7 @@ import { columnLetters, type Zone, zonesOverlap } from '../core/zone.js';
 import type { TextMeasure } from './lru.js';
 import type { NumberLocale } from '../core/numfmt.js';
 import { type Align, type Displayed, display } from './numberFormat.js';
-import type { CellType } from '../points/index.js';
+import type { CellType, RenderLayer, RenderLayerView } from '../points/index.js';
 import type { CellsTheme } from './theme.js';
 import { cellRect, type Pane, type Viewport } from './viewport.js';
 
@@ -52,6 +52,10 @@ export interface PaintInput {
    * requests their page and shows `#BUSY!` meanwhile (or `#N/A` once it failed).
    */
   readonly bound?: Zone;
+  /** The render layers plugins contribute (§3.11), in order; `background` and `cells` ones draw here. */
+  readonly layers?: readonly RenderLayer[];
+  /** What the layers are handed: the model the grid draws. */
+  readonly model?: unknown;
   /** Decimal and group separators, month and day names; en-US by default. */
   readonly locale?: NumberLocale;
   /** Only this rectangle (view px) is repainted; the whole canvas by default. */
@@ -213,6 +217,8 @@ function paintPane(input: PaintInput, pane: Pane, stats: PaintStats): void {
     });
   }
 
+  drawLayers(input, 'background', pane, sheet, ctx);
+
   // 3. Merges, over the grid lines they hide: background, the top-left cell's fill and text.
   const paneZone: Zone = {
     top: pane.firstRow,
@@ -342,6 +348,42 @@ function paintPane(input: PaintInput, pane: Pane, stats: PaintStats): void {
         ctx.stroke();
         ctx.restore();
       }
+    }
+  }
+
+  drawLayers(input, 'cells', pane, sheet, ctx);
+}
+
+/** A pane as a render layer sees it. */
+function layerView(pane: Pane, zoom: number, sheet: Sheet): RenderLayerView {
+  return {
+    sheet: sheet.id,
+    zone: { top: pane.firstRow, left: pane.firstCol, bottom: pane.lastRow, right: pane.lastCol },
+    pane: pane.name,
+    zoom,
+    cellRect: (row, col) => ({ ...cellRect(pane, zoom, sheet.rows, sheet.cols, row, col), zoom }),
+  };
+}
+
+/** The contributed layers of a kind, each in its own saved state, clipped to the pane. */
+function drawLayers(
+  input: { layers?: readonly RenderLayer[]; model?: unknown; viewport: Viewport },
+  kind: RenderLayer['layer'],
+  pane: Pane,
+  sheet: Sheet,
+  ctx: Ctx,
+): void {
+  if (input.layers === undefined) return;
+  let view: RenderLayerView | undefined;
+  for (const layer of input.layers) {
+    if (layer.layer !== kind) continue;
+    view ??= layerView(pane, input.viewport.zoom, sheet);
+    ctx.save();
+    clipTo(ctx, pane);
+    try {
+      layer.draw(ctx, view, input.model);
+    } finally {
+      ctx.restore();
     }
   }
 }
@@ -529,6 +571,9 @@ export interface OverlayInput {
     readonly active: { readonly row: number; readonly col: number };
     readonly editing?: { readonly row: number; readonly col: number };
   }[];
+  /** The render layers plugins contribute; the `overlay` ones draw here, after the selection. */
+  readonly layers?: readonly RenderLayer[];
+  readonly model?: unknown;
 }
 
 /** The selection fill's opacity: themes give opaque colours (Primer's accent-muted), the overlay thins them. */
@@ -660,6 +705,7 @@ export function paintOverlay(input: OverlayInput): void {
       FILL_HANDLE,
     );
     ctx.restore();
+    drawLayers(input, 'overlay', pane, sheet, ctx);
   }
   ctx.restore();
 }

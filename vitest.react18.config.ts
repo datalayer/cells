@@ -39,7 +39,12 @@ export default defineConfig({
     // this harness it meets the hoisted React 19 beside the aliased 18 and fails. Primer itself
     // runs on React 18 (its peer range); the menu under React 18 is checked in a React 18 host
     // (JupyterLab), not here.
-    exclude: ['**/node_modules/**', 'src/react/__tests__/menu.test.tsx'],
+    // The plugin page test mounts Primer's ThemeProvider and the chrome's Toolbar: the same.
+    exclude: [
+      '**/node_modules/**',
+      'src/react/__tests__/menu.test.tsx',
+      'src/react/__tests__/pluginPage.test.tsx',
+    ],
     pool: 'forks',
     poolOptions: { forks: { execArgv: ['--preserve-symlinks'] } },
     maxWorkers: 2,

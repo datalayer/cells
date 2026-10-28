@@ -248,6 +248,8 @@ export class CanvasRenderer {
       value: (row: number, col: number) => this.#model.value(sheet.id, row, col),
       cellType: (id: string) => this.#model.cellTypeOf(id)?.value,
       bound: this.#model.dataSource(sheet.id)?.zone,
+      layers: this.#model.renderLayers(),
+      model: this.#model,
     };
     let painted = { cells: 0, texts: 0 };
     const main = vp.panes.find((p) => p.name === 'main')!;
@@ -291,6 +293,8 @@ export class CanvasRenderer {
         selection: this.#model.selection,
         mark: this.#model.clipboardMark,
         remote: this.#model.remotePresence,
+        layers: input.layers,
+        model: this.#model,
       });
       this.counters.overlay += 1;
     }

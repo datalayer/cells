@@ -28,7 +28,9 @@ import {
   type DataSource,
   type FormulaFunction,
   CellsPatchOps,
+  CellsRenderLayers,
   PointTable,
+  type RenderLayer,
   type Resolved,
 } from '../points/index.js';
 import {
@@ -149,6 +151,7 @@ export class CellsModel {
   readonly #functions: PointTable<FormulaFunction>;
   readonly #cellTypes: PointTable<CellType>;
   readonly #dataSources: PointTable<DataSource>;
+  readonly #renderLayers: PointTable<RenderLayer>;
   readonly #sourceStore: DataSourceStore;
   readonly #sourceErrorListeners = new Set<(error: DataSourceError) => void>();
   readonly #engine: FormulaEngine;
@@ -241,6 +244,16 @@ export class CellsModel {
           throw new Error(`the data source '${d.id}' has no fetch`);
       },
     });
+    this.#renderLayers = new PointTable(this.reactor, CellsRenderLayers, {
+      label: 'render layer',
+      key: (l) => l.id,
+      check: (l) => {
+        if (typeof l.id !== 'string' || l.id === '') throw new Error('a render layer has an id');
+        if (!['background', 'cells', 'overlay'].includes(l.layer))
+          throw new Error(`the render layer '${l.id}' draws on background, cells or overlay`);
+        if (typeof l.draw !== 'function') throw new Error(`the render layer '${l.id}' has no draw`);
+      },
+    });
     const dataSources = this.#dataSources;
     this.#sourceStore = new DataSourceStore(
       this.workbook,
@@ -285,6 +298,7 @@ export class CellsModel {
     functions.keys();
     this.#cellTypes.keys();
     this.#dataSources.keys();
+    this.#renderLayers.keys();
     if (options.data !== undefined) {
       loadInto(this.workbook, options.data);
       // Values a file carries for its formulas are recomputed, not trusted.
@@ -294,12 +308,20 @@ export class CellsModel {
     this.#selection = initialSelection(this.workbook.sheets[0].id);
     let known = this.#functions.all().map((r) => r.value);
     let knownTypes = this.#cellTypes.all().map((r) => r.value);
+    let knownLayers = this.renderLayers();
     this.reactor.subscribe(() => {
       const now = this.#functions.all().map((r) => r.value);
       const types = this.#cellTypes.all().map((r) => r.value);
+      const layers = this.renderLayers();
       const sameFunctions = now.length === known.length && now.every((f, i) => f === known[i]);
+      const sameLayers =
+        layers.length === knownLayers.length && layers.every((l, i) => l === knownLayers[i]);
+      // Layers count as "types" below: either way, every cell repaints.
       const sameTypes =
-        types.length === knownTypes.length && types.every((t, i) => t === knownTypes[i]);
+        types.length === knownTypes.length &&
+        types.every((t, i) => t === knownTypes[i]) &&
+        sameLayers;
+      knownLayers = layers;
       // A bound sheet whose source came or went drops its pages (the store compares on resolve).
       let sourcesMoved = false;
       for (const sheet of this.workbook.sheets) {
@@ -789,6 +811,11 @@ export class CellsModel {
   /** The ids of the cell types plugins contribute, sorted. */
   cellTypeIds(): string[] {
     return [...this.#cellTypes.keys()].sort();
+  }
+
+  /** The render layers plugins contribute (§3.3), in `order`; the renderer draws them after the core layer of their kind. */
+  renderLayers(): readonly RenderLayer[] {
+    return this.#renderLayers.all().map((r) => r.value);
   }
 
   /**

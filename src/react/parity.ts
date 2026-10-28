@@ -194,6 +194,7 @@ export const MODEL_MEMBERS: Readonly<Record<string, Surface>> = {
   cellType: hook('useCellType'),
   cellTypeOf: hook('useCellType'),
   cellTypeIds: hook('useContributions'),
+  renderLayers: hook('useContributions'),
   dataSource: hook('useDataSource'),
   dataSourceIds: hook('useContributions'),
   dataSourceOf: hook('useContributions'),

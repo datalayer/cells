@@ -668,12 +668,13 @@ export class FormulaEngine {
   /** What a cell shows: its literal value, or its formula evaluated. */
   value(sheet: string, row: number, col: number): CellValue {
     if (this.#functions.revision !== this.#functionsRevision) this.#functionsChanged();
-    const cells = this.#workbook.sheet(sheet).cells;
+    const s = this.#workbook.sheet(sheet);
+    const cells = s.cells;
     const f = cells.formulaAt(row, col);
     if (f === undefined) {
       // A cell of a bound zone: its page is away (`#BUSY!`), failed (`#N/A`), or resident (the value).
-      if (this.#sources !== undefined) {
-        const away = this.#sources.missing(sheet, row, col);
+      if (s.dataSource !== null && this.#sources !== undefined) {
+        const away = this.#sources.missing(s, row, col);
         if (away !== undefined) return away;
       }
       const n = cells.numberAt(row, col);

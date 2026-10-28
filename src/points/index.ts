@@ -160,15 +160,28 @@ export interface CellType {
   readonly editor?: unknown;
 }
 
-/** A render layer, drawn after the core layers of the same kind (§3.3). */
+/** What a render layer draws into: one pane of the viewport, clipped to it, in CSS px with the zoom applied. */
+export interface RenderLayerView {
+  readonly sheet: string;
+  /** The rows and columns the pane shows. */
+  readonly zone: Zone;
+  readonly pane: 'corner' | 'top' | 'left' | 'main';
+  readonly zoom: number;
+  /** A cell's rectangle on the canvas. */
+  cellRect(row: number, col: number): CellRect;
+}
+
+/**
+ * A render layer (§3.3), drawn after the core layer of the same kind, once
+ * per pane, in `order`: `background` after the fills and grid lines, `cells`
+ * after the text and borders (both on the grid canvas, repainted with the
+ * cells), `overlay` after the selection (on the overlay canvas, repainted on
+ * every selection move). `model` is the `CellsModel` the grid draws.
+ */
 export interface RenderLayer {
   readonly id: string;
   readonly layer: 'background' | 'cells' | 'overlay';
-  draw(
-    ctx: CanvasRenderingContext2D,
-    viewport: { sheet: string; zone: Zone },
-    model: unknown,
-  ): void;
+  draw(ctx: CanvasRenderingContext2D, view: RenderLayerView, model: unknown): void;
 }
 
 /**

@@ -44,11 +44,34 @@ test.describe('the examples', () => {
 
   test('the plugin command works, and is refused once the plugin is disabled', async ({ page }) => {
     await page.goto('/#/plugin');
-    await page.getByRole('button', { name: 'UPPERCASE the selection' }).click();
+    await page.getByRole('button', { name: 'UPPERCASE the selection', exact: true }).last().click();
     await expect(page.getByRole('gridcell', { name: 'HELLO', exact: true })).toHaveCount(1);
     await page.getByRole('button', { name: 'Disable it' }).click();
-    await page.getByRole('button', { name: 'UPPERCASE the selection' }).click();
+    await page.getByRole('button', { name: 'UPPERCASE the selection', exact: true }).last().click();
     await expect(page.getByText(/No plugin handles the command 'UPPERCASE'/)).toBeVisible();
+  });
+
+  test('every point is listed with what the plugin contributes, the gate refuses, a duplicate is refused at start', async ({
+    page,
+  }) => {
+    await page.goto('/#/plugin');
+    const table = page.getByRole('table', { name: 'Contribution points' });
+    await expect(table.locator('tbody tr')).toHaveCount(17);
+    await expect(table.locator('tbody td:nth-child(2)')).not.toContainText(['none']);
+    await page.getByRole('button', { name: 'Write into row 1' }).click();
+    await expect(page.locator('[data-message]')).toHaveText(
+      "Row 1 is Acme's header row: locked by @acme/everything.",
+    );
+    await page.getByRole('button', { name: 'Start a grid with a duplicate plugin' }).click();
+    await expect(page.locator('[data-duplicate]')).toContainText(
+      "The function 'SHOUT' is contributed twice to datalayer.cells.function: by @acme/everything (id 'SHOUT') and by @acme/twice (id 'SHOUT').",
+    );
+    // The toolbar holds the plugin's two commands and nothing else; the data source's primes arrived.
+    const toolbar = page.getByRole('toolbar');
+    await expect(toolbar.getByRole('button')).toHaveCount(2);
+    await expect(page.getByRole('gridcell', { name: '8161', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('gridcell', { name: '2', exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('gridcell', { name: 'Shouted: LOUD' })).toHaveCount(1);
   });
 
   test('a checkbox cell toggles with Space and a click, a link cell is named as one', async ({
@@ -103,15 +126,17 @@ test.describe('the examples', () => {
     await expect(grid.getByRole('gridcell', { name: /#N\/A/ }).first()).toBeVisible();
   });
 
-  test('an asynchronous plugin function resolves into the grid, its dependent follows', async ({
+  test('an asynchronous plugin function resolves into the grid; a built-in function is #NAME? on the bare grid', async ({
     page,
   }) => {
     await page.goto('/#/plugin');
     const grid = page.getByRole('grid', { name: 'Plugin' });
     await expect(
-      grid.getByRole('gridcell', { name: 'hello…hello, formula: =ECHO(A1)' }),
+      grid.getByRole('gridcell', { name: 'quiet…quiet, formula: =ECHO(A3)' }),
     ).toHaveCount(1);
-    await expect(grid.getByRole('gridcell', { name: '11, formula: =LEN(A4)' })).toHaveCount(1);
+    await expect(
+      grid.getByRole('gridcell', { name: /#NAME\?, formula: =SUM\(B2:B3\)/ }),
+    ).toHaveCount(1);
   });
 
   test('a CSV file opens through the worker, and the sheet exports as CSV', async ({ page }) => {

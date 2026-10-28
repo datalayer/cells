@@ -72,6 +72,8 @@ export function paint(model: CellsModel, shot: Shot = {}): Canvas {
     value: (row, col) => model.value(sheet.id, row, col),
     cellType: (id) => model.cellTypeOf(id)?.value,
     bound: model.dataSource(sheet.id)?.zone,
+    layers: model.renderLayers(),
+    model,
   });
   if (shot.overlay) {
     const overlay = createCanvas(width * dpr, height * dpr);
@@ -83,6 +85,8 @@ export function paint(model: CellsModel, shot: Shot = {}): Canvas {
       theme,
       selection: model.selection,
       remote: model.remotePresence,
+      layers: model.renderLayers(),
+      model,
     });
     (ctx as unknown as { drawImage(c: Canvas, x: number, y: number): void }).drawImage(
       overlay,

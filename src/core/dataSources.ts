@@ -200,9 +200,11 @@ export interface SourceReads {
   /**
    * The value a cell in a bound zone shows while its page is away (`#BUSY!`,
    * `#N/A`), or `undefined` for a plain or resident cell. Called on every
-   * read of a plain cell, so a resident page read is the most recently read.
+   * read of a plain cell (so it takes the `Sheet` the reader holds and costs
+   * one property check on an unbound sheet), and a resident page read is
+   * the most recently read.
    */
-  missing(sheet: string, row: number, col: number): CellValue | undefined;
+  missing(sheet: Sheet, row: number, col: number): CellValue | undefined;
   /** Request every page a zone needs; the error the read shows meanwhile, or `undefined` when all are resident (or the zone is outside). */
   ensureZone(sheet: string, zone: Zone): CellError | undefined;
   /** The bound zone of a sheet, or `undefined`. */
@@ -304,9 +306,9 @@ export class DataSourceStore implements SourceReads {
     return this.resolve(sheet)?.zone;
   }
 
-  missing(sheet: string, row: number, col: number): CellValue | undefined {
+  missing(sheet: Sheet, row: number, col: number): CellValue | undefined {
     // Every read of a bound cell comes here (resident or not), so the page it touches is the most recently read.
-    const binding = this.#workbook.sheet(sheet).dataSource;
+    const binding = sheet.dataSource;
     if (binding === null) return undefined;
     if (
       row < binding.at.row ||
@@ -315,10 +317,10 @@ export class DataSourceStore implements SourceReads {
       col >= binding.at.col + binding.cols
     )
       return undefined;
-    const r = this.resolve(sheet)!;
+    const r = this.resolve(sheet.id)!;
     if (r.source === undefined) return cellError('#N/A', r.problem);
     const index = Math.floor((row - r.zone.top) / PAGE_ROWS);
-    const page = this.#page(sheet, index, r);
+    const page = this.#page(sheet.id, index, r);
     if (page.state === 'resident') return undefined;
     return this.#stateValue(page, r);
   }

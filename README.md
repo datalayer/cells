@@ -47,6 +47,12 @@ Primer. `loro-crdt` (`./collab`), `@datalayer/lexical-loro` (its transport),
 by the hosts that use those entries.
 | `@datalayer/cells/plugin` | views for a Reactor shell                               |
 
+Cells is built on [Reactor](https://github.com/datalayer/reactor): every
+extension point is a `datalayer.cells.*` contribution point, and the built-in
+features are plugins contributing through the same points. [docs/plugins.md](docs/plugins.md)
+walks through a third-party plugin that reaches every one of them, running on
+the [plugin example](https://cells.datalayer.tech/#/plugin).
+
 ## Python
 
 `datalayer_cells` reads and writes the same workbooks, with the same
