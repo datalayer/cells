@@ -109,9 +109,13 @@ test.describe('the examples', () => {
       .locator('[data-cells-scroller]')
       .evaluate((el) => el.scrollTo({ top: el.scrollHeight }));
     await expect(grid.getByRole('gridcell', { name: '10000000', exact: true })).toHaveCount(1);
-    // The bound cells refuse edits: a letter typed into the last order is refused with the sentence.
+    // The bound cells refuse edits: Ctrl+End lands on the last cell with content (H, the COUNTA's
+    // column, on the last row read); three columns left is E, the last bound column.
     await grid.focus();
     await page.keyboard.press('Control+End');
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowLeft');
     await page.keyboard.type('x');
     await page.keyboard.press('Enter');
     await expect(grid.locator('[data-cells-editor]')).toHaveAttribute('aria-describedby', /.+/);
