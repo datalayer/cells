@@ -17,4 +17,4 @@ const config = fileURLToPath(new URL('../examples/vite.config.ts', import.meta.u
 const server = await createServer({ configFile: config });
 await server.listen();
 const { port, host } = server.config.server;
-console.log(`Datalayer Cells examples: http://${host}:${port}`);
+console.log(`Datalayer Cells Examples: http://${host}:${port}`);
