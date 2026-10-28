@@ -22,6 +22,7 @@ import { definePlugin, type PlatformInput } from '@datalayer/reactor';
 import type { ReactorReactOutput } from '@datalayer/reactor/react';
 import type { JSX } from 'react';
 import { CellsCorePlugin, cellsBuiltins } from '../core/reactor.js';
+import { CellsAgentToolsPlugin } from './agentTools.js';
 import { ShellView, WorkbookCatalog } from './points.js';
 import {
   closeWorkbook,
@@ -155,11 +156,16 @@ export const CellsPlugin = definePlugin<CellsPluginConfig, unknown, ReactorReact
   },
 });
 
-/** What a shell installs for spreadsheets: the Cells core, the built-ins, and the shell plugin. */
+/**
+ * What a shell installs for spreadsheets: the Cells core, the built-ins, the
+ * shell plugin, and the agent tools on the focused grid (the `cells` bundle
+ * of the reactor's `AgentTools` point, see `agentTools.ts`).
+ */
 export function cellsShellPlugins(): PlatformInput[] {
-  return [CellsCorePlugin, ...cellsBuiltins(), CellsPlugin];
+  return [CellsCorePlugin, ...cellsBuiltins(), CellsPlugin, CellsAgentToolsPlugin];
 }
 
+export * from './agentTools.js';
 export { ShellView, WorkbookCatalog } from './points.js';
 export * from './store.js';
 export { WorkbookList, WorkbookView } from './views.js';
