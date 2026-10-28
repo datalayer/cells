@@ -18,7 +18,11 @@ describe('a primer-addons variant on the canvas', () => {
       // Every token of VS Code's is a var(--vscode-…, fallback): given to a
       // canvas as it is, it is no colour, and the grid painted black.
       for (const [field, value] of Object.entries(theme)) {
-        expect([mode, field, String(value)]).not.toEqual([mode, field, expect.stringMatching(/\bvar\(|color-mix\(/)]);
+        expect([mode, field, String(value)]).not.toEqual([
+          mode,
+          field,
+          expect.stringMatching(/\bvar\(|color-mix\(/),
+        ]);
       }
       expect(theme.background).not.toBe('');
     }
@@ -33,8 +37,14 @@ describe('a primer-addons variant on the canvas', () => {
 
   it('takes the editor’s own variable when the page sets it, its fallback when not', () => {
     const vars: Record<string, string> = { '--vscode-editor-background': '#112233' };
-    expect(withoutVariables('var(--vscode-editor-background, #1F1F1F)', (n) => vars[n])).toBe('#112233');
-    expect(withoutVariables('var(--vscode-sideBar-background, #181818)', (n) => vars[n])).toBe('#181818');
-    expect(withoutVariables('var(--a, var(--vscode-editor-background, #000))', (n) => vars[n])).toBe('#112233');
+    expect(withoutVariables('var(--vscode-editor-background, #1F1F1F)', (n) => vars[n])).toBe(
+      '#112233',
+    );
+    expect(withoutVariables('var(--vscode-sideBar-background, #181818)', (n) => vars[n])).toBe(
+      '#181818',
+    );
+    expect(
+      withoutVariables('var(--a, var(--vscode-editor-background, #000))', (n) => vars[n]),
+    ).toBe('#112233');
   });
 });

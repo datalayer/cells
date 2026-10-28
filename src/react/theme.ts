@@ -154,7 +154,10 @@ function resolvedInPage(value: string, element: Element, font: boolean): string 
 }
 
 /** A value with each `var(--name[, fallback])` replaced, innermost first; a variable unset and without fallback leaves nothing. */
-export function withoutVariables(value: string, read: (name: string) => string | undefined): string {
+export function withoutVariables(
+  value: string,
+  read: (name: string) => string | undefined,
+): string {
   let out = value;
   for (let guard = 0; guard < 32 && out.includes('var('); guard++) {
     const start = out.lastIndexOf('var(');
