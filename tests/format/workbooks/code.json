@@ -111,7 +111,9 @@
           "run": "auto",
           "frame": {
             "width": 320,
-            "height": 200
+            "height": 200,
+            "dx": 24,
+            "dy": -12
           }
         }
       }

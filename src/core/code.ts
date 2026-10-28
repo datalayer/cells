@@ -47,9 +47,24 @@ export interface CodeCell {
   readonly lastRun?: string;
   /** `auto`: run again when what it reads changes; `manual` (the default): marked stale. */
   readonly run: 'manual' | 'auto';
-  /** The output frame's size in px; `null`: no frame, the result alone. */
-  readonly frame?: { readonly width: number; readonly height: number } | null;
+  /** The output frame: its size and its offset from its place beside the cell, px at zoom 1; `null`: no frame, the result alone. */
+  readonly frame?: CodeFrame | null;
 }
+
+/**
+ * A code cell's output frame: its size, and where it was dropped, as an
+ * offset (`dx`, `dy`, px at zoom 1, either sign) from its place beside the
+ * cell (its top-left at the cell's top-right corner). The offset moves with
+ * its cell, as the frame does.
+ */
+export interface CodeFrame {
+  readonly width: number;
+  readonly height: number;
+  readonly dx?: number;
+  readonly dy?: number;
+}
+
+const FRAME_FIELDS = ['width', 'height', 'dx', 'dy'];
 
 /** The style type a code cell carries (its cell type). */
 export const CODE_CELL_TYPE = 'code';
@@ -107,9 +122,15 @@ export function codeProblem(v: unknown, path = 'code'): string | undefined {
   if (v.frame !== undefined && v.frame !== null) {
     const f = v.frame as unknown;
     if (!isObject(f)) return `${path}.frame: { width, height } or null`;
+    for (const k of Object.keys(f))
+      if (!FRAME_FIELDS.includes(k))
+        return `${path}.frame.${k}: a frame has ${FRAME_FIELDS.join(', ')} only`;
     for (const k of ['width', 'height'])
       if (!(typeof f[k] === 'number' && (f[k] as number) > 0 && Number.isFinite(f[k])))
         return `${path}.frame.${k}: a positive size in px`;
+    for (const k of ['dx', 'dy'])
+      if (f[k] !== undefined && !(typeof f[k] === 'number' && Number.isFinite(f[k])))
+        return `${path}.frame.${k}: an offset in px, a finite number`;
   }
   return undefined;
 }
@@ -132,10 +153,8 @@ export function toResult(value: CellValue): CodeResult {
 /** The output frame's default size, px: what a code cell with outputs gets when its `frame` is unset. */
 export const DEFAULT_CODE_FRAME = { width: 360, height: 240 } as const;
 
-/** The frame a code cell shows its outputs in: its own, the default, or none (`frame: null`, or nothing to show). */
-export function codeFrame(
-  code: CodeCell,
-): { readonly width: number; readonly height: number } | undefined {
+/** The frame a code cell shows its outputs in: its own (with its offset), the default, or none (`frame: null`, or nothing to show). */
+export function codeFrame(code: CodeCell): CodeFrame | undefined {
   if (code.frame === null || code.outputs.length === 0) return undefined;
   return code.frame ?? DEFAULT_CODE_FRAME;
 }

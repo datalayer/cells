@@ -205,6 +205,7 @@ def _check_zone(z: Any, path: str, limits: dict[str, int]) -> None:
 
 CODE_FIELDS = ("source", "language", "outputs", "result", "executionCount", "lastRun", "run", "frame")
 OUTPUT_TYPES = ("stream", "display_data", "execute_result", "error")
+FRAME_FIELDS = ("width", "height", "dx", "dy")
 
 
 def check_code(v: Any, path: str = "code") -> None:
@@ -249,9 +250,16 @@ def check_code(v: Any, path: str = "code") -> None:
     if frame is not None:
         if not _is_object(frame):
             _fail(f"{path}.frame", "{ width, height } or null")
+        for k in frame:
+            if k not in FRAME_FIELDS:
+                _fail(f"{path}.frame.{k}", f"a frame has {', '.join(FRAME_FIELDS)} only")
         for k in ("width", "height"):
-            if not (_is_number(frame.get(k)) and frame[k] > 0):
+            if not (_is_number(frame.get(k)) and math.isfinite(frame[k]) and frame[k] > 0):
                 _fail(f"{path}.frame.{k}", "a positive size in px")
+        # The offset from its place beside the cell, where it was dropped: px at zoom 1, either sign.
+        for k in ("dx", "dy"):
+            if k in frame and not (_is_number(frame[k]) and math.isfinite(frame[k])):
+                _fail(f"{path}.frame.{k}", "an offset in px, a finite number")
 
 
 def validate_workbook(data: Any, limits: dict[str, int] | None = None) -> dict[str, Any]:

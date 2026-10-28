@@ -548,6 +548,62 @@
         ]
       },
       "message": "^sheets\\[0\\]\\.code\\[\"B2\"\\]\\.language: 'python'"
+    },
+    {
+      "name": "a code cell whose frame offset is not a number",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "s1",
+            "name": "S",
+            "rows": {},
+            "code": {
+              "B2": {
+                "source": "1",
+                "language": "python",
+                "outputs": [],
+                "result": null,
+                "run": "manual",
+                "frame": {
+                  "width": 320,
+                  "height": 200,
+                  "dx": "24"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "message": "^sheets\\[0\\]\\.code\\[\"B2\"\\]\\.frame\\.dx: an offset in px"
+    },
+    {
+      "name": "a code cell whose frame has a field of no known name",
+      "data": {
+        "version": 1,
+        "sheets": [
+          {
+            "id": "s1",
+            "name": "S",
+            "rows": {},
+            "code": {
+              "B2": {
+                "source": "1",
+                "language": "python",
+                "outputs": [],
+                "result": null,
+                "run": "manual",
+                "frame": {
+                  "width": 320,
+                  "height": 200,
+                  "x": 24
+                }
+              }
+            }
+          }
+        ]
+      },
+      "message": "^sheets\\[0\\]\\.code\\[\"B2\"\\]\\.frame\\.x: a frame has width, height, dx, dy only"
     }
   ]
 }

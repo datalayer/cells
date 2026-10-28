@@ -13,7 +13,7 @@
 
 import { LoroDoc } from 'loro-crdt';
 import { describe, expect, it } from 'vitest';
-import { codeAt, codeCell, createCellsModel } from '../index.js';
+import { codeAt, codeCell, codeProblem, createCellsModel } from '../index.js';
 import { LoroBinding } from '../../collab/binding.js';
 
 const LIMITS = { rows: 50, cols: 10 };
@@ -97,6 +97,47 @@ describe('code cells in the model', () => {
     });
     expect(result.ok).toBe(false);
     expect(!result.ok && result.refusals[0].message).toBe("code.run: 'manual' or 'auto'");
+  });
+
+  it("accepts a frame's offset (dx, dy, px at zoom 1, either sign) and refuses a bad one or a field of no known name", () => {
+    const m = model();
+    const set = (frame: unknown) =>
+      m.dispatch({
+        type: 'SET_CODE',
+        sheet: 's1',
+        row: 0,
+        col: 1,
+        code: { ...codeCell('1'), frame } as never,
+      });
+    expect(set({ width: 300, height: 200, dx: 40, dy: -16.5 }).ok).toBe(true);
+    expect(codeAt(m.sheet('s1'), 0, 1)?.frame).toEqual({
+      width: 300,
+      height: 200,
+      dx: 40,
+      dy: -16.5,
+    });
+    expect(
+      codeProblem({ ...codeCell('1'), frame: { width: 1, height: 1, dy: 0 } }),
+    ).toBeUndefined();
+    const refused = (frame: unknown) => {
+      const r = set(frame);
+      return !r.ok && r.refusals[0].message;
+    };
+    expect(refused({ width: 300, height: 200, dx: '40' })).toBe(
+      'code.frame.dx: an offset in px, a finite number',
+    );
+    expect(refused({ width: 300, height: 200, dy: Number.POSITIVE_INFINITY })).toBe(
+      'code.frame.dy: an offset in px, a finite number',
+    );
+    expect(refused({ width: 300, height: 200, x: 4 })).toBe(
+      'code.frame.x: a frame has width, height, dx, dy only',
+    );
+    expect(codeAt(m.sheet('s1'), 0, 1)?.frame).toEqual({
+      width: 300,
+      height: 200,
+      dx: 40,
+      dy: -16.5,
+    });
   });
 
   it('reaches a second peer through Loro, and its removal too', () => {

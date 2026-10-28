@@ -257,6 +257,7 @@ export {
 export {
   CODE_CELL_TYPE,
   type CodeCell,
+  type CodeFrame,
   type CodeOutput,
   type CodePatch,
   type CodeResult,

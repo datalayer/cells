@@ -139,7 +139,9 @@ export function codePartXml(json: CellsWorkbook): string | undefined {
         (c.frame === null
           ? ' frame="none"'
           : c.frame !== undefined
-            ? ` frameWidth="${c.frame.width}" frameHeight="${c.frame.height}"`
+            ? ` frameWidth="${c.frame.width}" frameHeight="${c.frame.height}"` +
+              (c.frame.dx !== undefined ? ` frameDx="${c.frame.dx}"` : '') +
+              (c.frame.dy !== undefined ? ` frameDy="${c.frame.dy}"` : '')
             : '') +
         (c.executionCount !== undefined ? ` executionCount="${c.executionCount}"` : '') +
         (c.lastRun !== undefined ? ` lastRun="${escape(c.lastRun)}"` : '') +

@@ -623,7 +623,14 @@ function readCodePart(xml: string | undefined, sheets: CellsSheet[]): string[] {
         ...(attrs.frame === 'none'
           ? { frame: null }
           : attrs.frameWidth !== undefined && attrs.frameHeight !== undefined
-            ? { frame: { width: Number(attrs.frameWidth), height: Number(attrs.frameHeight) } }
+            ? {
+                frame: {
+                  width: Number(attrs.frameWidth),
+                  height: Number(attrs.frameHeight),
+                  ...(attrs.frameDx !== undefined ? { dx: Number(attrs.frameDx) } : {}),
+                  ...(attrs.frameDy !== undefined ? { dy: Number(attrs.frameDy) } : {}),
+                },
+              }
             : {}),
       };
       if (codeProblem(cell) !== undefined) return;

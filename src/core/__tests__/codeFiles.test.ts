@@ -7,8 +7,8 @@
 /**
  * Code cells in files (C11-07): the `ipynb` exporter writes them as a
  * notebook, one code cell each in reading order with its outputs; an XLSX
- * round trip keeps the sources (in `customXml/cells-code.xml`) and the
- * results (the cells' cached values), drops the outputs and says so in the
+ * round trip keeps the sources (in `customXml/cells-code.xml`, with their
+ * frames, offsets too) and the results (the cells' cached values), drops the outputs and says so in the
  * report. And `codeCells: false` (C11-08): shown, never changed or run.
  */
 
@@ -46,6 +46,8 @@ function withCode() {
       executionCount: 2,
       lastRun: '2026-10-28T10:42:00.000Z',
       outputs: [stream('27\n')],
+      // Where its frame was dropped: kept through XLSX.
+      frame: { width: 320, height: 200, dx: 24, dy: -12 },
     }),
   });
   m.dispatch({
@@ -96,6 +98,7 @@ describe('code cells in files', () => {
       run: 'manual',
       executionCount: 2,
       lastRun: '2026-10-28T10:42:00.000Z',
+      frame: { width: 320, height: 200, dx: 24, dy: -12 },
     });
     expect(code.D2).toEqual({
       source: '"first"',
