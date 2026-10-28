@@ -5,8 +5,13 @@
  */
 
 import { formatKeybinding, type RegisteredCommand } from '@datalayer/reactor';
-import { ReactorSlot, useCommands, useReactor } from '@datalayer/reactor/react';
-import { CommandsPlugin, PALETTE_KEYBINDING } from '@datalayer/reactor-commands';
+import { ReactorSlot, useReactor } from '@datalayer/reactor/react';
+import {
+  COMMANDS_TABLE_SLOT,
+  CommandsPlugin,
+  commandsTablePlugin,
+  PALETTE_KEYBINDING,
+} from '@datalayer/reactor-commands';
 import {
   buildCellsReactor,
   type CellsCommand,
@@ -20,7 +25,17 @@ import { Frame } from '../shared';
 
 /** A grid on a Reactor platform that also runs the command palette plugin. */
 export function paletteModel(): CellsModel {
-  const reactor = buildCellsReactor([CommandsPlugin]);
+  const reactor = buildCellsReactor([
+    CommandsPlugin,
+    // The Cells commands in a Primer table, their grid keys beside their keybinding.
+    commandsTablePlugin({
+      category: 'Cells',
+      title: 'The Cells commands the palette offers',
+      subtitle:
+        'Each is a Reactor command: the palette runs it on the grid that last had the focus.',
+      extraKeys: gridKeysOf,
+    }),
+  ]);
   return createCellsModel({
     reactor,
     data: fromRows([
@@ -33,10 +48,17 @@ export function paletteModel(): CellsModel {
   });
 }
 
+/** The keys a Cells command answers to on the grid, besides its Reactor keybinding. */
+export function gridKeysOf(command: RegisteredCommand): readonly string[] {
+  return (command as CellsCommand).gridKeybindings ?? [];
+}
+
 /** The keys a Cells command answers to, as this platform writes them. */
 export function keysOf(command: RegisteredCommand): string {
-  const grid = (command as CellsCommand).gridKeybindings ?? [];
-  const all = [...(command.keybinding !== undefined ? [command.keybinding] : []), ...grid];
+  const all = [
+    ...(command.keybinding !== undefined ? [command.keybinding] : []),
+    ...gridKeysOf(command),
+  ];
   return all.map((k) => formatKeybinding(k)).join(', ');
 }
 
@@ -50,7 +72,6 @@ export default function CommandPaletteExample(props: { readonly model?: CellsMod
   const [model] = useState(() => props.model ?? paletteModel());
   // The platform is published for the palette (it reads the commands from it); the grid started it.
   useReactor(model.reactor, { autoStart: false });
-  const cells = useCommands().filter((c) => c.category === 'Cells');
   return (
     <>
       <p>
@@ -64,27 +85,8 @@ export default function CommandPaletteExample(props: { readonly model?: CellsMod
       </Frame>
       {/* The palette is a plugin component in the `root` slot: it portals itself to the page. */}
       <ReactorSlot slot="root" />
-      <table aria-label="Cells commands">
-        <caption>The Cells commands the palette offers ({cells.length})</caption>
-        <thead>
-          <tr>
-            <th scope="col">Command</th>
-            <th scope="col">Name</th>
-            <th scope="col">Keys</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cells.map((c) => (
-            <tr key={c.id} data-command={c.id}>
-              <td>
-                <code>{c.id}</code>
-              </td>
-              <td>{c.name}</td>
-              <td>{keysOf(c)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {/* The commands table, a Reactor plugin of @datalayer/reactor-commands: Primer's DataTable and KeybindingHint. */}
+      <ReactorSlot slot={COMMANDS_TABLE_SLOT} />
     </>
   );
 }
