@@ -10,7 +10,9 @@
  * The Code cells page: it mounts with its two code cells and D2's formula
  * over C2, and the kernel toggle switches the `datalayer.cells.kernel`
  * provider the grid runs on (the kernels mocked: neither Pyodide nor prod1
- * is reached here), keeping the choice in localStorage.
+ * is reached here), keeping the choice in localStorage; the local server
+ * only on a page served from this machine. C4 and C6 show on a hover (no
+ * frame); a frame pinned or unpinned is kept per page across a reload.
  */
 
 import { act } from 'react';
@@ -24,9 +26,13 @@ import {
 } from '../../index.js';
 import { headerSizes } from '../../render/viewport.js';
 import CodeCells, {
+  CODE_CELLS_KEY,
   codeCellsModel,
   KERNEL_TARGET_KEY,
+  keepCodeCells,
+  readCodeCells,
   readKernelTarget,
+  targetAvailable,
 } from '../../../examples/src/examples/13-code-cells.js';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -148,7 +154,7 @@ describe('the code cells page', () => {
     expect(m.code('s1', 1, 2)?.source).toContain('cells["B2:B7"]');
     expect(m.code('s1', 3, 2)?.source).toContain('matplotlib');
     expect(m.code('s1', 3, 2)?.frame).toBeNull();
-    expect(m.code('s1', 5, 2)?.frame).toEqual({ width: 380, height: 180 });
+    expect(m.code('s1', 5, 2)?.frame).toBeNull();
     expect(m.content('s1', 1, 3)?.formula).toBe('C2*2');
     expect(m.cellTypeIds()).toContain('code');
   });
@@ -190,5 +196,71 @@ describe('the code cells page', () => {
     expect(providers()).toEqual(['local']);
     window.localStorage.setItem(KERNEL_TARGET_KEY, 'browser');
     expect(readKernelTarget()).toBe('jupyter');
+  });
+
+  it('the local server can be chosen only from this machine; a kept local on another site reads as prod1, Browser never', () => {
+    expect(targetAvailable('local', 'localhost')).toBe(true);
+    expect(targetAvailable('local', '127.0.0.1')).toBe(true);
+    expect(targetAvailable('local', '::1')).toBe(true);
+    expect(targetAvailable('local', 'cells.datalayer.tech')).toBe(false);
+    expect(targetAvailable('jupyter', 'cells.datalayer.tech')).toBe(true);
+    expect(targetAvailable('browser', 'localhost')).toBe(false);
+    window.localStorage.setItem(KERNEL_TARGET_KEY, 'local');
+    expect(readKernelTarget('cells.datalayer.tech')).toBe('jupyter');
+    expect(readKernelTarget('127.0.0.1')).toBe('local');
+  });
+
+  it('keeps the code cells per page: a pin where dropped, an unpin and the last run come back on the next model', () => {
+    window.localStorage.removeItem(CODE_CELLS_KEY);
+    const fakes = { jupyter: fake('prod1'), local: fake('local'), browser: fake('lite') };
+    const m = codeCellsModel(fakes, undefined, readCodeCells());
+    const stop = keepCodeCells(m);
+    const c6 = m.code('s1', 5, 2)!;
+    m.dispatch({
+      type: 'SET_CODE',
+      sheet: 's1',
+      row: 5,
+      col: 2,
+      code: { ...c6, frame: { width: 380, height: 180, dx: 40, dy: -24 } },
+    });
+    expect(JSON.parse(window.localStorage.getItem(CODE_CELLS_KEY)!)).toMatchObject({
+      C6: { frame: { width: 380, height: 180, dx: 40, dy: -24 } },
+    });
+    // A run is kept too: its outputs and result show again on the next visit (untrusted until run there).
+    m.dispatch({
+      type: 'SET_CODE',
+      sheet: 's1',
+      row: 1,
+      col: 2,
+      code: {
+        ...m.code('s1', 1, 2)!,
+        result: 129,
+        lastRun: '2026-10-28T16:00:00.000Z',
+        executionCount: 1,
+      },
+    });
+    stop();
+    const again = codeCellsModel(fakes, undefined, readCodeCells());
+    expect(again.code('s1', 5, 2)?.frame).toEqual({ width: 380, height: 180, dx: 40, dy: -24 });
+    expect(again.code('s1', 3, 2)?.frame).toBeNull();
+    expect(again.value('s1', 1, 2)).toBe(129);
+    expect(again.value('s1', 1, 3)).toBe(258);
+    expect(again.codeTrusted('s1', 1, 2)).toBe(false);
+    const stop2 = keepCodeCells(again);
+    again.dispatch({
+      type: 'SET_CODE',
+      sheet: 's1',
+      row: 5,
+      col: 2,
+      code: { ...again.code('s1', 5, 2)!, frame: null },
+    });
+    stop2();
+    expect(codeCellsModel(fakes, undefined, readCodeCells()).code('s1', 5, 2)?.frame).toBeNull();
+    // A bad entry is dropped, not loaded.
+    window.localStorage.setItem(
+      CODE_CELLS_KEY,
+      JSON.stringify({ C6: { frame: { width: 'wide' } }, C4: { source: 'x' } }),
+    );
+    expect(readCodeCells()).toEqual({});
   });
 });

@@ -12,6 +12,9 @@ import {
   CellsKernels,
   type CodeRenderer,
   codeCell,
+  codeCells,
+  type CodeCell,
+  codeProblem,
   codeRunner,
   createCellsModel,
   fromRows,
@@ -66,15 +69,99 @@ export const KERNEL_TARGETS: readonly {
 /** Where the choice is kept between visits. */
 export const KERNEL_TARGET_KEY = 'cells-examples-kernel';
 
-/** The kept choice when it can be chosen, prod1 by default. */
-export function readKernelTarget(): KernelTarget {
+/** The hostnames of this machine: a page served from one of them reaches its Jupyter server. */
+const LOCAL_HOSTNAMES = ['localhost', '127.0.0.1', '::1', '[::1]'];
+
+/** The hint of the local kernel on a page not served from this machine. */
+export const LOCAL_ELSEWHERE_HINT =
+  'A Jupyter server on your machine: it works when the examples run locally (`make examples` plus `make jupyter-server`), not from this site.';
+
+/**
+ * Whether a kernel can be chosen on a page served from `hostname`: the
+ * browser's Pyodide never (off for now), the local server only from this
+ * machine (localhost, 127.0.0.1, ::1), prod1 always.
+ */
+export function targetAvailable(target: KernelTarget, hostname: string): boolean {
+  if (KERNEL_TARGETS.find((t) => t.id === target)?.disabled === true) return false;
+  if (target === 'local') return LOCAL_HOSTNAMES.includes(hostname);
+  return true;
+}
+
+/** The page's hostname; `localhost` where there is none. */
+const pageHostname = () => (typeof window === 'undefined' ? 'localhost' : window.location.hostname);
+
+/** The kept choice when it can be chosen here, prod1 by default (and for a kept 'local' on a page not on this machine). */
+export function readKernelTarget(hostname: string = pageHostname()): KernelTarget {
   try {
     const v = window.localStorage.getItem(KERNEL_TARGET_KEY);
     const kept = KERNEL_TARGETS.find((t) => t.id === v);
-    return kept !== undefined && kept.disabled !== true ? kept.id : 'jupyter';
+    return kept !== undefined && targetAvailable(kept.id, hostname) ? kept.id : 'jupyter';
   } catch {
     return 'jupyter';
   }
+}
+
+/** A cell's name on this page (its columns are A to Z): `C6`. */
+const cellRef = (row: number, col: number) => `${String.fromCharCode(65 + col)}${row + 1}`;
+
+/** Where this page keeps its code cells between visits: each one's frame (pinned where dropped, or unpinned) and last run. */
+export const CODE_CELLS_KEY = 'cells-examples-code-cells:code-cells';
+
+/** What the page keeps of a code cell: its frame, and its last run's outputs and result (shown again, untrusted, until it runs here). */
+export type KeptCode = Partial<
+  Pick<CodeCell, 'frame' | 'outputs' | 'result' | 'executionCount' | 'lastRun'>
+>;
+
+const KEPT_FIELDS = ['frame', 'outputs', 'result', 'executionCount', 'lastRun'];
+
+/** The kept code cells, by cell (`C6`); an entry the code check refuses is dropped, not loaded. */
+export function readCodeCells(): Record<string, KeptCode> {
+  try {
+    const kept = JSON.parse(window.localStorage.getItem(CODE_CELLS_KEY) ?? '{}') as unknown;
+    if (typeof kept !== 'object' || kept === null || Array.isArray(kept)) return {};
+    return Object.fromEntries(
+      Object.entries(kept as Record<string, unknown>).filter(
+        ([, entry]) =>
+          typeof entry === 'object' &&
+          entry !== null &&
+          Object.keys(entry).every((k) => KEPT_FIELDS.includes(k)) &&
+          codeProblem({ ...codeCell(''), ...entry }) === undefined,
+      ),
+    ) as Record<string, KeptCode>;
+  } catch {
+    return {};
+  }
+}
+
+/** What is kept of a code cell. */
+function keptOf(code: CodeCell): KeptCode {
+  const { frame, outputs, result, executionCount, lastRun } = code;
+  return {
+    ...(frame !== undefined ? { frame } : {}),
+    ...(lastRun !== undefined ? { outputs, result, lastRun } : {}),
+    ...(executionCount !== undefined ? { executionCount } : {}),
+  };
+}
+
+/** Keep the page's code cells whenever they change (a drop, an *Unpin*, an undo, a run). */
+export function keepCodeCells(model: CellsModel, sheet = 's1'): () => void {
+  const snapshot = () =>
+    JSON.stringify(
+      Object.fromEntries(
+        codeCells(model.sheet(sheet)).map((c) => [cellRef(c.row, c.col), keptOf(c.code)]),
+      ),
+    );
+  let last = snapshot();
+  return model.subscribe(() => {
+    const text = snapshot();
+    if (text === last) return;
+    last = text;
+    try {
+      window.localStorage.setItem(CODE_CELLS_KEY, text);
+    } catch {
+      // A private window, or a full storage: the cells last the visit.
+    }
+  });
 }
 
 /** The names of the kernel plugins, one per kernel; one is enabled at a time. */
@@ -248,7 +335,14 @@ plt.close(fig)
 Image(buf.getvalue())`;
 
 /** The page's grid: a small table, a code cell summing it (C2), one plotting it beside the cells (C4); bound to its document, the kernels bound to it. */
-export function codeCellsModel(providers?: KernelProviders, renderer?: CodeRenderer): CellsModel {
+export function codeCellsModel(
+  providers?: KernelProviders,
+  renderer?: CodeRenderer,
+  kept: Record<string, KeptCode> = {},
+): CellsModel {
+  // What an earlier visit kept (a frame pinned where it was dropped, or unpinned; the last run) wins.
+  const withKept = (ref: string, source: string, fields: Partial<CodeCell>) =>
+    codeCell(source, { ...fields, ...kept[ref] });
   // The document's binding comes after the model; the kernels, made on the first run, bind to it then.
   const later: { binding?: PageBinding } = {};
   const reactor = buildCellsReactor(
@@ -273,16 +367,17 @@ export function codeCellsModel(providers?: KernelProviders, renderer?: CodeRende
       ['Feb', 15],
       ['Mar', 19, null, 'C4 plots the table: hover it, or Alt+Down, for the figure'],
       ['Apr', 24],
-      [
-        'May',
-        28,
-        null,
-        'C6 doubles the units, pinned beside the cells; it runs by itself when they change',
-      ],
+      ['May', 28, null, 'C6 doubles the units, shown on hover; it runs by itself when they change'],
       ['Jun', 31],
     ]),
   });
-  m.dispatch({ type: 'SET_CODE', sheet: 's1', row: 1, col: 2, code: codeCell(SUM) });
+  m.dispatch({
+    type: 'SET_CODE',
+    sheet: 's1',
+    row: 1,
+    col: 2,
+    code: withKept('C2', SUM, {}),
+  });
   m.dispatch({
     type: 'SET_CELLS',
     sheet: 's1',
@@ -294,8 +389,8 @@ export function codeCellsModel(providers?: KernelProviders, renderer?: CodeRende
     sheet: 's1',
     row: 3,
     col: 2,
-    // The plot shows on hover and Alt+Down (frame: null); C6's table keeps a pinned frame beside the cells.
-    code: codeCell(PLOT, { frame: null }),
+    // The plot and the table show on hover and Alt+Down (frame: null); a drag of either pins it where dropped.
+    code: withKept('C4', PLOT, { frame: null }),
   });
   m.dispatch({
     type: 'SET_CODE',
@@ -303,7 +398,7 @@ export function codeCellsModel(providers?: KernelProviders, renderer?: CodeRende
     row: 5,
     col: 2,
     // `auto`: once run, it runs again by itself when the units it read change.
-    code: codeCell(TABLE, { frame: { width: 380, height: 180 }, run: 'auto' }),
+    code: withKept('C6', TABLE, { frame: null, run: 'auto' }),
   });
   m.dispatch({
     type: 'RESIZE_AXIS',
@@ -368,8 +463,10 @@ export default function CodeCells(props: {
   /** A test's renderer in place of jupyter-react's lazy one. */
   readonly renderer?: CodeRenderer;
 }) {
-  const [model] = useState(() => codeCellsModel(props.providers, props.renderer));
-  const [target, setTarget] = useState<KernelTarget>(readKernelTarget);
+  const [model] = useState(() => codeCellsModel(props.providers, props.renderer, readCodeCells()));
+  useEffect(() => keepCodeCells(model), [model]);
+  const [target, setTarget] = useState<KernelTarget>(() => readKernelTarget());
+  const hostname = pageHostname();
   const [message, setMessage] = useState('');
   useEffect(() => {
     switchKernel(model, target);
@@ -389,14 +486,16 @@ export default function CodeCells(props: {
     [model],
   );
   const hint = useMemo(() => KERNEL_TARGETS.find((t) => t.id === target)!.hint, [target]);
+  const available = (id: KernelTarget) => targetAvailable(id, hostname);
   return (
     <CellsProvider model={model}>
       <p>
         C2, C4 and C6 are code cells (the badge): click one and press Shift+Enter to run it, or
         double-click it to open its source in jupyter-react&apos;s <code>Cell</code>. C2&apos;s
-        result lands in the grid, where D2 reads it; C4&apos;s figure shows when you hover the cell
-        (or press Alt+Down on it), with a thumbnail of it in the cell; C6&apos;s table stays pinned
-        beside the cells. Edit B2:B7 and the cells turn stale until they run again.
+        result lands in the grid, where D2 reads it; C4&apos;s figure and C6&apos;s table show when
+        you hover the cell (or press Alt+Down on it), with a thumbnail in the cell. Drag one by its
+        strip to pin it where you drop it (kept on this page across a refresh); the × on a pinned
+        frame unpins it. Edit B2:B7 and the cells turn stale until they run again.
       </p>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <span id="kernel-label">Kernel:</span>
@@ -405,11 +504,11 @@ export default function CodeCells(props: {
             <SegmentedControl.Button
               key={t.id}
               selected={target === t.id}
-              title={t.hint}
-              disabled={t.disabled}
-              aria-disabled={t.disabled}
+              title={t.id === 'local' && !available(t.id) ? LOCAL_ELSEWHERE_HINT : t.hint}
+              disabled={!available(t.id)}
+              aria-disabled={!available(t.id)}
               onClick={() => {
-                if (t.disabled !== true) setTarget(t.id);
+                if (available(t.id)) setTarget(t.id);
               }}
             >
               {t.label}
@@ -425,6 +524,7 @@ export default function CodeCells(props: {
         </Button>
       </div>
       <p data-kernel-hint="">{hint}</p>
+      {!available('local') && <p data-kernel-local-hint="">{LOCAL_ELSEWHERE_HINT}</p>}
       <Frame height={360}>
         <Spreadsheet model={model} aria-label="Units by month" />
       </Frame>
