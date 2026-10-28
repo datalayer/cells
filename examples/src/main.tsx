@@ -144,7 +144,11 @@ function App() {
             <span aria-hidden="true">🦠</span> Datalayer Cells
           </h1>
           {/* primer-addons' appearance menu, to the right of the title, bound to the site's store. */}
-          <AppearanceMenuWithStore useStore={useAppearance} hoverOverlayPlacement="right-start" />
+          <AppearanceMenuWithStore
+            useStore={useAppearance}
+            hoverOverlayPlacement="right-start"
+            themesPerLine={5}
+          />
         </div>
         {/* Primer's ActionList, the examples as links; the current one marked. */}
         <ActionList aria-label="Examples">
