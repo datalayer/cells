@@ -24,7 +24,7 @@ import { type CommandContext, type CommandResult, OK, refuse } from './commands.
 import type { Patch, PatchOp } from './patches.js';
 import type { CommandHandler } from '../points/index.js';
 import type { CellValue } from './values.js';
-import type { Limits, Workbook } from './workbook.js';
+import type { Limits, Sheet, Workbook } from './workbook.js';
 import { columnLetters, type Zone } from './zone.js';
 
 /** A range or a cell in A1 form, its sheet named when it is another (`Sheet1!$B$2:$B$13`). */
@@ -306,6 +306,21 @@ export function refZone(
 }
 
 const cellsOf = (z: Zone) => (z.bottom - z.top + 1) * (z.right - z.left + 1);
+
+/** Where a chart sits on its sheet, in sheet px (before zoom), from its anchor and the axes' offsets. */
+export function chartRect(
+  sheet: Sheet,
+  spec: ChartSpec,
+): { x: number; y: number; width: number; height: number } {
+  const a = spec.anchor;
+  if (a.kind === 'absolute') return { x: a.x, y: a.y, width: a.width, height: a.height };
+  const x = sheet.cols.offsetOf(a.from.col) + a.from.dx;
+  const y = sheet.rows.offsetOf(a.from.row) + a.from.dy;
+  if (a.kind === 'cell') return { x, y, width: a.width, height: a.height };
+  const right = sheet.cols.offsetOf(a.to.col) + a.to.dx;
+  const bottom = sheet.rows.offsetOf(a.to.row) + a.to.dy;
+  return { x, y, width: Math.max(1, right - x), height: Math.max(1, bottom - y) };
+}
 
 /** The references of a chart: every range it reads (values, categories, x, and a name read from a cell). */
 export function chartRefs(spec: ChartSpec): Ref[] {

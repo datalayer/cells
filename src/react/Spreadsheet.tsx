@@ -65,6 +65,7 @@ import { ScrollMapper, spacerSize } from '../render/scroll.js';
 import { type CellsTheme, checkTheme } from '../render/theme.js';
 import { cellAt, cellRect, headerAt, type Viewport } from '../render/viewport.js';
 import { fontOf } from '../render/paint.js';
+import { ChartsLayer } from './ChartsLayer.js';
 import {
   callAt,
   canPoint,
@@ -614,7 +615,12 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
     const onCopy = useCallback(
       (e: React.ClipboardEvent, cut: boolean) => {
         // The editor's own copy and paste stay native; anything else inside the grid is the grid's.
-        if ((e.target as Element).closest?.('[data-cells-editor], [data-cells-menu]')) return;
+        if (
+          (e.target as Element).closest?.(
+            '[data-cells-editor], [data-cells-menu], [data-cells-chart]',
+          )
+        )
+          return;
         e.preventDefault();
         const slice = model.copy(undefined, { cut });
         const { text, html } = sliceToClipboard(slice, model);
@@ -628,7 +634,12 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
     const onPaste = useCallback(
       (e: React.ClipboardEvent) => {
         // The editor's own copy and paste stay native; anything else inside the grid is the grid's.
-        if ((e.target as Element).closest?.('[data-cells-editor], [data-cells-menu]')) return;
+        if (
+          (e.target as Element).closest?.(
+            '[data-cells-editor], [data-cells-menu], [data-cells-chart]',
+          )
+        )
+          return;
         e.preventDefault();
         const special = pasteValues.current ? 'values' : 'all';
         pasteValues.current = false;
@@ -786,7 +797,12 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
 
     const onPointerDown = useCallback(
       (e: React.PointerEvent) => {
-        if ((e.target as Element).closest('[data-cells-editor], [data-cells-popup]')) return;
+        if (
+          (e.target as Element).closest(
+            '[data-cells-editor], [data-cells-popup], [data-cells-chart]',
+          )
+        )
+          return;
         const editing = model.edit;
         if (editing !== null && e.button === 0 && isFormulaText(editing.text)) {
           // Pointing at a cell while a formula is edited puts its reference in the formula.
@@ -1036,7 +1052,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
       (e: React.MouseEvent) => {
         const r = rendererRef.current;
         if (r === null || model.readOnly || e.button !== 0) return;
-        if ((e.target as Element).closest('[data-cells-editor]')) return;
+        if ((e.target as Element).closest('[data-cells-editor], [data-cells-chart]')) return;
         const header = headerAtPoint(e);
         if (header === undefined) {
           const cell = pointToCell(e);
@@ -1260,6 +1276,9 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
                 />
               ))}
             </div>
+            {viewport !== null && theme !== null && (
+              <ChartsLayer model={model} sheet={sheet.id} viewport={viewport} theme={theme} />
+            )}
             {edit !== null && viewport !== null && edit.sheet === sheet.id && theme !== null && (
               <CellEditor
                 model={model}

@@ -36,6 +36,12 @@ export interface CellsTheme {
   /** CSS px. */
   readonly fontSize: number;
   readonly headerFontSize: number;
+  /** Charts (§3.12): the series colours in order, and the chart's axis, gridline, text and background. */
+  readonly chartColors: readonly string[];
+  readonly chartAxis: string;
+  readonly chartGridline: string;
+  readonly chartText: string;
+  readonly chartBackground: string;
   /** Under `forced-colors: active`: the selection is an outline, never a fill. */
   readonly forcedColors?: boolean;
 }
@@ -67,6 +73,21 @@ export const LIGHT_THEME: CellsTheme = {
   fontFamily: FONT,
   fontSize: 13,
   headerFontSize: 12,
+  // Primer's data-visualisation emphasis colours, light.
+  chartColors: [
+    '#0969da',
+    '#1a7f37',
+    '#bc4c00',
+    '#8250df',
+    '#bf8700',
+    '#cf222e',
+    '#bf3989',
+    '#1b7c83',
+  ],
+  chartAxis: '#59636e',
+  chartGridline: '#d1d9e0',
+  chartText: '#1f2328',
+  chartBackground: '#ffffff',
 };
 
 /** Primer's dark defaults. */
@@ -90,6 +111,20 @@ export const DARK_THEME: CellsTheme = {
   linkText: '#4493f8',
   referenceColors: ['#4493f8', '#f85149', '#3fb950', '#ab7df8', '#d29922', '#db6d28', '#39c5cf'],
   remoteUserColors: ['#db61a2', '#3fb950', '#db6d28', '#ab7df8'],
+  chartColors: [
+    '#4493f8',
+    '#3fb950',
+    '#db6d28',
+    '#ab7df8',
+    '#d29922',
+    '#f85149',
+    '#db61a2',
+    '#39c5cf',
+  ],
+  chartAxis: '#9198a1',
+  chartGridline: '#3d444d',
+  chartText: '#f0f6fc',
+  chartBackground: '#0d1117',
 };
 
 /** Under forced colours: system colours, and outlines rather than fills. */
@@ -113,6 +148,12 @@ export const FORCED_COLORS_THEME: CellsTheme = {
   linkText: 'LinkText',
   referenceColors: ['Highlight'],
   remoteUserColors: ['Highlight'],
+  // Series are told apart by ECharts' decal patterns, not by colour (§3.12).
+  chartColors: ['CanvasText', 'Highlight', 'LinkText', 'GrayText'],
+  chartAxis: 'CanvasText',
+  chartGridline: 'GrayText',
+  chartText: 'CanvasText',
+  chartBackground: 'Canvas',
   forcedColors: true,
 };
 
@@ -124,7 +165,7 @@ export function checkTheme(theme: unknown): asserts theme is CellsTheme {
   const t = theme as Record<string, unknown>;
   for (const key of KEYS) {
     const v = t[key];
-    if (key === 'referenceColors' || key === 'remoteUserColors') {
+    if (key === 'referenceColors' || key === 'remoteUserColors' || key === 'chartColors') {
       if (!Array.isArray(v) || v.length === 0 || !v.every((x) => typeof x === 'string')) {
         throw new Error(`CellsTheme.${key}: a non-empty list of colours.`);
       }

@@ -136,6 +136,22 @@
       "max": 40,
       "unit": "kB",
       "where": "size"
+    },
+    "charts.option10k.ms": {
+      "max": 5,
+      "unit": "ms",
+      "where": "node"
+    },
+    "bundle.charts.kB": {
+      "max": 25,
+      "unit": "kB",
+      "where": "size"
+    },
+    "bundle.chartsECharts.kB": {
+      "max": 220,
+      "unit": "kB",
+      "where": "size",
+      "note": "The plan's estimate was 200 kB; measured 28 October 2026: ECharts' core with bar, line, pie, scatter, grid, tooltip, legend, title, aria and the canvas renderer is 180 kB min+gzip by itself (esbuild 0.25.12, echarts 5.6.0), echarts-for-react 7 kB, the entry 10 kB."
     }
   }
 }

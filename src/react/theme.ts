@@ -42,7 +42,23 @@ export const PRIMER_VARIABLES: Readonly<Partial<Record<keyof CellsTheme, `--${st
   errorText: '--fgColor-danger',
   linkText: '--fgColor-accent',
   fontFamily: '--fontStack-sansSerif',
+  chartAxis: '--fgColor-muted',
+  chartGridline: '--borderColor-muted',
+  chartText: '--fgColor-default',
+  chartBackground: '--bgColor-default',
 };
+
+/** The Primer data-visualisation variables the series colours come from, in series order; those set are used, the rest of the defaults keep their place. */
+export const PRIMER_CHART_COLOR_VARIABLES: readonly `--${string}`[] = [
+  '--data-blue-color-emphasis',
+  '--data-green-color-emphasis',
+  '--data-orange-color-emphasis',
+  '--data-purple-color-emphasis',
+  '--data-yellow-color-emphasis',
+  '--data-red-color-emphasis',
+  '--data-pink-color-emphasis',
+  '--data-teal-color-emphasis',
+];
 
 /** A theme from variables, over Primer's light or dark defaults for what is not set. */
 export function themeFromVariables(
@@ -55,6 +71,9 @@ export function themeFromVariables(
     const value = read(variable!)?.trim();
     if (value) out[field] = value;
   }
+  out.chartColors = PRIMER_CHART_COLOR_VARIABLES.map(
+    (variable, i) => read(variable)?.trim() || base.chartColors[i],
+  );
   checkTheme(out);
   return out;
 }

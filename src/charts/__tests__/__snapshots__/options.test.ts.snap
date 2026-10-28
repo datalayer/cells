@@ -1,0 +1,4075 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the option of each type > area stacked, dark 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#0d1117",
+  "color": [
+    "#4493f8",
+    "#3fb950",
+    "#db6d28",
+    "#ab7df8",
+    "#d29922",
+    "#f85149",
+    "#db61a2",
+    "#39c5cf",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "left": 0,
+    "orient": "vertical",
+    "show": true,
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+  },
+  "series": [
+    {
+      "areaStyle": {},
+      "connectNulls": false,
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "smooth": false,
+      "stack": "total",
+      "type": "line",
+    },
+    {
+      "areaStyle": {},
+      "connectNulls": false,
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "smooth": false,
+      "stack": "total",
+      "type": "line",
+    },
+  ],
+  "textStyle": {
+    "color": "#f0f6fc",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "#3d444d",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > area stacked, forced 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": true,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "Canvas",
+  "color": [
+    "CanvasText",
+    "Highlight",
+    "LinkText",
+    "GrayText",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "left": 0,
+    "orient": "vertical",
+    "show": true,
+    "textStyle": {
+      "color": "CanvasText",
+    },
+  },
+  "series": [
+    {
+      "areaStyle": {},
+      "connectNulls": false,
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "smooth": false,
+      "stack": "total",
+      "type": "line",
+    },
+    {
+      "areaStyle": {},
+      "connectNulls": false,
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "smooth": false,
+      "stack": "total",
+      "type": "line",
+    },
+  ],
+  "textStyle": {
+    "color": "CanvasText",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "CanvasText",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "GrayText",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > area stacked, light 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#ffffff",
+  "color": [
+    "#0969da",
+    "#1a7f37",
+    "#bc4c00",
+    "#8250df",
+    "#bf8700",
+    "#cf222e",
+    "#bf3989",
+    "#1b7c83",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "left": 0,
+    "orient": "vertical",
+    "show": true,
+    "textStyle": {
+      "color": "#1f2328",
+    },
+  },
+  "series": [
+    {
+      "areaStyle": {},
+      "connectNulls": false,
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "smooth": false,
+      "stack": "total",
+      "type": "line",
+    },
+    {
+      "areaStyle": {},
+      "connectNulls": false,
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "smooth": false,
+      "stack": "total",
+      "type": "line",
+    },
+  ],
+  "textStyle": {
+    "color": "#1f2328",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#1f2328",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "#d1d9e0",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > area, dark 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#0d1117",
+  "color": [
+    "#4493f8",
+    "#3fb950",
+    "#db6d28",
+    "#ab7df8",
+    "#d29922",
+    "#f85149",
+    "#db61a2",
+    "#39c5cf",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "areaStyle": {},
+      "connectNulls": false,
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "smooth": false,
+      "type": "line",
+    },
+    {
+      "areaStyle": {},
+      "connectNulls": false,
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "smooth": false,
+      "type": "line",
+    },
+  ],
+  "textStyle": {
+    "color": "#f0f6fc",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "#3d444d",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > area, forced 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": true,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "Canvas",
+  "color": [
+    "CanvasText",
+    "Highlight",
+    "LinkText",
+    "GrayText",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "CanvasText",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "areaStyle": {},
+      "connectNulls": false,
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "smooth": false,
+      "type": "line",
+    },
+    {
+      "areaStyle": {},
+      "connectNulls": false,
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "smooth": false,
+      "type": "line",
+    },
+  ],
+  "textStyle": {
+    "color": "CanvasText",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "CanvasText",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "GrayText",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > area, light 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#ffffff",
+  "color": [
+    "#0969da",
+    "#1a7f37",
+    "#bc4c00",
+    "#8250df",
+    "#bf8700",
+    "#cf222e",
+    "#bf3989",
+    "#1b7c83",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "#1f2328",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "areaStyle": {},
+      "connectNulls": false,
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "smooth": false,
+      "type": "line",
+    },
+    {
+      "areaStyle": {},
+      "connectNulls": false,
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "smooth": false,
+      "type": "line",
+    },
+  ],
+  "textStyle": {
+    "color": "#1f2328",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#1f2328",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "#d1d9e0",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > bar, dark 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#0d1117",
+  "color": [
+    "#4493f8",
+    "#3fb950",
+    "#db6d28",
+    "#ab7df8",
+    "#d29922",
+    "#f85149",
+    "#db61a2",
+    "#39c5cf",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "show": false,
+  },
+  "series": [
+    {
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "label": {
+        "show": true,
+      },
+      "name": "North",
+      "type": "bar",
+    },
+    {
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "label": {
+        "show": true,
+      },
+      "name": "South",
+      "type": "bar",
+    },
+  ],
+  "textStyle": {
+    "color": "#f0f6fc",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "#3d444d",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "inverse": true,
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+}
+`;
+
+exports[`the option of each type > bar, forced 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": true,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "Canvas",
+  "color": [
+    "CanvasText",
+    "Highlight",
+    "LinkText",
+    "GrayText",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "show": false,
+  },
+  "series": [
+    {
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "label": {
+        "show": true,
+      },
+      "name": "North",
+      "type": "bar",
+    },
+    {
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "label": {
+        "show": true,
+      },
+      "name": "South",
+      "type": "bar",
+    },
+  ],
+  "textStyle": {
+    "color": "CanvasText",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "CanvasText",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "GrayText",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "inverse": true,
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+}
+`;
+
+exports[`the option of each type > bar, light 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#ffffff",
+  "color": [
+    "#0969da",
+    "#1a7f37",
+    "#bc4c00",
+    "#8250df",
+    "#bf8700",
+    "#cf222e",
+    "#bf3989",
+    "#1b7c83",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "show": false,
+  },
+  "series": [
+    {
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "label": {
+        "show": true,
+      },
+      "name": "North",
+      "type": "bar",
+    },
+    {
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "label": {
+        "show": true,
+      },
+      "name": "South",
+      "type": "bar",
+    },
+  ],
+  "textStyle": {
+    "color": "#1f2328",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#1f2328",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "#d1d9e0",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "inverse": true,
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+}
+`;
+
+exports[`the option of each type > column percent, dark 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#0d1117",
+  "color": [
+    "#4493f8",
+    "#3fb950",
+    "#db6d28",
+    "#ab7df8",
+    "#d29922",
+    "#f85149",
+    "#db61a2",
+    "#39c5cf",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "orient": "vertical",
+    "right": 0,
+    "show": true,
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+  },
+  "series": [
+    {
+      "data": [
+        58.82,
+        100,
+        57.69,
+        48.15,
+      ],
+      "name": "North",
+      "stack": "total",
+      "type": "bar",
+    },
+    {
+      "data": [
+        41.18,
+        null,
+        42.31,
+        51.85,
+      ],
+      "name": "South",
+      "stack": "total",
+      "type": "bar",
+    },
+  ],
+  "textStyle": {
+    "color": "#f0f6fc",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+      "formatter": "{value}%",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "max": 100,
+    "splitLine": {
+      "lineStyle": {
+        "color": "#3d444d",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > column percent, forced 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": true,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "Canvas",
+  "color": [
+    "CanvasText",
+    "Highlight",
+    "LinkText",
+    "GrayText",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "orient": "vertical",
+    "right": 0,
+    "show": true,
+    "textStyle": {
+      "color": "CanvasText",
+    },
+  },
+  "series": [
+    {
+      "data": [
+        58.82,
+        100,
+        57.69,
+        48.15,
+      ],
+      "name": "North",
+      "stack": "total",
+      "type": "bar",
+    },
+    {
+      "data": [
+        41.18,
+        null,
+        42.31,
+        51.85,
+      ],
+      "name": "South",
+      "stack": "total",
+      "type": "bar",
+    },
+  ],
+  "textStyle": {
+    "color": "CanvasText",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "CanvasText",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+      "formatter": "{value}%",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "max": 100,
+    "splitLine": {
+      "lineStyle": {
+        "color": "GrayText",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > column percent, light 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#ffffff",
+  "color": [
+    "#0969da",
+    "#1a7f37",
+    "#bc4c00",
+    "#8250df",
+    "#bf8700",
+    "#cf222e",
+    "#bf3989",
+    "#1b7c83",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "orient": "vertical",
+    "right": 0,
+    "show": true,
+    "textStyle": {
+      "color": "#1f2328",
+    },
+  },
+  "series": [
+    {
+      "data": [
+        58.82,
+        100,
+        57.69,
+        48.15,
+      ],
+      "name": "North",
+      "stack": "total",
+      "type": "bar",
+    },
+    {
+      "data": [
+        41.18,
+        null,
+        42.31,
+        51.85,
+      ],
+      "name": "South",
+      "stack": "total",
+      "type": "bar",
+    },
+  ],
+  "textStyle": {
+    "color": "#1f2328",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#1f2328",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+      "formatter": "{value}%",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "max": 100,
+    "splitLine": {
+      "lineStyle": {
+        "color": "#d1d9e0",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > column stacked, dark 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#0d1117",
+  "color": [
+    "#4493f8",
+    "#3fb950",
+    "#db6d28",
+    "#ab7df8",
+    "#d29922",
+    "#f85149",
+    "#db61a2",
+    "#39c5cf",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "stack": "total",
+      "type": "bar",
+    },
+    {
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "stack": "total",
+      "type": "bar",
+    },
+  ],
+  "textStyle": {
+    "color": "#f0f6fc",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "#3d444d",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > column stacked, forced 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": true,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "Canvas",
+  "color": [
+    "CanvasText",
+    "Highlight",
+    "LinkText",
+    "GrayText",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "CanvasText",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "stack": "total",
+      "type": "bar",
+    },
+    {
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "stack": "total",
+      "type": "bar",
+    },
+  ],
+  "textStyle": {
+    "color": "CanvasText",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "CanvasText",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "GrayText",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > column stacked, light 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#ffffff",
+  "color": [
+    "#0969da",
+    "#1a7f37",
+    "#bc4c00",
+    "#8250df",
+    "#bf8700",
+    "#cf222e",
+    "#bf3989",
+    "#1b7c83",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "#1f2328",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "stack": "total",
+      "type": "bar",
+    },
+    {
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "stack": "total",
+      "type": "bar",
+    },
+  ],
+  "textStyle": {
+    "color": "#1f2328",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#1f2328",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "#d1d9e0",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > column, dark 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#0d1117",
+  "color": [
+    "#4493f8",
+    "#3fb950",
+    "#db6d28",
+    "#ab7df8",
+    "#d29922",
+    "#f85149",
+    "#db61a2",
+    "#39c5cf",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "type": "bar",
+    },
+    {
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "type": "bar",
+    },
+  ],
+  "textStyle": {
+    "color": "#f0f6fc",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "#3d444d",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > column, forced 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": true,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "Canvas",
+  "color": [
+    "CanvasText",
+    "Highlight",
+    "LinkText",
+    "GrayText",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "CanvasText",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "type": "bar",
+    },
+    {
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "type": "bar",
+    },
+  ],
+  "textStyle": {
+    "color": "CanvasText",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "CanvasText",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "GrayText",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > column, light 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#ffffff",
+  "color": [
+    "#0969da",
+    "#1a7f37",
+    "#bc4c00",
+    "#8250df",
+    "#bf8700",
+    "#cf222e",
+    "#bf3989",
+    "#1b7c83",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "#1f2328",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "type": "bar",
+    },
+    {
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "type": "bar",
+    },
+  ],
+  "textStyle": {
+    "color": "#1f2328",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#1f2328",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "#d1d9e0",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > combo, dark 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#0d1117",
+  "color": [
+    "#4493f8",
+    "#3fb950",
+    "#db6d28",
+    "#ab7df8",
+    "#d29922",
+    "#f85149",
+    "#db61a2",
+    "#39c5cf",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 48,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "type": "bar",
+    },
+    {
+      "connectNulls": false,
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "smooth": false,
+      "type": "line",
+      "yAxisIndex": 1,
+    },
+  ],
+  "textStyle": {
+    "color": "#f0f6fc",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": [
+    {
+      "axisLabel": {
+        "color": "#9198a1",
+      },
+      "axisLine": {
+        "lineStyle": {
+          "color": "#9198a1",
+        },
+      },
+      "splitLine": {
+        "lineStyle": {
+          "color": "#3d444d",
+        },
+        "show": true,
+      },
+      "type": "value",
+    },
+    {
+      "axisLabel": {
+        "color": "#9198a1",
+      },
+      "axisLine": {
+        "lineStyle": {
+          "color": "#9198a1",
+        },
+      },
+      "splitLine": {
+        "show": false,
+      },
+      "type": "value",
+    },
+  ],
+}
+`;
+
+exports[`the option of each type > combo, forced 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": true,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "Canvas",
+  "color": [
+    "CanvasText",
+    "Highlight",
+    "LinkText",
+    "GrayText",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 48,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "CanvasText",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "type": "bar",
+    },
+    {
+      "connectNulls": false,
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "smooth": false,
+      "type": "line",
+      "yAxisIndex": 1,
+    },
+  ],
+  "textStyle": {
+    "color": "CanvasText",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "CanvasText",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": [
+    {
+      "axisLabel": {
+        "color": "CanvasText",
+      },
+      "axisLine": {
+        "lineStyle": {
+          "color": "CanvasText",
+        },
+      },
+      "splitLine": {
+        "lineStyle": {
+          "color": "GrayText",
+        },
+        "show": true,
+      },
+      "type": "value",
+    },
+    {
+      "axisLabel": {
+        "color": "CanvasText",
+      },
+      "axisLine": {
+        "lineStyle": {
+          "color": "CanvasText",
+        },
+      },
+      "splitLine": {
+        "show": false,
+      },
+      "type": "value",
+    },
+  ],
+}
+`;
+
+exports[`the option of each type > combo, light 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#ffffff",
+  "color": [
+    "#0969da",
+    "#1a7f37",
+    "#bc4c00",
+    "#8250df",
+    "#bf8700",
+    "#cf222e",
+    "#bf3989",
+    "#1b7c83",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 48,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "#1f2328",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "type": "bar",
+    },
+    {
+      "connectNulls": false,
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "smooth": false,
+      "type": "line",
+      "yAxisIndex": 1,
+    },
+  ],
+  "textStyle": {
+    "color": "#1f2328",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#1f2328",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": [
+    {
+      "axisLabel": {
+        "color": "#59636e",
+      },
+      "axisLine": {
+        "lineStyle": {
+          "color": "#59636e",
+        },
+      },
+      "splitLine": {
+        "lineStyle": {
+          "color": "#d1d9e0",
+        },
+        "show": true,
+      },
+      "type": "value",
+    },
+    {
+      "axisLabel": {
+        "color": "#59636e",
+      },
+      "axisLine": {
+        "lineStyle": {
+          "color": "#59636e",
+        },
+      },
+      "splitLine": {
+        "show": false,
+      },
+      "type": "value",
+    },
+  ],
+}
+`;
+
+exports[`the option of each type > line smooth, dark 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#0d1117",
+  "color": [
+    "#4493f8",
+    "#3fb950",
+    "#db6d28",
+    "#ab7df8",
+    "#d29922",
+    "#f85149",
+    "#db61a2",
+    "#39c5cf",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "connectNulls": false,
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "smooth": true,
+      "type": "line",
+    },
+    {
+      "connectNulls": false,
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "smooth": true,
+      "type": "line",
+    },
+  ],
+  "textStyle": {
+    "color": "#f0f6fc",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "#3d444d",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > line smooth, forced 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": true,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "Canvas",
+  "color": [
+    "CanvasText",
+    "Highlight",
+    "LinkText",
+    "GrayText",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "CanvasText",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "connectNulls": false,
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "smooth": true,
+      "type": "line",
+    },
+    {
+      "connectNulls": false,
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "smooth": true,
+      "type": "line",
+    },
+  ],
+  "textStyle": {
+    "color": "CanvasText",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "CanvasText",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "GrayText",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > line smooth, light 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#ffffff",
+  "color": [
+    "#0969da",
+    "#1a7f37",
+    "#bc4c00",
+    "#8250df",
+    "#bf8700",
+    "#cf222e",
+    "#bf3989",
+    "#1b7c83",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "#1f2328",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "connectNulls": false,
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "smooth": true,
+      "type": "line",
+    },
+    {
+      "connectNulls": false,
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "smooth": true,
+      "type": "line",
+    },
+  ],
+  "textStyle": {
+    "color": "#1f2328",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#1f2328",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "#d1d9e0",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > line, dark 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#0d1117",
+  "color": [
+    "#4493f8",
+    "#3fb950",
+    "#db6d28",
+    "#ab7df8",
+    "#d29922",
+    "#f85149",
+    "#db61a2",
+    "#39c5cf",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "connectNulls": false,
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "smooth": false,
+      "type": "line",
+    },
+    {
+      "connectNulls": false,
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "smooth": false,
+      "type": "line",
+    },
+  ],
+  "textStyle": {
+    "color": "#f0f6fc",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "name": "Month",
+    "nameGap": 28,
+    "nameLocation": "middle",
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "max": 20,
+    "min": 0,
+    "name": "Units",
+    "nameGap": 28,
+    "nameLocation": "middle",
+    "splitLine": {
+      "lineStyle": {
+        "color": "#3d444d",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > line, forced 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": true,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "Canvas",
+  "color": [
+    "CanvasText",
+    "Highlight",
+    "LinkText",
+    "GrayText",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "CanvasText",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "connectNulls": false,
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "smooth": false,
+      "type": "line",
+    },
+    {
+      "connectNulls": false,
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "smooth": false,
+      "type": "line",
+    },
+  ],
+  "textStyle": {
+    "color": "CanvasText",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "CanvasText",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "name": "Month",
+    "nameGap": 28,
+    "nameLocation": "middle",
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "max": 20,
+    "min": 0,
+    "name": "Units",
+    "nameGap": 28,
+    "nameLocation": "middle",
+    "splitLine": {
+      "lineStyle": {
+        "color": "GrayText",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > line, light 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#ffffff",
+  "color": [
+    "#0969da",
+    "#1a7f37",
+    "#bc4c00",
+    "#8250df",
+    "#bf8700",
+    "#cf222e",
+    "#bf3989",
+    "#1b7c83",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "#1f2328",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "connectNulls": false,
+      "data": [
+        10,
+        12,
+        15,
+        13,
+      ],
+      "name": "North",
+      "smooth": false,
+      "type": "line",
+    },
+    {
+      "connectNulls": false,
+      "data": [
+        7,
+        null,
+        11,
+        14,
+      ],
+      "name": "South",
+      "smooth": false,
+      "type": "line",
+    },
+  ],
+  "textStyle": {
+    "color": "#1f2328",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#1f2328",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "axis",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "axisTick": {
+      "alignWithLabel": true,
+    },
+    "data": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+    ],
+    "name": "Month",
+    "nameGap": 28,
+    "nameLocation": "middle",
+    "splitLine": {
+      "show": false,
+    },
+    "type": "category",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "max": 20,
+    "min": 0,
+    "name": "Units",
+    "nameGap": 28,
+    "nameLocation": "middle",
+    "splitLine": {
+      "lineStyle": {
+        "color": "#d1d9e0",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+}
+`;
+
+exports[`the option of each type > pie doughnut, dark 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#0d1117",
+  "color": [
+    "#4493f8",
+    "#3fb950",
+    "#db6d28",
+    "#ab7df8",
+    "#d29922",
+    "#f85149",
+    "#db61a2",
+    "#39c5cf",
+  ],
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "data": [
+        {
+          "name": "Jan",
+          "value": 10,
+        },
+        {
+          "name": "Feb",
+          "value": 12,
+        },
+        {
+          "name": "Mar",
+          "value": 15,
+        },
+        {
+          "name": "Apr",
+          "value": 13,
+        },
+      ],
+      "label": {
+        "color": "#f0f6fc",
+        "show": true,
+      },
+      "name": "North",
+      "radius": [
+        "45%",
+        "70%",
+      ],
+      "type": "pie",
+    },
+  ],
+  "textStyle": {
+    "color": "#f0f6fc",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "item",
+  },
+}
+`;
+
+exports[`the option of each type > pie doughnut, forced 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": true,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "Canvas",
+  "color": [
+    "CanvasText",
+    "Highlight",
+    "LinkText",
+    "GrayText",
+  ],
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "CanvasText",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "data": [
+        {
+          "name": "Jan",
+          "value": 10,
+        },
+        {
+          "name": "Feb",
+          "value": 12,
+        },
+        {
+          "name": "Mar",
+          "value": 15,
+        },
+        {
+          "name": "Apr",
+          "value": 13,
+        },
+      ],
+      "label": {
+        "color": "CanvasText",
+        "show": true,
+      },
+      "name": "North",
+      "radius": [
+        "45%",
+        "70%",
+      ],
+      "type": "pie",
+    },
+  ],
+  "textStyle": {
+    "color": "CanvasText",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "CanvasText",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "item",
+  },
+}
+`;
+
+exports[`the option of each type > pie doughnut, light 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#ffffff",
+  "color": [
+    "#0969da",
+    "#1a7f37",
+    "#bc4c00",
+    "#8250df",
+    "#bf8700",
+    "#cf222e",
+    "#bf3989",
+    "#1b7c83",
+  ],
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "#1f2328",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "data": [
+        {
+          "name": "Jan",
+          "value": 10,
+        },
+        {
+          "name": "Feb",
+          "value": 12,
+        },
+        {
+          "name": "Mar",
+          "value": 15,
+        },
+        {
+          "name": "Apr",
+          "value": 13,
+        },
+      ],
+      "label": {
+        "color": "#1f2328",
+        "show": true,
+      },
+      "name": "North",
+      "radius": [
+        "45%",
+        "70%",
+      ],
+      "type": "pie",
+    },
+  ],
+  "textStyle": {
+    "color": "#1f2328",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#1f2328",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "item",
+  },
+}
+`;
+
+exports[`the option of each type > pie, dark 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#0d1117",
+  "color": [
+    "#4493f8",
+    "#3fb950",
+    "#db6d28",
+    "#ab7df8",
+    "#d29922",
+    "#f85149",
+    "#db61a2",
+    "#39c5cf",
+  ],
+  "legend": {
+    "show": true,
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+    "top": 0,
+    "x": "center",
+  },
+  "series": [
+    {
+      "data": [
+        {
+          "name": "Jan",
+          "value": 10,
+        },
+        {
+          "name": "Feb",
+          "value": 12,
+        },
+        {
+          "name": "Mar",
+          "value": 15,
+        },
+        {
+          "name": "Apr",
+          "value": 13,
+        },
+      ],
+      "label": {
+        "color": "#f0f6fc",
+        "show": true,
+      },
+      "name": "North",
+      "radius": "70%",
+      "type": "pie",
+    },
+  ],
+  "textStyle": {
+    "color": "#f0f6fc",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "item",
+  },
+}
+`;
+
+exports[`the option of each type > pie, forced 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": true,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "Canvas",
+  "color": [
+    "CanvasText",
+    "Highlight",
+    "LinkText",
+    "GrayText",
+  ],
+  "legend": {
+    "show": true,
+    "textStyle": {
+      "color": "CanvasText",
+    },
+    "top": 0,
+    "x": "center",
+  },
+  "series": [
+    {
+      "data": [
+        {
+          "name": "Jan",
+          "value": 10,
+        },
+        {
+          "name": "Feb",
+          "value": 12,
+        },
+        {
+          "name": "Mar",
+          "value": 15,
+        },
+        {
+          "name": "Apr",
+          "value": 13,
+        },
+      ],
+      "label": {
+        "color": "CanvasText",
+        "show": true,
+      },
+      "name": "North",
+      "radius": "70%",
+      "type": "pie",
+    },
+  ],
+  "textStyle": {
+    "color": "CanvasText",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "CanvasText",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "item",
+  },
+}
+`;
+
+exports[`the option of each type > pie, light 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#ffffff",
+  "color": [
+    "#0969da",
+    "#1a7f37",
+    "#bc4c00",
+    "#8250df",
+    "#bf8700",
+    "#cf222e",
+    "#bf3989",
+    "#1b7c83",
+  ],
+  "legend": {
+    "show": true,
+    "textStyle": {
+      "color": "#1f2328",
+    },
+    "top": 0,
+    "x": "center",
+  },
+  "series": [
+    {
+      "data": [
+        {
+          "name": "Jan",
+          "value": 10,
+        },
+        {
+          "name": "Feb",
+          "value": 12,
+        },
+        {
+          "name": "Mar",
+          "value": 15,
+        },
+        {
+          "name": "Apr",
+          "value": 13,
+        },
+      ],
+      "label": {
+        "color": "#1f2328",
+        "show": true,
+      },
+      "name": "North",
+      "radius": "70%",
+      "type": "pie",
+    },
+  ],
+  "textStyle": {
+    "color": "#1f2328",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#1f2328",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "item",
+  },
+}
+`;
+
+exports[`the option of each type > scatter, dark 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#0d1117",
+  "color": [
+    "#4493f8",
+    "#3fb950",
+    "#db6d28",
+    "#ab7df8",
+    "#d29922",
+    "#f85149",
+    "#db61a2",
+    "#39c5cf",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "data": [
+        [
+          1,
+          10,
+        ],
+        [
+          2,
+          12,
+        ],
+        [
+          3,
+          15,
+        ],
+        [
+          4,
+          13,
+        ],
+      ],
+      "name": "North",
+      "type": "scatter",
+    },
+    {
+      "data": [
+        [
+          1,
+          7,
+        ],
+        [
+          3,
+          11,
+        ],
+        [
+          4,
+          14,
+        ],
+      ],
+      "name": "South",
+      "type": "scatter",
+    },
+  ],
+  "textStyle": {
+    "color": "#f0f6fc",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#f0f6fc",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "item",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "#3d444d",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "#9198a1",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#9198a1",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "#3d444d",
+      },
+      "show": false,
+    },
+    "type": "log",
+  },
+}
+`;
+
+exports[`the option of each type > scatter, forced 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": true,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "Canvas",
+  "color": [
+    "CanvasText",
+    "Highlight",
+    "LinkText",
+    "GrayText",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "CanvasText",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "data": [
+        [
+          1,
+          10,
+        ],
+        [
+          2,
+          12,
+        ],
+        [
+          3,
+          15,
+        ],
+        [
+          4,
+          13,
+        ],
+      ],
+      "name": "North",
+      "type": "scatter",
+    },
+    {
+      "data": [
+        [
+          1,
+          7,
+        ],
+        [
+          3,
+          11,
+        ],
+        [
+          4,
+          14,
+        ],
+      ],
+      "name": "South",
+      "type": "scatter",
+    },
+  ],
+  "textStyle": {
+    "color": "CanvasText",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "CanvasText",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "item",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "GrayText",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "CanvasText",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "CanvasText",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "GrayText",
+      },
+      "show": false,
+    },
+    "type": "log",
+  },
+}
+`;
+
+exports[`the option of each type > scatter, light 1`] = `
+{
+  "animation": false,
+  "aria": {
+    "decal": {
+      "show": false,
+    },
+    "enabled": true,
+  },
+  "backgroundColor": "#ffffff",
+  "color": [
+    "#0969da",
+    "#1a7f37",
+    "#bc4c00",
+    "#8250df",
+    "#bf8700",
+    "#cf222e",
+    "#bf3989",
+    "#1b7c83",
+  ],
+  "grid": {
+    "bottom": 40,
+    "containLabel": true,
+    "left": 48,
+    "right": 24,
+    "top": 48,
+  },
+  "legend": {
+    "bottom": 0,
+    "show": true,
+    "textStyle": {
+      "color": "#1f2328",
+    },
+    "x": "center",
+  },
+  "series": [
+    {
+      "data": [
+        [
+          1,
+          10,
+        ],
+        [
+          2,
+          12,
+        ],
+        [
+          3,
+          15,
+        ],
+        [
+          4,
+          13,
+        ],
+      ],
+      "name": "North",
+      "type": "scatter",
+    },
+    {
+      "data": [
+        [
+          1,
+          7,
+        ],
+        [
+          3,
+          11,
+        ],
+        [
+          4,
+          14,
+        ],
+      ],
+      "name": "South",
+      "type": "scatter",
+    },
+  ],
+  "textStyle": {
+    "color": "#1f2328",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif",
+  },
+  "title": {
+    "left": "center",
+    "text": "Sales",
+    "textStyle": {
+      "color": "#1f2328",
+    },
+  },
+  "tooltip": {
+    "confine": true,
+    "trigger": "item",
+  },
+  "xAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "#d1d9e0",
+      },
+      "show": true,
+    },
+    "type": "value",
+  },
+  "yAxis": {
+    "axisLabel": {
+      "color": "#59636e",
+    },
+    "axisLine": {
+      "lineStyle": {
+        "color": "#59636e",
+      },
+    },
+    "splitLine": {
+      "lineStyle": {
+        "color": "#d1d9e0",
+      },
+      "show": false,
+    },
+    "type": "log",
+  },
+}
+`;

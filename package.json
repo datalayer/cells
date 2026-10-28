@@ -41,6 +41,10 @@
       "types": "./lib/chrome/index.d.ts",
       "import": "./lib/chrome/index.js"
     },
+    "./charts": {
+      "types": "./lib/charts/index.d.ts",
+      "import": "./lib/charts/index.js"
+    },
     "./plugin": {
       "types": "./lib/plugin/index.d.ts",
       "import": "./lib/plugin/index.js"
@@ -66,6 +70,9 @@
       ],
       "plugin": [
         "lib/plugin/index.d.ts"
+      ],
+      "charts": [
+        "lib/charts/index.d.ts"
       ]
     }
   },
@@ -103,6 +110,8 @@
     "@datalayer/reactor": "^1.3.2",
     "@primer/octicons-react": "^19.35.0",
     "@primer/react": "^37.31.0",
+    "echarts": "^5.5.0",
+    "echarts-for-react": "^3.0.2",
     "loro-crdt": "^1.16.4",
     "react": "^18.3.1 || ^19.0.0",
     "react-dom": "^18.3.1 || ^19.0.0"
@@ -120,6 +129,8 @@
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
     "@vitejs/plugin-react": "^4.7.0",
+    "echarts": "^5.5.0",
+    "echarts-for-react": "^3.0.2",
     "esbuild": "^0.25.12",
     "fast-check": "^4.10.2",
     "jsdom": "^26.1.0",
@@ -144,6 +155,12 @@
       "optional": true
     },
     "loro-crdt": {
+      "optional": true
+    },
+    "echarts": {
+      "optional": true
+    },
+    "echarts-for-react": {
       "optional": true
     }
   },

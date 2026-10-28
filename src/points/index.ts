@@ -23,6 +23,8 @@ import type { Style } from '../core/styles.js';
 import type { CellValue } from '../core/values.js';
 import type { Zone } from '../core/zone.js';
 import type { Reference, Value } from '../formula/values.js';
+import type { ChartData, ChartSpec } from '../core/charts.js';
+import type { CellsTheme } from '../render/theme.js';
 
 export type { PatchOp } from '../core/patches.js';
 
@@ -194,6 +196,54 @@ export interface CollabProvider {
   connect(doc: unknown, room: string): unknown;
 }
 
+/** An ECharts option, typed loosely: the core never imports ECharts (§3.12). */
+export type ChartOption = Record<string, unknown>;
+
+/**
+ * A chart type (§3.12): what it draws with (the ECharts modules `./charts`
+ * registers when the type is resolved, so the built-ins never pull a radar
+ * in), its option from a spec, its data and the theme (a pure function,
+ * tested in Node), and its description for a screen reader. By id; a
+ * duplicate is refused naming both plugins.
+ */
+export interface ChartType {
+  readonly id: string;
+  readonly label: string;
+  readonly octicon?: string;
+  /** The ECharts modules the type needs (`echarts.use`); typed loosely so the core imports no ECharts. */
+  readonly modules: readonly unknown[];
+  option(spec: ChartSpec, data: ChartData, theme: CellsTheme): ChartOption;
+  describe(spec: ChartSpec, data: ChartData): string;
+  /** How the type reads from and writes to DrawingML (C10-07); absent, the chart goes to the import report. */
+  readonly xlsx?: { readonly read?: unknown; readonly write?: unknown };
+}
+
+/** A transform of every option (a house style, a number format, a watermark), applied after the type's `option`, in `order`. */
+export interface ChartOptionTransform {
+  readonly id: string;
+  applies?(spec: ChartSpec): boolean;
+  transform(option: ChartOption, spec: ChartSpec, theme: CellsTheme): ChartOption;
+}
+
+/** What the renderer draws: an option, the modules its type needs, and the frame's size. */
+export interface ChartRendererProps {
+  readonly option: ChartOption;
+  readonly modules: readonly unknown[];
+  readonly width: number;
+  readonly height: number;
+  readonly theme: CellsTheme;
+}
+
+/**
+ * The one drawing of charts, contributed by `CellsChartsPlugin` (ECharts):
+ * exactly one, or none, in which case a chart draws as a labelled
+ * placeholder frame. The component is typed loosely so the core needs no React.
+ */
+export interface ChartRenderer {
+  readonly id: string;
+  readonly component: unknown;
+}
+
 /** A toolbar or menu entry, naming a Reactor command by id. */
 export interface CommandItem {
   readonly command: string;
@@ -222,6 +272,13 @@ export const CellsToolbarItems = defineContributionPoint<CommandItem>(
   'datalayer.cells.toolbarItem',
 );
 export const CellsMenuItems = defineContributionPoint<CommandItem>('datalayer.cells.menuItem');
+export const CellsChartTypes = defineContributionPoint<ChartType>('datalayer.cells.chartType');
+export const CellsChartOptions = defineContributionPoint<ChartOptionTransform>(
+  'datalayer.cells.chartOption',
+);
+export const CellsChartRenderer = defineContributionPoint<ChartRenderer>(
+  'datalayer.cells.chartRenderer',
+);
 
 /** What an edit gate is asked about: may this command apply? */
 export interface EditGateContext {
@@ -247,6 +304,9 @@ export const CELLS_POINTS = [
   CellsCollabProvider,
   CellsToolbarItems,
   CellsMenuItems,
+  CellsChartTypes,
+  CellsChartOptions,
+  CellsChartRenderer,
   CellsEditGate,
 ] as const;
 

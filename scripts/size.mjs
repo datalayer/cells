@@ -26,15 +26,24 @@ const external = [
   'react/jsx-runtime',
 ];
 
+// `./charts` twice: with its peers external (what the package adds), and with
+// the ECharts modules its types register bundled (what a host that has no
+// ECharts downloads); a full `import 'echarts'` would fail the second (§3.12).
+const ECHARTS = ['echarts', 'echarts/*', 'echarts-for-react', 'echarts-for-react/*'];
 const ENTRIES = {
-  'bundle.grid.kB': 'lib/index.js',
-  'bundle.xlsx.kB': 'lib/xlsx/index.js',
-  'bundle.chrome.kB': 'lib/chrome/index.js',
+  'bundle.grid.kB': { entry: 'lib/index.js', external, noEcharts: true },
+  'bundle.xlsx.kB': { entry: 'lib/xlsx/index.js', external, noEcharts: true },
+  'bundle.chrome.kB': { entry: 'lib/chrome/index.js', external, noEcharts: true },
+  'bundle.charts.kB': { entry: 'lib/charts/index.js', external },
+  'bundle.chartsECharts.kB': {
+    entry: 'lib/charts/index.js',
+    external: external.filter((name) => !ECHARTS.includes(name)),
+  },
 };
 
 const figures = {};
 let failed = false;
-for (const [figure, entry] of Object.entries(ENTRIES)) {
+for (const [figure, { entry, external: ext, noEcharts }] of Object.entries(ENTRIES)) {
   const path = join(ROOT, entry);
   if (!existsSync(path)) {
     console.error(`${entry} does not exist: the library is not built.`);
@@ -47,9 +56,24 @@ for (const [figure, entry] of Object.entries(ENTRIES)) {
     format: 'esm',
     platform: 'browser',
     write: false,
-    external,
+    external: ext,
+    metafile: true,
     logLevel: 'silent',
   });
+  if (noEcharts) {
+    const inputs = Object.keys(result.metafile.inputs).filter(
+      (p) =>
+        /(^|\/)echarts(-for-react)?\//.test(p) ||
+        /(^|\/)src\/charts\//.test(p) ||
+        /(^|\/)lib\/charts\//.test(p),
+    );
+    if (inputs.length > 0) {
+      console.error(
+        `${figure}: the metafile of ${entry} has an ECharts input: ${inputs.slice(0, 3).join(', ')}`,
+      );
+      failed = true;
+    }
+  }
   const bytes = gzipSync(result.outputFiles[0].contents).length;
   const kB = Math.round((bytes / 1024) * 100) / 100;
   figures[figure] = { value: kB, unit: 'kB' };

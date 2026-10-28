@@ -172,6 +172,7 @@ export {
   chartPoints,
   chartProblem,
   chartRanges,
+  chartRect,
   chartRefs,
   type ChartSeriesData,
   checkChart,
@@ -186,6 +187,16 @@ export {
   type UpdateChartCommand,
   zoneRef,
 } from './charts.js';
+export {
+  chartOption,
+  chartPlaceholder,
+  chartRendererOf,
+  chartTransformTable,
+  chartTypeTable,
+  resolveChart,
+  resolveChartType,
+  type ResolvedChart,
+} from './chartOption.js';
 export {
   CELLS_FUNCTIONS_PLUGIN,
   CellsFunctionsPlugin,
