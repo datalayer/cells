@@ -19,7 +19,7 @@ run), `#BUSY!` while it runs and a corner mark when what it reads changed.
 | Keys, on a code cell | Command                | What it does                                   |
 | -------------------- | ---------------------- | ---------------------------------------------- |
 | Shift+Enter          | `cells.code.run`       | Run it on the sheet's kernel                   |
-| F4                   | `cells.code.openEditor` | The source in the contributed editor (`Cell`) |
+| Enter, F2, F4, a double-click | `cells.code.openEditor` | An overlay at the cell with the source in `Cell`; Escape, a click outside or Ctrl+S save and close; Shift+Enter there runs |
 |                      | `cells.code.goToOutput` | Focus its output frame (Escape returns)       |
 |                      | `cells.code.runAll`    | Every code cell of the sheet, in dependency order |
 |                      | `cells.code.interrupt` | Stop the run in flight                         |

@@ -93,9 +93,11 @@ export const CODE_COMMANDS: readonly CellsCommand[] = [
       grid.openCodeEditor(active.row, active.col);
     },
     {
-      gridKeybindings: ['F4'],
-      description: gridKeysDescription(['F4'], false),
+      // On a code cell, Enter and F2 open the overlay too, before `cells.nextDown` and `cells.editCell`.
+      gridKeybindings: ['F4', 'Enter', 'F2'],
+      description: gridKeysDescription(['F4', 'Enter', 'F2'], false),
       octicon: 'pencil',
+      order: -1,
       isEnabled: onCodeCell,
     },
   ),

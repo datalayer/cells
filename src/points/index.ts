@@ -300,7 +300,10 @@ export interface CodeEditorRendererProps {
   readonly col: number;
   /** The `CellsModel` (typed loosely, as a render layer's). */
   readonly model: unknown;
+  /** Close the overlay (after saving, when the editor saves itself). */
   readonly onClose: () => void;
+  /** Hand the overlay the editor's `save` (the source written back as one undo step), so closing it from outside saves too. */
+  readonly register?: (controls: { readonly save: () => void }) => void;
 }
 
 /**

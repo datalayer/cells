@@ -168,7 +168,14 @@ export function CodeOutput({ outputs, cell, width, height }: CodeOutputRendererP
  * no second session starts; the kernel connects through the runner, as a
  * run does). *Save* writes the source back as one undo step.
  */
-export function CodeCellEditor({ model: m, sheet, row, col, onClose }: CodeEditorRendererProps) {
+export function CodeCellEditor({
+  model: m,
+  sheet,
+  row,
+  col,
+  onClose,
+  register,
+}: CodeEditorRendererProps) {
   const model = m as CellsModel;
   const id = `cells-code-${useId()}`;
   const code = model.code(sheet, row, col);
@@ -185,11 +192,16 @@ export function CodeCellEditor({ model: m, sheet, row, col, onClose }: CodeEdito
       live = false;
     };
   }, [model]);
+  const write = () => {
+    const current = model.code(sheet, row, col);
+    const source = cellsStore.getState().getSource(id);
+    if (current !== undefined && source !== undefined && source !== current.source)
+      model.dispatch({ type: 'SET_CODE', sheet, row, col, code: { ...current, source } });
+  };
+  register?.({ save: write });
   if (code === undefined) return null;
   const save = () => {
-    const source = cellsStore.getState().getSource(id) ?? code.source;
-    if (source !== code.source)
-      model.dispatch({ type: 'SET_CODE', sheet, row, col, code: { ...code, source } });
+    write();
     onClose();
   };
   return (

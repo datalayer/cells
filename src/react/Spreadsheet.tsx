@@ -520,8 +520,13 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
 
     // ------------------------------------------------------------ keyboard and pointer
     const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
-    /** The code cell open in the contributed editor (*Open in editor*). */
-    const [codeEditing, setCodeEditing] = useState<{ row: number; col: number } | null>(null);
+    /** The code cell open in the editor overlay (*Open in editor*), and where the overlay goes. */
+    const [codeEditing, setCodeEditing] = useState<{
+      row: number;
+      col: number;
+      x: number;
+      y: number;
+    } | null>(null);
     /** Escape was pressed: the next Tab leaves the grid. */
     const leaving = useRef(false);
     const measure = useCallback(
@@ -565,7 +570,14 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
           frame.focus({ preventScroll: false });
           return true;
         },
-        openCodeEditor: (row: number, col: number) => setCodeEditing({ row, col }),
+        openCodeEditor: (row: number, col: number) => {
+          const r = rendererRef.current;
+          if (r === null) return;
+          const sheetNow = model.sheet(r.sheet);
+          const pane = r.viewport.panes.find((p) => p.name === 'main')!;
+          const rect = cellRect(pane, r.viewport.zoom, sheetNow.rows, sheetNow.cols, row, col);
+          setCodeEditing({ row, col, x: rect.x, y: rect.y + rect.height });
+        },
       }),
       [model, scrollToCell],
     );
@@ -1198,6 +1210,11 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
             model.selection.active.col !== cell.col
           )
             model.select(initialSelection(r.sheet, cell));
+          // A code cell opens its editor overlay (jupyter-react's Cell), never the grid's text editor.
+          if (model.code(r.sheet, cell.row, cell.col) !== undefined) {
+            gridAccess.openCodeEditor?.(cell.row, cell.col);
+            return;
+          }
           model.startEdit(cell);
           return;
         }
@@ -1220,7 +1237,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
           });
         }
       },
-      [model, headerAtPoint, pointToCell, selectLines, runCommand, chartKey],
+      [model, headerAtPoint, pointToCell, selectLines, runCommand, chartKey, gridAccess],
     );
 
     const onContextMenu = useCallback(
@@ -1429,6 +1446,8 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
                 viewport={viewport}
                 theme={theme}
                 editing={codeEditing}
+                portalName={portalName}
+                returnFocusRef={rootRef}
                 onCloseEditor={() => {
                   setCodeEditing(null);
                   rootRef.current?.focus({ preventScroll: true });

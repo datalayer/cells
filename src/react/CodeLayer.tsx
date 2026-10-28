@@ -19,13 +19,16 @@
  * @module react/CodeLayer
  */
 
+import { Overlay, ThemeProvider } from '@primer/react';
 import {
   createElement,
   type ComponentType,
   useCallback,
+  useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
+import { codeRunner } from '../core/codeRun.js';
 import { type CodeCell, codeCells, codeFrame, codeRef, type CodeOutput } from '../core/code.js';
 import { codeRendererOf } from '../core/codeRun.js';
 import type { CellsModel } from '../core/model.js';
@@ -46,9 +49,18 @@ export interface CodeLayerProps {
   readonly sheet: string;
   readonly viewport: Viewport;
   readonly theme: CellsTheme;
-  /** The code cell being edited in the contributed editor, if any. */
-  readonly editing?: { readonly row: number; readonly col: number } | null;
+  /** The code cell being edited in the overlay, if any, and where the overlay goes (view px of the grid's root). */
+  readonly editing?: {
+    readonly row: number;
+    readonly col: number;
+    readonly x: number;
+    readonly y: number;
+  } | null;
   readonly onCloseEditor?: () => void;
+  /** The grid's portal root, where the overlay goes (as the context menu does). */
+  readonly portalName?: string;
+  /** The grid's focus target, which the overlay returns focus to. */
+  readonly returnFocusRef?: React.RefObject<HTMLElement | null>;
   /** Escape in a frame: back to the grid. */
   readonly onEscape?: () => void;
 }
@@ -314,71 +326,170 @@ export function CodeLayer(props: CodeLayerProps) {
         </div>
       ))}
       {editing !== null && model.code(sheet.id, editing.row, editing.col) !== undefined && (
-        <div
-          data-cells-code-editor-holder=""
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 3,
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'center',
-            padding: 16,
-            background: 'rgba(0, 0, 0, 0.2)',
-            overflow: 'auto',
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              e.stopPropagation();
-              props.onCloseEditor?.();
-            }
-          }}
-        >
-          <div
-            style={{
-              background: theme.background,
-              color: theme.text,
-              border: `1px solid ${theme.gridline}`,
-              borderRadius: 6,
-              minWidth: 320,
-              maxWidth: '100%',
-              padding: 8,
-              pointerEvents: 'auto',
-            }}
-          >
-            {Editor !== undefined ? (
-              createElement(Editor, {
-                sheet: sheet.id,
-                row: editing.row,
-                col: editing.col,
-                model,
-                onClose: () => props.onCloseEditor?.(),
-              })
-            ) : (
-              <PlainEditor
-                model={model}
-                sheet={sheet.id}
-                row={editing.row}
-                col={editing.col}
-                onClose={() => props.onCloseEditor?.()}
-              />
-            )}
-          </div>
-        </div>
+        <CodeEditorOverlay
+          key={`${sheet.id}:${editing.row},${editing.col}`}
+          model={model}
+          sheet={sheet.id}
+          row={editing.row}
+          col={editing.col}
+          x={editing.x}
+          y={editing.y}
+          width={Math.max(
+            CODE_EDITOR_MIN_WIDTH,
+            codeFrame(model.code(sheet.id, editing.row, editing.col)!)?.width ?? 0,
+          )}
+          editor={Editor}
+          portalName={props.portalName}
+          returnFocusRef={props.returnFocusRef}
+          onClose={() => props.onCloseEditor?.()}
+        />
       )}
     </>
   );
 }
 
+/** The overlay's least width, px (§3.13: 560 px at least, or the cell's frame when wider). */
+export const CODE_EDITOR_MIN_WIDTH = 560;
+
+/** The props of `<CodeEditorOverlay>`. */
+export interface CodeEditorOverlayProps {
+  readonly model: CellsModel;
+  readonly sheet: string;
+  readonly row: number;
+  readonly col: number;
+  /** Where the overlay's top-left goes, view px of the grid's root (the cell's bottom-left). */
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  /** The contributed editor (jupyter-react's `Cell`); the plain textarea without one. */
+  readonly editor: ComponentType<CodeEditorRendererProps> | undefined;
+  readonly portalName?: string;
+  readonly returnFocusRef?: React.RefObject<HTMLElement | null>;
+  readonly onClose: () => void;
+}
+
+/**
+ * *Open in editor* (§3.13, C11-06): Primer's `Overlay` in the grid's own
+ * portal root, anchored at the cell, holding the contributed editor. Escape,
+ * a click outside, *Save* and Ctrl+S save the source back (one undo step)
+ * and close; Shift+Enter saves and runs the cell as the grid's run does.
+ */
+export function CodeEditorOverlay(props: CodeEditorOverlayProps) {
+  const { model, sheet, row, col } = props;
+  const controls = useRef<{ save: () => void } | null>(null);
+  const closed = useRef(false);
+  const save = () => controls.current?.save();
+  const close = () => {
+    if (closed.current) return;
+    closed.current = true;
+    save();
+    props.onClose();
+  };
+  const run = () => {
+    save();
+    void codeRunner(model)
+      .run({ sheet, row, col })
+      .catch(() => undefined);
+  };
+  const editorProps: CodeEditorRendererProps = {
+    sheet,
+    row,
+    col,
+    model,
+    onClose: () => {
+      closed.current = true;
+      props.onClose();
+    },
+    register: (c) => {
+      controls.current = c;
+    },
+  };
+  return (
+    <ThemeProvider>
+      <Overlay
+        role="dialog"
+        aria-label={`Code of ${codeRef(row, col)}`}
+        returnFocusRef={props.returnFocusRef as React.RefObject<HTMLElement>}
+        onClickOutside={close}
+        onEscape={close}
+        portalContainerName={props.portalName}
+        position="absolute"
+        top={props.y}
+        left={props.x}
+        width="auto"
+        style={{
+          backgroundColor: 'var(--overlay-bgColor, Canvas)',
+          color: 'var(--fgColor-default, CanvasText)',
+          boxShadow:
+            'var(--shadow-floating-small, 0 0 0 1px rgba(128, 128, 128, 0.35), 0 8px 24px rgba(0, 0, 0, 0.2))',
+        }}
+        data-cells-code-overlay=""
+      >
+        <div
+          data-cells-code-overlay=""
+          style={{ width: props.width, maxWidth: 'calc(100vw - 32px)', padding: 8 }}
+          onPointerDown={(e) => e.stopPropagation()}
+          onKeyDownCapture={(e) => {
+            // Before CodeMirror's own bindings: Shift+Enter runs the cell as the grid does, Ctrl+S saves.
+            if (e.key === 'Enter' && e.shiftKey) {
+              e.preventDefault();
+              e.stopPropagation();
+              run();
+            } else if (e.key.toLowerCase() === 's' && (e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              e.stopPropagation();
+              save();
+            }
+          }}
+          onKeyDown={(e) => {
+            // The grid's own keys must not see the editor's; Escape closes (and saves).
+            e.stopPropagation();
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              close();
+            }
+          }}
+        >
+          {props.editor !== undefined ? (
+            createElement(props.editor, editorProps)
+          ) : (
+            <PlainEditor {...editorProps} />
+          )}
+        </div>
+      </Overlay>
+    </ThemeProvider>
+  );
+}
+
 /** The editor with no renderer contributed: a textarea over the source, *Save* writes it back as one undo step. */
-export function PlainEditor({ model, sheet, row, col, onClose }: CodeEditorRendererProps) {
+export function PlainEditor({
+  model,
+  sheet,
+  row,
+  col,
+  onClose,
+  register,
+}: CodeEditorRendererProps) {
   const m = model as CellsModel;
   const code = m.code(sheet, row, col);
   const [text, setText] = useState(code?.source ?? '');
+  const latest = useRef(text);
+  latest.current = text;
+  const write = () => {
+    const current = m.code(sheet, row, col);
+    if (current !== undefined && latest.current !== current.source)
+      m.dispatch({
+        type: 'SET_CODE',
+        sheet,
+        row,
+        col,
+        code: { ...current, source: latest.current },
+      });
+  };
+  register?.({ save: write });
   if (code === undefined) return null;
   const save = () => {
-    if (text !== code.source)
-      m.dispatch({ type: 'SET_CODE', sheet, row, col, code: { ...code, source: text } });
+    write();
     onClose();
   };
   return (

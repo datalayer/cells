@@ -50,6 +50,8 @@ export default defineConfig({
       'src/react/__tests__/commandPalette.test.tsx',
       // The code cells page mounts Primer's SegmentedControl: the same.
       'src/react/__tests__/codeCellsPage.test.tsx',
+      // The code editor overlay is Primer's Overlay, as the menu is: the same.
+      'src/react/__tests__/codeEditor.test.tsx',
     ],
     pool: 'forks',
     poolOptions: { forks: { execArgv: ['--preserve-symlinks'] } },

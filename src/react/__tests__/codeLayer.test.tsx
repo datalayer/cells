@@ -11,8 +11,8 @@
  * in the grid: a frame beside its cell, named "Output of C4", drawn by the
  * contributed renderer (Acme's text one here) or the `text/plain` fallback;
  * no frame for a cell with no outputs or `frame: null`; at most 20 mounted;
- * *Go to output* focuses the frame and Escape returns to the grid; F4 opens
- * the editor over the cell, and *Save* writes the source back as one undo step.
+ * *Go to output* focuses the frame and Escape returns to the grid. The editor
+ * overlay is `codeEditor.test.tsx` (Primer's Overlay, out of the React 18 harness).
  */
 
 import { act } from 'react';
@@ -195,37 +195,6 @@ describe('the output frames of code cells', () => {
     await expect(m.reactor.executeCommand('cells.code.goToOutput')).rejects.toThrow(
       'This cell shows no output.',
     );
-  });
-
-  it('F4 opens the editor over a code cell; Save writes the source back as one undo step', () => {
-    const { m, div, grid } = mount();
-    m.dispatch({ type: 'SET_CODE', sheet: 's1', row: 1, col: 1, code: codeCell('1 + 1') });
-    act(() =>
-      m.select({
-        sheet: 's1',
-        zones: [{ top: 1, left: 1, bottom: 1, right: 1 }],
-        anchor: { row: 1, col: 1 },
-        active: { row: 1, col: 1 },
-      }),
-    );
-    act(() => grid.focus());
-    press(grid, { key: 'F4' });
-    const dialog = div.querySelector<HTMLElement>('[data-cells-code-editor]')!;
-    expect(dialog.getAttribute('aria-label')).toBe('Code of B2');
-    const area = dialog.querySelector<HTMLTextAreaElement>('textarea')!;
-    const setValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!;
-    act(() => {
-      setValue.call(area, '2 + 2');
-      area.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    act(() => {
-      [...dialog.querySelectorAll('button')].find((b) => b.textContent === 'Save')!.click();
-    });
-    expect(div.querySelector('[data-cells-code-editor]')).toBeNull();
-    expect(m.code('s1', 1, 1)?.source).toBe('2 + 2');
-    expect(document.activeElement).toBe(grid);
-    m.undo();
-    expect(m.code('s1', 1, 1)?.source).toBe('1 + 1');
   });
 
   it("shows an untrusted cell's text and images only, and everything once it ran here", async () => {
