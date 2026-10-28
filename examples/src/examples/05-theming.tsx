@@ -5,12 +5,8 @@
  */
 
 import { fromRows, Spreadsheet } from '@datalayer/cells';
-import {
-  AppearanceControls,
-  createThemeStore,
-  DatalayerThemeProvider,
-  themeConfigs,
-} from '@datalayer/primer-addons';
+import { AppearanceControls, DatalayerThemeProvider, themeConfigs } from '@datalayer/primer-addons';
+import { useAppearance } from '../appearance';
 import { Frame } from '../shared';
 
 const DATA = fromRows([
@@ -35,16 +31,6 @@ const HOST: Record<'light' | 'dark', Record<string, string>> = {
     '--bgColor-muted': '#161b22',
   },
 };
-
-/**
- * The examples' appearance, primer-addons' theme store: the Datalayer theme
- * in the system's light or dark at first, then what the reader chose, kept
- * in this browser across reloads.
- */
-const useAppearance = createThemeStore('cells-examples-theme', {
-  colorMode: 'auto',
-  theme: 'datalayer',
-});
 
 /** The colour mode `auto` stands for, here: the system's. */
 const systemMode = (): 'light' | 'dark' =>

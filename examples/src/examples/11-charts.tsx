@@ -13,12 +13,8 @@ import {
 } from '@datalayer/cells';
 import { CellsChartsPlugin } from '@datalayer/cells/charts';
 import { ChartPanel, Toolbar } from '@datalayer/cells/chrome';
-import {
-  AppearanceControls,
-  createThemeStore,
-  DatalayerThemeProvider,
-  themeConfigs,
-} from '@datalayer/primer-addons';
+import { AppearanceControls, DatalayerThemeProvider, themeConfigs } from '@datalayer/primer-addons';
+import { useAppearance } from '../appearance';
 import { Frame } from '../shared';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -137,12 +133,6 @@ export const WORKBOOK: CellsWorkbook = {
     },
   ],
 };
-
-/** The examples' appearance store, shared with the theming page. */
-const useAppearance = createThemeStore('cells-examples-theme', {
-  colorMode: 'auto',
-  theme: 'datalayer',
-});
 
 /**
  * Charts (§3.12): four charts anchored beside twelve months of figures, drawn

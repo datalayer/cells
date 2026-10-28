@@ -6,10 +6,11 @@
 
 /** The examples: a menu from simple to advanced, one route per example, its source beside it. */
 
-import { StrictMode, useEffect, useState, type ComponentType } from 'react';
+import { StrictMode, useEffect, useState, type ComponentType, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BaseStyles } from '@primer/react';
-import { DatalayerThemeProvider, themeConfigs } from '@datalayer/primer-addons';
+import { AppearanceControls, DatalayerThemeProvider, themeConfigs } from '@datalayer/primer-addons';
+import { useAppearance } from './appearance';
 import Minimal from './examples/01-minimal';
 import Formulas from './examples/02-formulas';
 import Editing from './examples/03-editing';
@@ -108,6 +109,41 @@ function useRoute(): string {
   return route;
 }
 
+/** The appearance chooser under the title: colour mode and theme, for every page. */
+function Appearance() {
+  const { colorMode, theme, setColorMode, setTheme } = useAppearance();
+  return (
+    <div className="appearance" data-examples-appearance="">
+      <AppearanceControls
+        colorMode={colorMode}
+        themeVariant={theme}
+        onColorModeChange={setColorMode}
+        onThemeChange={(variant) => setTheme(variant, false)}
+      />
+    </div>
+  );
+}
+
+/**
+ * The whole site wears the reader's appearance: the theme and colour mode chosen
+ * under the title. The grid's context menu is a Primer Overlay, drawn from
+ * Primer's CSS variables, so every page wears a Datalayer theme (a bare
+ * ThemeProvider defines none).
+ */
+function Themed({ children }: { children: ReactNode }) {
+  const { colorMode, theme } = useAppearance();
+  const config = themeConfigs[theme] ?? themeConfigs.datalayer;
+  return (
+    <DatalayerThemeProvider
+      colorMode={colorMode}
+      theme={config.primerTheme}
+      themeStyles={config.themeStyles}
+    >
+      <BaseStyles>{children}</BaseStyles>
+    </DatalayerThemeProvider>
+  );
+}
+
 function App() {
   const route = useRoute();
   const example = EXAMPLES.find((e) => e.id === route);
@@ -117,6 +153,7 @@ function App() {
         <h1>
           <span aria-hidden="true">🦠</span> Datalayer Cells
         </h1>
+        <Appearance />
         <ol>
           {EXAMPLES.map((e) => (
             <li key={e.id}>
@@ -149,17 +186,8 @@ const root = document.getElementById('root');
 if (root === null) throw new Error('The examples page has no #root.');
 createRoot(root).render(
   <StrictMode>
-    {/* The grid's context menu is a Primer Overlay, drawn from Primer's CSS variables: every page
-        wears the Datalayer theme, as the Toolbar page does, so the menu has its colours and its
-        hover on the pages without a theme chooser too (a bare ThemeProvider defines none). */}
-    <DatalayerThemeProvider
-      colorMode="auto"
-      theme={themeConfigs.datalayer.primerTheme}
-      themeStyles={themeConfigs.datalayer.themeStyles}
-    >
-      <BaseStyles>
-        <App />
-      </BaseStyles>
-    </DatalayerThemeProvider>
+    <Themed>
+      <App />
+    </Themed>
   </StrictMode>,
 );

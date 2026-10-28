@@ -36,6 +36,10 @@ nav h1 {
   font-size: 16px;
   margin: 0 0 12px;
 }
+nav .appearance {
+  margin: 0 0 12px;
+}
+
 nav ol {
   padding-left: 20px;
   margin: 0;
