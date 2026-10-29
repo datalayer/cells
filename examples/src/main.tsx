@@ -24,7 +24,7 @@ import ImportExport from './examples/06-import-export';
 import ReactApi from './examples/07-react-api';
 import Plugin from './examples/08-plugin';
 import Collaboration from './examples/09-collaboration';
-import Chrome from './examples/10-chrome';
+import ToolbarTabs from './examples/10-toolbar-tabs';
 import Charts from './examples/11-charts';
 import CellTypes from './examples/12-cell-types';
 import CodeCells from './examples/13-code-cells';
@@ -81,10 +81,10 @@ export const EXAMPLES: readonly Example[] = [
     Component: Collaboration,
   },
   {
-    id: 'chrome',
-    title: 'Toolbar, Formulas and Tabs',
-    file: '10-chrome.tsx',
-    Component: Chrome,
+    id: 'toolbar-tabs',
+    title: 'Toolbar and Tabs',
+    file: '10-toolbar-tabs.tsx',
+    Component: ToolbarTabs,
   },
   { id: 'charts', title: 'Charts', file: '11-charts.tsx', Component: Charts },
   { id: 'cell-types', title: 'Cell Types', file: '12-cell-types.tsx', Component: CellTypes },

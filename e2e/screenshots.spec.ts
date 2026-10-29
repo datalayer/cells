@@ -17,11 +17,11 @@ import { expect, type Page, test } from '@playwright/test';
 
 const SCHEMES = ['light', 'dark'] as const;
 
-/** Open the chrome page in a colour scheme (the examples' appearance follows the system's). */
+/** Open the toolbar and tabs page in a colour scheme (the examples' appearance follows the system's). */
 async function open(page: Page, scheme: (typeof SCHEMES)[number]) {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.emulateMedia({ colorScheme: scheme });
-  await page.goto('/#/chrome');
+  await page.goto('/#/toolbar-tabs');
   const grid = page.getByRole('grid', { name: 'Budget' });
   await grid.waitFor();
   await page.evaluate(() => document.fonts.ready);

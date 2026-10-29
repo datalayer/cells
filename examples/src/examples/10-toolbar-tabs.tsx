@@ -16,7 +16,7 @@ import { Frame } from '../shared';
  * `<CellsProvider>`. Tab to the toolbar and move with the arrows; type a
  * reference in the name box; double-click a tab to rename it.
  */
-export default function Chrome() {
+export default function ToolbarTabs() {
   const model = useCellsModel(() => {
     const m = createCellsModel({ limits: { rows: 200, cols: 12 } });
     m.dispatch({
