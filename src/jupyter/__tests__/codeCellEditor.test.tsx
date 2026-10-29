@@ -203,6 +203,12 @@ describe('the code editor of ./jupyter', () => {
       'Save',
       'Cancel',
     ]);
+    // Each with its octicon before its label.
+    expect(
+      [...div.querySelectorAll('button')].map((b) =>
+        b.querySelector('svg.octicon')?.getAttribute('class')?.replace('octicon ', ''),
+      ),
+    ).toEqual(['octicon-play', 'octicon-check', 'octicon-x']);
     const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!;
     act(() => {
       setter.call(standIn, '2 + 2');

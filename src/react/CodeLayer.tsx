@@ -22,6 +22,7 @@
  * @module react/CodeLayer
  */
 
+import { CheckIcon, XIcon } from '@primer/octicons-react';
 import { Button, Overlay, Textarea, ThemeProvider } from '@primer/react';
 import {
   createElement,
@@ -954,10 +955,10 @@ export function PlainEditor({
         onChange={(e) => setText(e.target.value)}
       />
       <div style={{ marginTop: 8, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-        <Button size="small" variant="primary" onClick={save}>
+        <Button size="small" variant="primary" leadingVisual={CheckIcon} onClick={save}>
           Save
         </Button>
-        <Button size="small" onClick={onClose}>
+        <Button size="small" leadingVisual={XIcon} onClick={onClose}>
           Cancel
         </Button>
       </div>

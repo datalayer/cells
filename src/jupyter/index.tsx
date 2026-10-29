@@ -40,6 +40,7 @@ import {
   Output,
   ServiceManagerLess,
 } from '@datalayer/jupyter-react';
+import { CheckIcon, PlayIcon, XIcon } from '@primer/octicons-react';
 import { Button } from '@primer/react';
 import type { IOutput } from '@jupyterlab/nbformat';
 import type { ServiceManager } from '@jupyterlab/services';
@@ -435,13 +436,18 @@ export function CodeCellEditor({
           </p>
         )}
         <div style={{ marginTop: 8, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <Button size="small" onClick={() => void run()} disabled={running}>
+          <Button
+            size="small"
+            leadingVisual={PlayIcon}
+            onClick={() => void run()}
+            disabled={running}
+          >
             {running ? 'Running…' : 'Run'}
           </Button>
-          <Button size="small" variant="primary" onClick={save}>
+          <Button size="small" variant="primary" leadingVisual={CheckIcon} onClick={save}>
             Save
           </Button>
-          <Button size="small" onClick={onClose}>
+          <Button size="small" leadingVisual={XIcon} onClick={onClose}>
             Cancel
           </Button>
         </div>

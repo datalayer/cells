@@ -211,6 +211,12 @@ describe('the code editor overlay', () => {
     press(grid, { key: 'F4' });
     await tick();
     const area = div.querySelector<HTMLTextAreaElement>('[data-cells-code-editor] textarea')!;
+    // Save and Cancel, each with its octicon.
+    expect(
+      [...div.querySelectorAll('[data-cells-code-editor] button')].map(
+        (b) => `${b.textContent} ${b.querySelector('svg.octicon')?.getAttribute('class')}`,
+      ),
+    ).toEqual(['Save octicon octicon-check', 'Cancel octicon octicon-x']);
     const setValue = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!;
     act(() => {
       setValue.call(area, '2 + 2');

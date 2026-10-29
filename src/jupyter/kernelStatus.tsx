@@ -18,6 +18,7 @@
 
 import { KernelIndicator } from '@datalayer/jupyter-react/kernel-indicator';
 import type { Kernel as JupyterKernel } from '@jupyterlab/services';
+import { CpuIcon, SquareFillIcon, SyncIcon } from '@primer/octicons-react';
 import { ActionList, ActionMenu } from '@primer/react';
 import { useCallback, useSyncExternalStore } from 'react';
 import { codeRunner } from '../core/codeRun.js';
@@ -71,7 +72,12 @@ export function KernelStatus({ model, menu = true }: KernelStatusProps) {
         <KernelIndicator kernel={connection} />
         {menu && kernel !== undefined && (
           <ActionMenu>
-            <ActionMenu.Button size="small" variant="invisible" aria-label="Kernel actions">
+            <ActionMenu.Button
+              size="small"
+              variant="invisible"
+              leadingVisual={CpuIcon}
+              aria-label="Kernel actions"
+            >
               Kernel
             </ActionMenu.Button>
             <ActionMenu.Overlay width="small">
@@ -80,12 +86,18 @@ export function KernelStatus({ model, menu = true }: KernelStatusProps) {
                   disabled={kernel.interrupt === undefined}
                   onSelect={() => void kernel.interrupt?.().catch(() => undefined)}
                 >
+                  <ActionList.LeadingVisual>
+                    <SquareFillIcon />
+                  </ActionList.LeadingVisual>
                   Interrupt kernel
                 </ActionList.Item>
                 <ActionList.Item
                   disabled={kernel.restart === undefined}
                   onSelect={() => void kernel.restart?.().catch(() => undefined)}
                 >
+                  <ActionList.LeadingVisual>
+                    <SyncIcon />
+                  </ActionList.LeadingVisual>
                   Restart kernel
                 </ActionList.Item>
               </ActionList>

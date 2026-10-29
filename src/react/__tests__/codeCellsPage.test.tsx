@@ -145,6 +145,14 @@ describe('the code cells page', () => {
     await act(async () => new Promise((r) => setTimeout(r, 0)));
     expect(div.querySelector('[data-mock-cell="1,2"]')).not.toBeNull();
     expect(div.querySelector('[data-cells-code-editor] textarea[aria-label="Source"]')).toBeNull();
+    // The page's buttons carry their octicons.
+    const icon = (name: string) =>
+      [...div.querySelectorAll('button')]
+        .find((b) => b.textContent === name)
+        ?.querySelector('svg.octicon')
+        ?.getAttribute('class');
+    expect(icon('Run all')).toContain('octicon-play');
+    expect(icon('Interrupt')).toContain('octicon-square-fill');
   });
 
   it('holds the table, the two code cells and the formula over C2', () => {

@@ -25,6 +25,7 @@ import {
 } from '@datalayer/cells';
 import { LoroBinding } from '@datalayer/cells/collab';
 import { LoroDoc } from 'loro-crdt';
+import { PlayIcon, SquareFillIcon } from '@primer/octicons-react';
 import { Button, SegmentedControl } from '@primer/react';
 import {
   lazy,
@@ -519,10 +520,20 @@ export default function CodeCells(props: {
           ))}
         </SegmentedControl>
         <KernelBadge model={model} />
-        <Button size="small" type="button" onClick={() => run('cells.code.runAll')}>
+        <Button
+          size="small"
+          type="button"
+          leadingVisual={PlayIcon}
+          onClick={() => run('cells.code.runAll')}
+        >
           Run all
         </Button>
-        <Button size="small" type="button" onClick={() => run('cells.code.interrupt')}>
+        <Button
+          size="small"
+          type="button"
+          leadingVisual={SquareFillIcon}
+          onClick={() => run('cells.code.interrupt')}
+        >
           Interrupt
         </Button>
       </div>
