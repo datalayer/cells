@@ -57,8 +57,10 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: The Python peer of the monkey party
-        run: python -m pip install -e ".[live]"
+      # The live workbook's e2e (e2e/liveWorkbook.spec.ts) runs code cells on a local Jupyter
+      # server's kernel, which imports datalayer_cells and pandas.
+      - name: The Python peer of the monkey party, and the kernel of the code cells' e2e
+        run: python -m pip install -e ".[live]" jupyter-server ipykernel pandas
 
       - name: Test
         run: npm test
@@ -84,6 +86,8 @@ jobs:
         run: npm run e2e
         env:
           CELLS_DOCUSAURUS_SITE: '1'
+          # The live workbook's e2e starts `jupyter server`: without one it fails rather than skips.
+          CELLS_CODE_KERNEL: '1'
           # The screenshot suite compares with e2e/__screenshots__, written by CI's own run 40859196427
           # (CELLS_SCREENSHOTS_WRITE=1). When the chrome changes on purpose, set it for one run,
           # take the e2e-screenshots artifact, look at it, and commit it.

@@ -105,6 +105,7 @@ export default defineConfig({
         index: page('index.html'),
         e2e: page('e2e.html'),
         e2eCollab: page('e2e-collab.html'),
+        e2eCode: page('e2e-code.html'),
         bench: page('bench.html'),
       },
     },

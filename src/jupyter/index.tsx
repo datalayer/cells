@@ -105,10 +105,32 @@ export function jupyterKernel(kernel: Kernel, binding?: CellsBinding): JupyterCe
       await bound();
       const executor = kernel.execute(code, { storeHistory: false });
       if (executor === undefined) throw new Error('The kernel is not connected.');
-      await executor.done;
+      // jupyter-react rejects `done` with a string on an error reply
+      // (`ename: evalue\ntraceback…`, or 'Execution aborted.'): an exception in
+      // the code is the run's outcome, its error output, not a kernel failure.
+      let failed: string | undefined;
+      await executor.done.catch((reason: unknown) => {
+        failed = reason instanceof Error ? reason.message : String(reason);
+      });
       // The output model's nbformat outputs: jupyter-react's `executor.outputs`
       // (before 2.0.22) are the messages' contents, without their `output_type`.
-      return { outputs: executor.model.toJSON() as unknown as CodeOutputData[] };
+      const outputs = executor.model.toJSON() as unknown as CodeOutputData[];
+      if (failed === undefined || outputs.some((o) => o.output_type === 'error'))
+        return { outputs };
+      const [head, ...traceback] = failed.split('\n');
+      const colon = head.indexOf(': ');
+      if (colon < 0) throw new Error(failed);
+      return {
+        outputs: [
+          ...outputs,
+          {
+            output_type: 'error',
+            ename: head.slice(0, colon),
+            evalue: head.slice(colon + 2),
+            traceback,
+          },
+        ],
+      };
     },
     interrupt: () => kernel.interrupt(),
     restart: () => kernel.restart(),
