@@ -4,6 +4,7 @@
  * MIT License
  */
 
+import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 
 const EXAMPLES = [
@@ -168,6 +169,32 @@ test.describe('the examples', () => {
     await expect(page.getByRole('textbox', { name: 'CSV' })).toHaveValue(
       'name,born,share\nLovelace; Ada,45000,0.5\n',
     );
+  });
+
+  test('an XLSX file dropped on the grid opens through its worker, with its values and formulas', async ({
+    page,
+  }) => {
+    const workers: string[] = [];
+    page.on('worker', (w) => workers.push(w.url()));
+    await page.goto('/#/import-export');
+    const bytes = readFileSync(new URL('../tests/xlsx/values-formulas.xlsx', import.meta.url));
+    const dataTransfer = await page.evaluateHandle((b64) => {
+      const bin = atob(b64);
+      const data = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i += 1) data[i] = bin.charCodeAt(i);
+      const dt = new DataTransfer();
+      dt.items.add(new File([data], 'values-formulas.xlsx'));
+      return dt;
+    }, bytes.toString('base64'));
+    await page.getByRole('grid', { name: 'Imported' }).dispatchEvent('drop', { dataTransfer });
+    await expect(page.getByRole('status')).toContainText(/values-formulas\.xlsx: \d+ sheets/);
+    expect(workers.some((u) => u.includes('xlsx/worker'))).toBe(true);
+    await expect(
+      page
+        .getByRole('grid', { name: 'Imported' })
+        .getByRole('gridcell', { name: /formula: =/ })
+        .first(),
+    ).toBeAttached();
   });
 
   test('two grids on one model show the same cells', async ({ page }) => {

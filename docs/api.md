@@ -411,14 +411,16 @@ Besides everything of `@datalayer/cells/core`:
 
 ## `@datalayer/cells/xlsx`
 
-| Export                                      | Kind     | What it is                                                                                                  |
-| ------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------- |
-| [`BUILTIN_FORMATS`](../src/xlsx/formats.ts) | const    | The number formats SpreadsheetML gives by id without writing them out (ECMA-376 Part 1, 18.8.30), in en-US. |
-| [`CELLS_XLSX_PLUGIN`](../src/xlsx/index.ts) | const    | The name of `CellsXlsxPlugin`.                                                                              |
-| [`CellsXlsxPlugin`](../src/xlsx/index.ts)   | const    | The XLSX importer and exporter, loaded lazily on the first read of the importer point.                      |
-| [`ImportReport`](../src/xlsx/read.ts)       | type     | What an import met and left out, and what it changed, for the person who opened the file.                   |
-| [`readXlsx`](../src/xlsx/read.ts)           | function | Read an XLSX file into a workbook, and what was left out.                                                   |
-| [`writeXlsx`](../src/xlsx/write.ts)         | function | Write a model's workbook as XLSX bytes.                                                                     |
+| Export                                           | Kind     | What it is                                                                                                                                                                                                    |
+| ------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`BUILTIN_FORMATS`](../src/xlsx/formats.ts)      | const    | The number formats SpreadsheetML gives by id without writing them out (ECMA-376 Part 1, 18.8.30), in en-US.                                                                                                   |
+| [`CELLS_XLSX_PLUGIN`](../src/xlsx/index.ts)      | const    | The name of `CellsXlsxPlugin`.                                                                                                                                                                                |
+| [`CellsXlsxPlugin`](../src/xlsx/index.ts)        | const    | The XLSX importer and exporter, loaded lazily on the first read of the importer point.                                                                                                                        |
+| [`ImportReport`](../src/xlsx/read.ts)            | type     | What an import met and left out, and what it changed, for the person who opened the file.                                                                                                                     |
+| [`readXlsx`](../src/xlsx/read.ts)                | function | Read an XLSX file into a workbook, and what was left out.                                                                                                                                                     |
+| [`readXlsxFile`](../src/xlsx/readInWorker.ts)    | function | Read an XLSX file's bytes into a workbook and its import report: in a module worker when the platform has one (a copy of the bytes is transferred to it; the caller's stay as they are), else on this thread. |
+| [`writeXlsx`](../src/xlsx/write.ts)              | function | Write a model's workbook as XLSX bytes.                                                                                                                                                                       |
+| [`XlsxReadOptions`](../src/xlsx/readInWorker.ts) | type     | Where `readXlsxFile` reads: in a module worker (the default where the platform has one) or on this thread.                                                                                                    |
 
 ## `@datalayer/cells/collab`
 

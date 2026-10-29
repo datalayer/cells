@@ -17,10 +17,11 @@ import { contribution, definePlugin } from '@datalayer/reactor';
 import type { CellsWorkbook } from '../core/format.js';
 import type { CellsModel } from '../core/model.js';
 import { CellsExporters, CellsImporters } from '../points/index.js';
-import { readXlsx } from './read.js';
+import { readXlsxFile } from './readInWorker.js';
 import { writeXlsx } from './write.js';
 
 export { type ImportReport, readXlsx } from './read.js';
+export { readXlsxFile, type XlsxReadOptions } from './readInWorker.js';
 export { BUILTIN_FORMATS } from './formats.js';
 export { writeXlsx } from './write.js';
 
@@ -49,7 +50,8 @@ export const CellsXlsxPlugin = definePlugin({
         id: 'xlsx',
         mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         extensions: ['.xlsx'],
-        read: async (input): Promise<CellsWorkbook> => readXlsx(await bytesOf(input)).workbook,
+        read: async (input): Promise<CellsWorkbook> =>
+          (await readXlsxFile(await bytesOf(input))).workbook,
       },
       { id: 'xlsx' },
     ),

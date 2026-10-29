@@ -105,7 +105,7 @@ function Json({ onReload }: { onReload: (model: CellsModel) => void }) {
 }
 
 /**
- * Open a file: CSV or TSV (parsed in a worker), or XLSX (loaded on demand).
+ * Open a file: CSV or TSV (parsed in a worker), or XLSX (loaded on demand, read in its worker).
  * What the XLSX reader left out is listed under the grid.
  */
 async function openFile(file: File): Promise<{ model: CellsModel; note: string }> {
@@ -113,8 +113,8 @@ async function openFile(file: File): Promise<{ model: CellsModel; note: string }
   const took = () => `${Math.round(performance.now() - t0)} ms`;
   if (/\.xlsx$/i.test(file.name)) {
     // Loaded when a workbook is opened, so the grid's bundle does not carry it.
-    const { readXlsx } = await import('@datalayer/cells/xlsx');
-    const { workbook, report } = readXlsx(new Uint8Array(await file.arrayBuffer()));
+    const { readXlsxFile } = await import('@datalayer/cells/xlsx');
+    const { workbook, report } = await readXlsxFile(new Uint8Array(await file.arrayBuffer()));
     const model = createCellsModel({ data: workbook });
     const skipped = report.skipped.map((x) => `${x.feature} (${x.count})`).join(', ');
     return {

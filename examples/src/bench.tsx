@@ -10,14 +10,18 @@
  * window, with marks for first paint. Not linked from the examples' menu.
  */
 
+import { contribution, definePlugin } from '@datalayer/reactor';
 import {
+  CellsDataSources,
   type CellsHandle,
   type CellsModel,
   type CellValue,
   createCellsModel,
+  type DataSource,
   Spreadsheet,
 } from '@datalayer/cells';
 import { importCsv } from '@datalayer/cells/csv';
+import { readXlsxFile, writeXlsx } from '@datalayer/cells/xlsx';
 import { createRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { FIXTURES, type FixtureName } from '../../bench/fixtures/fixtures';
@@ -105,11 +109,94 @@ const api = {
     await importCsv(model, csvFile!);
     return { ms: performance.now() - t0, cells: model.stats().cells };
   },
+  /**
+   * C7-03: a synthetic data source of `rows` rows × 12 text and number columns,
+   * answered a page at a time after `delayMs` (as a server would), bound at A1
+   * of a sheet of `rows` rows, the grid mounted full window. Every visible cell
+   * is filled once its page arrives.
+   */
+  async dataSource(rows: number, delayMs: number): Promise<void> {
+    const cols = 12;
+    const source: DataSource = {
+      id: 'synthetic',
+      rowCount: rows,
+      columns: Array.from({ length: cols }, (_, c) => ({
+        name: `C${c + 1}`,
+        type: c % 3 === 0 ? 'string' : 'number',
+      })),
+      fetch: ({ from, to }) =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            const n = to - from + 1;
+            resolve(
+              Array.from({ length: cols }, (_, c) =>
+                Array.from({ length: n }, (_, i) =>
+                  c % 3 === 0 ? `row ${from + i + 1}` : ((from + i) * 7 + c) / 4,
+                ),
+              ),
+            );
+          }, delayMs);
+        }),
+    };
+    const plugin = definePlugin({
+      name: '@bench/synthetic',
+      displayName: 'Synthetic rows',
+      contributes: [contribution(CellsDataSources, source, { id: 'synthetic' })],
+    });
+    const model = createCellsModel({ plugins: [plugin], limits: { rows, cols: 26 } });
+    const bound = model.dispatch({
+      type: 'BIND_DATA_SOURCE',
+      sheet: 's1',
+      source: 'synthetic',
+      at: { row: 0, col: 0 },
+    });
+    if (!bound.ok) throw new Error(JSON.stringify(bound));
+    sourced = model;
+    createRoot(document.getElementById('root')!).render(
+      <Spreadsheet ref={handle} model={model} aria-label="Bench" />,
+    );
+    // The first page in view has arrived and is painted.
+    await new Promise<void>((resolve) => {
+      const wait = () =>
+        model.dataSourceStats().resident > 0
+          ? requestAnimationFrame(() => resolve())
+          : setTimeout(wait, 5);
+      wait();
+    });
+  },
+  /** Make an XLSX file of `rows` × 10 (numbers and words), written by the grid's writer, for `xlsxImport`. */
+  xlsxFile(rows: number): number {
+    const model = createCellsModel();
+    const columns: CellValue[][] = [];
+    for (let c = 0; c < 10; c += 1) {
+      const col: CellValue[] = new Array(rows);
+      for (let r = 0; r < rows; r += 1) col[r] = c % 3 === 0 ? `word ${r}` : (r * 7 + c) / 4;
+      columns.push(col);
+    }
+    model.loadColumns('s1', { row: 0, col: 0 }, columns);
+    xlsxFile = writeXlsx(model);
+    return xlsxFile.byteLength;
+  },
+  /**
+   * C5-02: read the file `xlsxFile` made in the XLSX worker and load it into a
+   * fresh model; resolves with the time it took and the cells loaded.
+   */
+  async xlsxImport(): Promise<{ ms: number; cells: number }> {
+    const t0 = performance.now();
+    const { workbook } = await readXlsxFile(xlsxFile!);
+    const model = createCellsModel({ data: workbook });
+    return { ms: performance.now() - t0, cells: model.stats().cells };
+  },
+  /** The data source model's page counters. */
+  dataSourceStats: () => sourced!.dataSourceStats(),
   handle: () => handle.current!,
 };
 
+let sourced: CellsModel | undefined;
+
 let chained: CellsModel | undefined;
 let csvFile: Blob | undefined;
+let xlsxFile: Uint8Array | undefined;
 
 /** Resolves when the model's background recalculation is over. */
 function idle(model: CellsModel): Promise<void> {

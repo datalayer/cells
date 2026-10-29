@@ -32,6 +32,16 @@
       "unit": "ms",
       "where": "browser"
     },
+    "dataSource.scrollFrame.jsMs": {
+      "max": 8,
+      "unit": "ms",
+      "where": "browser"
+    },
+    "dataSource.scrollFling.maxFrameMs": {
+      "max": 16.7,
+      "unit": "ms",
+      "where": "browser"
+    },
     "jumpScroll.frames": {
       "max": 1,
       "unit": "frames",
