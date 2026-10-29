@@ -15,7 +15,13 @@ import { LoroDoc } from 'loro-crdt';
 import { WebSocket } from 'ws';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createCellsModel } from '../../core/index.js';
-import { bindRoom, bridgeDocs, cellsWsCollabPlugin, joinRoom } from '../transport.js';
+import {
+  bindRoom,
+  bridgeDocs,
+  cellsWsCollabPlugin,
+  joinRoom,
+  ROOM_KEEPALIVE_MS,
+} from '../transport.js';
 import { LoroBinding } from '../binding.js';
 import { CellsCollabProvider } from '../../points/index.js';
 
@@ -45,6 +51,32 @@ describe('the shared transport', () => {
     expect(typeof transport.WebsocketProvider).toBe('function');
     const server = await import('@datalayer/lexical-loro/lib/collab/loro/transport/server.js');
     expect(typeof server.setupWSConnection).toBe('function');
+  });
+
+  it('an idle room stays connected: the socket hears from the server well within the 30 s it is given', async () => {
+    // lexical-loro's provider drops a socket that received nothing for 30 s; Cells asks the
+    // room's presence every ROOM_KEEPALIVE_MS, and the answer keeps the socket alive.
+    expect(ROOM_KEEPALIVE_MS).toBeGreaterThan(0);
+    expect(ROOM_KEEPALIVE_MS).toBeLessThanOrEqual(10_000);
+    const joined = await joinRoom({
+      url: rooms.url,
+      room: `idle${Date.now()}`,
+      doc: new LoroDoc(),
+      WebSocketPolyfill: WebSocket,
+      keepAliveMs: 100,
+    });
+    try {
+      const heard = () =>
+        (joined.provider as unknown as { wsLastMessageReceived: number }).wsLastMessageReceived;
+      // Idle: nothing is edited; the last message heard keeps moving.
+      await new Promise((r) => setTimeout(r, 600));
+      const first = heard();
+      await new Promise((r) => setTimeout(r, 600));
+      expect(heard()).toBeGreaterThan(first);
+      expect(Date.now() - heard()).toBeLessThan(500);
+    } finally {
+      joined.leave();
+    }
   });
 
   it('two models in one room on the ws server see each other’s cells; a late peer adopts the room', async () => {

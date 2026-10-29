@@ -42,7 +42,18 @@ export interface RoomOptions {
   readonly WebSocketPolyfill?: unknown;
   /** How long to wait for the first sync, ms; the default is 10 s. */
   readonly timeout?: number;
+  /** How often an idle socket asks the room for its presence, ms; {@link ROOM_KEEPALIVE_MS} by default. */
+  readonly keepAliveMs?: number;
 }
+
+/**
+ * How often a joined room asks the server for its presence, ms. lexical-loro's
+ * provider closes a socket that received nothing for 30 s and opens another;
+ * an idle room (two pages open, nobody typing) heard nothing, so its socket
+ * went down every 30 s or so, and edits sent meanwhile could be missed. The
+ * server answers each ask, which keeps the socket alive.
+ */
+export const ROOM_KEEPALIVE_MS = 10_000;
 
 /** The provider's surface Cells uses; the rest is lexical-loro's. */
 export interface RoomProvider {
@@ -83,6 +94,7 @@ export async function joinRoom(options: RoomOptions): Promise<Room> {
   // provider of the process, which makes two peers in one page share one presence.
   const provider = new WebsocketProvider(options.url, options.room, options.doc, {
     ephemeralStore: new EphemeralStore(300_000),
+    resyncInterval: options.keepAliveMs ?? ROOM_KEEPALIVE_MS,
     ...(options.WebSocketPolyfill !== undefined
       ? { WebSocketPolyfill: options.WebSocketPolyfill as typeof WebSocket }
       : {}),
