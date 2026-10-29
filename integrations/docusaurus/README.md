@@ -1,6 +1,6 @@
 [![Datalayer](https://images.datalayer.io/legacy/datalayer-25.svg)](https://datalayer.ai)
 
-# ☰ 🦠 🦕 Datalayer Cells Integration for Docusaurus
+# ☰ 🧮 🦕 Datalayer Cells Integration for Docusaurus
 
 `@datalayer/cells-docusaurus` shows [Datalayer Cells](../../README.md) in a
 [Docusaurus](https://docusaurus.io) site: a workbook written as data in a

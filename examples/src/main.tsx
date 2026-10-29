@@ -141,7 +141,7 @@ function App() {
       <nav aria-label="Examples">
         <div className="title">
           <h1>
-            <span aria-hidden="true">🦠</span> Datalayer Cells
+            <span aria-hidden="true">🧮</span> Datalayer Cells
           </h1>
           {/* primer-addons' appearance menu, to the right of the title, bound to the site's store. */}
           <AppearanceMenuWithStore
