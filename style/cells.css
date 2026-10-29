@@ -5,3 +5,28 @@
  */
 
 /* The DOM parts of the grid: the editor overlay and the accessibility mirror. */
+
+/*
+ * The grid's scrollbars. The component colours them inline with
+ * `scrollbar-color` (Firefox, Chrome 121 and later) from the cells theme, and
+ * sets the same colours as the variables below; a browser without
+ * `scrollbar-color` (Safari) reads them through `::-webkit-scrollbar` when the
+ * host imports this file.
+ */
+@supports not (scrollbar-color: auto) {
+  [data-cells-scroller]::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+    background: var(--cells-scrollbar-track, transparent);
+  }
+
+  [data-cells-scroller]::-webkit-scrollbar-thumb {
+    background: var(--cells-scrollbar-thumb, rgb(128 128 128 / 60%));
+    border: 3px solid var(--cells-scrollbar-track, transparent);
+    border-radius: 7px;
+  }
+
+  [data-cells-scroller]::-webkit-scrollbar-corner {
+    background: var(--cells-scrollbar-track, transparent);
+  }
+}

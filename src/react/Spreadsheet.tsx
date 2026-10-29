@@ -7,7 +7,9 @@
 /**
  * `<Spreadsheet>` (and its alias `<Cells>`): the canvas grid as a React
  * component. A native scroll container gives wheel, trackpad inertia, touch
- * and scrollbars; the canvases sit sticky in it, the size of the viewport.
+ * and scrollbars; it sits over the canvases, which draw the grid inside its
+ * scrollbars (the scrollbars' gutter is left to them, themed from the cells
+ * theme), so the scrollbars show and take the pointer.
  * One focusable element is the grid for keyboards and screen readers; a
  * hidden mirror of the visible cells carries their names.
  *
@@ -166,6 +168,23 @@ export const MIRROR_CAP = 1000;
 /** How long the pointer rests on a code cell with outputs before its preview opens, ms. */
 export const CODE_HOVER_MS = 300;
 
+/**
+ * Whether a pointer event is on the scroller's own scrollbars (past its client
+ * box): the browser drags the thumb or pages on the track, the grid does not
+ * select or open its menu there.
+ */
+function onScrollbar(
+  e: { target: EventTarget | null; clientX: number; clientY: number },
+  scroller: HTMLElement | null,
+): boolean {
+  if (scroller === null || e.target !== scroller) return false;
+  const rect = scroller.getBoundingClientRect();
+  return (
+    e.clientX - rect.left >= scroller.clientLeft + scroller.clientWidth ||
+    e.clientY - rect.top >= scroller.clientTop + scroller.clientHeight
+  );
+}
+
 function errorMeaning(code: string): string {
   const meanings: Record<string, string> = {
     '#DIV/0!': 'division by zero',
@@ -280,7 +299,10 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
     const [viewport, setViewport] = useState<Viewport | null>(null);
     const [theme, setTheme] = useState<CellsTheme | null>(null);
     const [spacer, setSpacer] = useState({ width: 0, height: 0 });
+    /** What the canvases draw: the root less the scrollbars' gutter. */
     const [size, setSize] = useState({ width: 0, height: 0 });
+    /** The scrollbars' thickness, CSS px: 0 with overlay scrollbars. */
+    const [gutter, setGutter] = useState({ right: 0, bottom: 0 });
     const [announcement, setAnnouncement] = useState('');
     const [, setRevision] = useState(0);
     /** Grows on changes to the cells only (not the selection): what the mirror's rows re-read names on. */
@@ -401,7 +423,20 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
       const root = rootRef.current!;
       const measure = () => {
         const rect = root.getBoundingClientRect();
-        const next = { width: Math.floor(rect.width), height: Math.floor(rect.height) };
+        // The scroller always shows its scrollbars (overflow: scroll), so their gutter is fixed:
+        // the canvases draw inside it and the viewport ends where the scrollbars start.
+        const scroller = scrollerRef.current;
+        const g = scroller
+          ? {
+              right: Math.max(0, scroller.offsetWidth - scroller.clientWidth),
+              bottom: Math.max(0, scroller.offsetHeight - scroller.clientHeight),
+            }
+          : { right: 0, bottom: 0 };
+        setGutter((s) => (s.right === g.right && s.bottom === g.bottom ? s : g));
+        const next = {
+          width: Math.max(0, Math.floor(rect.width) - g.right),
+          height: Math.max(0, Math.floor(rect.height) - g.bottom),
+        };
         setSize((s) => (s.width === next.width && s.height === next.height ? s : next));
         rendererRef.current?.setSize(next.width, next.height, devicePixelRatio || 1);
         syncView();
@@ -984,6 +1019,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
 
     const onPointerDown = useCallback(
       (e: React.PointerEvent) => {
+        if (onScrollbar(e, scrollerRef.current)) return; // The browser drags the thumb.
         if (
           (e.target as Element).closest(
             '[data-cells-editor], [data-cells-popup], [data-cells-chart], [data-cells-chart-holder]',
@@ -1132,6 +1168,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
     const onPointerMove = useCallback(
       (e: React.PointerEvent) => {
         if (
+          !onScrollbar(e, scrollerRef.current) &&
           !pointing.current &&
           fillDrag.current === null &&
           headerDrag.current === null &&
@@ -1288,6 +1325,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
       (e: React.MouseEvent) => {
         const r = rendererRef.current;
         if (r === null || model.readOnly || e.button !== 0) return;
+        if (onScrollbar(e, scrollerRef.current)) return;
         if (
           (e.target as Element).closest(
             '[data-cells-editor], [data-cells-chart], [data-cells-chart-holder]',
@@ -1337,6 +1375,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
 
     const onContextMenu = useCallback(
       (e: React.MouseEvent) => {
+        if (onScrollbar(e, scrollerRef.current)) return;
         const cell = pointToCell(e);
         const r = rendererRef.current;
         if (cell === undefined || r === null) return;
@@ -1443,7 +1482,14 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
         >
           <div
             ref={rootRef}
-            style={{ position: 'absolute', inset: 0, overflow: 'hidden', outline: 'none' }}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              overflow: 'hidden',
+              outline: 'none',
+              // The strips beside the scrollbars (past the headers) in the headers' colour.
+              background: theme?.headerBackground,
+            }}
             role="grid"
             tabIndex={0}
             aria-label={props['aria-label'] ?? `Spreadsheet, ${sheet.name}`}
@@ -1469,21 +1515,6 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
             onCut={(e) => onCopy(e, true)}
             onPaste={onPaste}
           >
-            <div
-              ref={scrollerRef}
-              onScroll={onScroll}
-              data-cells-scroller=""
-              style={{
-                position: 'absolute',
-                left: viewport ? viewport.panes.find((p) => p.name === 'main')!.x : 0,
-                top: viewport ? viewport.panes.find((p) => p.name === 'main')!.y : 0,
-                right: 0,
-                bottom: 0,
-                overflow: 'auto',
-              }}
-            >
-              <div style={{ width: spacer.width, height: spacer.height }} />
-            </div>
             <canvas
               ref={gridRef}
               aria-hidden="true"
@@ -1508,6 +1539,32 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
                 pointerEvents: 'none',
               }}
             />
+            {/* The scroller, after the canvases so its scrollbars paint over them. */}
+            <div
+              ref={scrollerRef}
+              onScroll={onScroll}
+              data-cells-scroller=""
+              style={{
+                position: 'absolute',
+                left: viewport ? viewport.panes.find((p) => p.name === 'main')!.x : 0,
+                top: viewport ? viewport.panes.find((p) => p.name === 'main')!.y : 0,
+                right: 0,
+                bottom: 0,
+                // Always both scrollbars: a fixed gutter the canvases leave free, and a thumb
+                // that maps to the whole sheet (render/scroll). Over the canvases, which take no
+                // pointer: the scroller takes the wheel, the thumb and the track.
+                overflow: 'scroll',
+                ...(theme !== null && !theme.forcedColors
+                  ? ({
+                      scrollbarColor: `${theme.textMuted} ${theme.headerBackground}`,
+                      '--cells-scrollbar-thumb': theme.textMuted,
+                      '--cells-scrollbar-track': theme.headerBackground,
+                    } as CSSProperties)
+                  : {}),
+              }}
+            >
+              <div style={{ width: spacer.width, height: spacer.height }} />
+            </div>
             <div style={visuallyHidden} data-cells-mirror="">
               <div role="row" aria-rowindex={1}>
                 {mirror.cols.map((c) => (
@@ -1659,7 +1716,15 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
               covers the grid, lets the pointer through, and hands a right-click to the grid's menu. */}
           <div
             data-cells-layers=""
-            style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              right: gutter.right,
+              bottom: gutter.bottom,
+              overflow: 'hidden',
+              pointerEvents: 'none',
+            }}
             onContextMenu={onContextMenu}
           >
             {viewport !== null && theme !== null && (
