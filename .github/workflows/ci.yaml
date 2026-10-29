@@ -84,9 +84,9 @@ jobs:
         run: npm run e2e
         env:
           CELLS_DOCUSAURUS_SITE: '1'
-          # The screenshot suite's first run on CI writes its screenshots (kept as the artifact
-          # below, then committed); the next commit turns this off, and they are compared.
-          CELLS_SCREENSHOTS_WRITE: '1'
+          # The screenshot suite compares with e2e/__screenshots__, written by CI's own run 40859196427
+          # (CELLS_SCREENSHOTS_WRITE=1). When the chrome changes on purpose, set it for one run,
+          # take the e2e-screenshots artifact, look at it, and commit it.
 
       - uses: actions/upload-artifact@v4
         if: always()
