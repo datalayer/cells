@@ -17,8 +17,28 @@
  */
 
 import http from 'node:http';
+import { register } from 'node:module';
 import { WebSocketServer } from 'ws';
-import { setupWSConnection } from '@datalayer/lexical-loro/lib/collab/loro/transport/server.js';
+
+// lexical-loro 1.0.8's `lib/` imports its own modules without an extension
+// (`from './rooms'`), which bundlers resolve and plain Node refuses
+// (ERR_MODULE_NOT_FOUND): a relative specifier without one is retried with `.js`.
+register(
+  'data:text/javascript,' +
+    encodeURIComponent(`
+export async function resolve(specifier, context, next) {
+  try {
+    return await next(specifier, context);
+  } catch (error) {
+    const relative = specifier.startsWith('./') || specifier.startsWith('../');
+    if (error?.code === 'ERR_MODULE_NOT_FOUND' && relative && !specifier.endsWith('.js'))
+      return next(specifier + '.js', context);
+    throw error;
+  }
+}`),
+);
+const { setupWSConnection } =
+  await import('@datalayer/lexical-loro/lib/collab/loro/transport/server.js');
 
 export function startRoomsServer({ port = 1236, host = '127.0.0.1' } = {}) {
   const server = http.createServer((_request, response) => {

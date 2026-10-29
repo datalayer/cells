@@ -100,6 +100,7 @@ export default defineConfig({
       input: {
         index: page('index.html'),
         e2e: page('e2e.html'),
+        e2eCollab: page('e2e-collab.html'),
         bench: page('bench.html'),
       },
     },
