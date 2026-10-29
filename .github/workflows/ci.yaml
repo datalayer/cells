@@ -70,8 +70,20 @@ jobs:
           npm run build
           npm test
 
+      # The sample site on this checkout's packed packages, for its e2e (e2e/docusaurus.spec.ts).
+      - name: Build the Docusaurus sample site
+        working-directory: integrations/docusaurus/site
+        run: |
+          npm install --no-audit --no-fund --legacy-peer-deps
+          npm run install:local
+          npm run build
+
+      # The examples, the charts, two pages in one collaboration room, the code cells' frames
+      # and the sample site; a missing site build fails rather than skips.
       - name: The examples, opened in Chrome (the runner's /usr/bin/google-chrome)
         run: npm run e2e
+        env:
+          CELLS_DOCUSAURUS_SITE: '1'
 
       # What Playwright kept of a failed flow: its ARIA snapshot of the page and screenshots.
       - uses: actions/upload-artifact@v4
