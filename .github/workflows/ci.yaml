@@ -88,10 +88,7 @@ jobs:
           CELLS_DOCUSAURUS_SITE: '1'
           # The live workbook's e2e starts `jupyter server`: without one it fails rather than skips.
           CELLS_CODE_KERNEL: '1'
-          # One run writes the screenshots afresh: the toolbar page moved to #/toolbar-tabs, its
-          # title and source line changed. Removed with the screenshots' commit.
-          CELLS_SCREENSHOTS_WRITE: '1'
-          # The screenshot suite compares with e2e/__screenshots__, written by CI's own run 40859196427
+          # The screenshot suite compares with e2e/__screenshots__, written by CI's own run 40925611269
           # (CELLS_SCREENSHOTS_WRITE=1). When the chrome changes on purpose, set it for one run,
           # take the e2e-screenshots artifact, look at it, and commit it.
 
