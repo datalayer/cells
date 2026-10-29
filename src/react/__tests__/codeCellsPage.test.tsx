@@ -77,6 +77,9 @@ beforeAll(() => {
   };
   globalThis.requestAnimationFrame = (f: FrameRequestCallback) =>
     setTimeout(() => f(0), 0) as unknown as number;
+  // The page's kernel badge loads ./jupyter lazily, and with it jupyter-react and
+  // @lumino/dragdrop, which subclasses DragEvent as it loads; jsdom has none.
+  (globalThis as { DragEvent?: unknown }).DragEvent ??= class extends MouseEvent {};
   // Primer's SegmentedControl asks the media queries; jsdom has none.
   window.matchMedia = ((query: string) => ({
     matches: false,
@@ -182,7 +185,11 @@ describe('the code cells page', () => {
         },
       }),
     };
-    const m = codeCellsModel({ jupyter: counting, local: fake('local'), browser: fake('lite') });
+    // The test's renderer: jupyter-react's lazy one would load @lumino/dragdrop, which jsdom cannot.
+    const m = codeCellsModel(
+      { jupyter: counting, local: fake('local'), browser: fake('lite') },
+      MOCK_RENDERER,
+    );
     for (const row of [1, 3, 5]) expect(m.code('s1', row, 2)?.run).toBe('auto');
     // Nothing runs on open, nor on an edit before a cell's first run.
     m.dispatch({ type: 'SET_CELLS', sheet: 's1', at: { row: 2, col: 1 }, cells: [[16]] });
