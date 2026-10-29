@@ -30,6 +30,7 @@ import CellTypes from './examples/12-cell-types';
 import CodeCells from './examples/13-code-cells';
 import DataSources from './examples/14-data-sources';
 import CommandPalette from './examples/15-command-palette';
+import Shell from './examples/16-shell';
 
 const SOURCES = import.meta.glob('./examples/*.tsx', {
   query: '?raw',
@@ -100,6 +101,7 @@ export const EXAMPLES: readonly Example[] = [
     file: '15-command-palette.tsx',
     Component: CommandPalette,
   },
+  { id: 'shell', title: 'A Reactor Shell', file: '16-shell.tsx', Component: Shell },
 ];
 
 function useRoute(): string {

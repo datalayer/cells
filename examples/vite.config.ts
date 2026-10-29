@@ -79,6 +79,10 @@ export default defineConfig({
         replacement: fileURLToPath(new URL('../src/charts/index.ts', import.meta.url)),
       },
       {
+        find: /^@datalayer\/cells\/plugin$/,
+        replacement: fileURLToPath(new URL('../src/plugin/index.ts', import.meta.url)),
+      },
+      {
         find: /^@datalayer\/cells\/jupyter$/,
         replacement: fileURLToPath(new URL('../src/jupyter/index.tsx', import.meta.url)),
       },

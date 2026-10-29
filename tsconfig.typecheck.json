@@ -13,6 +13,7 @@
       "@datalayer/cells/xlsx": ["./src/xlsx/index.ts"],
       "@datalayer/cells/charts": ["./src/charts/index.ts"],
       "@datalayer/cells/collab": ["./src/collab/index.ts"],
+      "@datalayer/cells/plugin": ["./src/plugin/index.ts"],
       "@datalayer/cells/jupyter": ["./src/jupyter/index.tsx"]
     }
   },

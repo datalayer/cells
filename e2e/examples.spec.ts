@@ -23,6 +23,7 @@ const EXAMPLES = [
   ['code-cells', 'Code Cells'],
   ['data-sources', 'Data Sources'],
   ['command-palette', 'Command Palette'],
+  ['shell', 'A Reactor Shell'],
 ] as const;
 
 test.describe('the examples', () => {

@@ -13,7 +13,7 @@
 
 import { useContributions, useReactorPlatform } from '@datalayer/reactor/react';
 import { PencilIcon, PlusIcon, TrashIcon } from '@primer/octicons-react';
-import { ActionList, Button, IconButton, TextInput } from '@primer/react';
+import { Button, IconButton, TextInput } from '@primer/react';
 import { type JSX, useEffect, useState } from 'react';
 import { FormulaBar } from '../chrome/FormulaBar.js';
 import { SheetTabs } from '../chrome/SheetTabs.js';
@@ -55,7 +55,9 @@ export function WorkbookList(): JSX.Element {
       <Button leadingVisual={PlusIcon} size="small" onClick={() => createWorkbook()}>
         New workbook
       </Button>
-      <ActionList>
+      {/* A plain list: each row's open, rename and delete are sibling buttons (an ActionList
+          item is a button itself, and buttons inside it are invalid HTML and nested-interactive). */}
+      <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0 }}>
         {workbooks.map((w) =>
           renaming?.id === w.id ? (
             <li key={w.id}>
@@ -74,34 +76,38 @@ export function WorkbookList(): JSX.Element {
               />
             </li>
           ) : (
-            <ActionList.Item key={w.id} active={w.id === open} onSelect={() => openWorkbook(w.id)}>
-              {w.title}
-              <ActionList.TrailingVisual>
-                <IconButton
-                  icon={PencilIcon}
-                  aria-label={`Rename ${w.title}`}
-                  size="small"
-                  variant="invisible"
-                  onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    setRenaming({ id: w.id, title: w.title });
-                  }}
-                />
-                <IconButton
-                  icon={TrashIcon}
-                  aria-label={`Delete ${w.title}`}
-                  size="small"
-                  variant="invisible"
-                  onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    removeWorkbook(w.id);
-                  }}
-                />
-              </ActionList.TrailingVisual>
-            </ActionList.Item>
+            <li key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Button
+                variant="invisible"
+                size="small"
+                block
+                aria-current={w.id === open ? 'true' : undefined}
+                style={{
+                  justifyContent: 'flex-start',
+                  fontWeight: w.id === open ? 600 : undefined,
+                }}
+                onClick={() => openWorkbook(w.id)}
+              >
+                {w.title}
+              </Button>
+              <IconButton
+                icon={PencilIcon}
+                aria-label={`Rename ${w.title}`}
+                size="small"
+                variant="invisible"
+                onClick={() => setRenaming({ id: w.id, title: w.title })}
+              />
+              <IconButton
+                icon={TrashIcon}
+                aria-label={`Delete ${w.title}`}
+                size="small"
+                variant="invisible"
+                onClick={() => removeWorkbook(w.id)}
+              />
+            </li>
           ),
         )}
-      </ActionList>
+      </ul>
     </nav>
   );
 }
