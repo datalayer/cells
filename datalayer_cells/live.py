@@ -661,7 +661,9 @@ class LiveWorkbook:
     """The workbook a kernel is bound to: ``cells[...]`` reads, ``cells[...] = ...`` writes, ``on_change`` follows the page.
 
     The ranges each run read are recorded between ``begin_run`` and ``end_run``
-    and answered to the grid, which makes them the cell's precedents. ``origin``
+    and answered to the grid, which makes them the cell's precedents; the ranges
+    it wrote (``end_writes``) are answered too, so the cell's own writes never
+    make it run again. ``origin``
     names the code cell whose writes these are (``Sheet1!C4``), the attribution
     of the collaboration patches.
     """
@@ -669,6 +671,7 @@ class LiveWorkbook:
     store: Store
     origin: str = "python"
     _reads: list[str] | None = None
+    _run_writes: list[str] | None = None
     _writes: dict[str, dict[tuple[str, int, int], Value]] = field(default_factory=dict)
     _watchers: list[tuple[_Range, Callable[[Any], None], list]] = field(default_factory=list)
 
@@ -677,6 +680,7 @@ class LiveWorkbook:
     def begin_run(self, origin: str | None = None) -> None:
         """Start recording the ranges this run reads; ``origin`` names the cell that runs."""
         self._reads = []
+        self._run_writes = []
         if origin is not None:
             self.origin = origin
 
@@ -685,6 +689,12 @@ class LiveWorkbook:
         reads = self._reads or []
         self._reads = None
         return reads
+
+    def end_writes(self) -> list[str]:
+        """The ranges the run wrote, as references (``Sheet1!E1:F3``), in order, each once."""
+        writes = self._run_writes or []
+        self._run_writes = None
+        return writes
 
     # -- references
 
@@ -781,6 +791,11 @@ class LiveWorkbook:
         mine = self._writes.setdefault(self.origin, {})
         top = min(r for r, _ in cells)
         left = min(c for _, c in cells)
+        if self._run_writes is not None:
+            zone = Zone(top, left, max(r for r, _ in cells), max(c for _, c in cells))
+            q = self._qualified(_Range(sheet, zone))
+            if q not in self._run_writes:
+                self._run_writes.append(q)
         for (r, c), _v in cells.items():
             key = (sheet, r, c)
             if key not in mine:

@@ -367,16 +367,18 @@ export function codeCellsModel(
       ['Feb', 15],
       ['Mar', 19, null, 'C4 plots the table: hover it, or Alt+Down, for the figure'],
       ['Apr', 24],
-      ['May', 28, null, 'C6 doubles the units, shown on hover; it runs by itself when they change'],
+      ['May', 28, null, 'C6 doubles the units, shown on hover'],
       ['Jun', 31],
     ]),
   });
+  // Every code cell is `auto`: once run, it runs again by itself (debounced) when a cell it read
+  // changes; the ranges it read are recorded as it runs, through `cells[...]`.
   m.dispatch({
     type: 'SET_CODE',
     sheet: 's1',
     row: 1,
     col: 2,
-    code: withKept('C2', SUM, {}),
+    code: withKept('C2', SUM, { run: 'auto' }),
   });
   m.dispatch({
     type: 'SET_CELLS',
@@ -390,14 +392,13 @@ export function codeCellsModel(
     row: 3,
     col: 2,
     // The plot and the table show on hover and Alt+Down (frame: null); a drag of either pins it where dropped.
-    code: withKept('C4', PLOT, { frame: null }),
+    code: withKept('C4', PLOT, { frame: null, run: 'auto' }),
   });
   m.dispatch({
     type: 'SET_CODE',
     sheet: 's1',
     row: 5,
     col: 2,
-    // `auto`: once run, it runs again by itself when the units it read change.
     code: withKept('C6', TABLE, { frame: null, run: 'auto' }),
   });
   m.dispatch({
@@ -495,7 +496,9 @@ export default function CodeCells(props: {
         result lands in the grid, where D2 reads it; C4&apos;s figure and C6&apos;s table show when
         you hover the cell (or press Alt+Down on it), with a thumbnail in the cell. Drag one by its
         strip to pin it where you drop it (kept on this page across a refresh); the × on a pinned
-        frame unpins it. Edit B2:B7 and the cells turn stale until they run again.
+        frame unpins it. Once a cell has run, it runs again by itself when a cell it read changes:
+        edit B2:B7 and C2, C4 and C6 follow. A cell&apos;s own writes never run it again, and cells
+        that write what each other read run once per edit, then wait, stale, for you.
       </p>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <span id="kernel-label">Kernel:</span>

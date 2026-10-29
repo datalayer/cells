@@ -19,7 +19,9 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
+  AUTO_DEBOUNCE_MS,
   CellsKernels,
+  codeRunner,
   type CodeEditorRendererProps,
   type CodeRenderer,
   type KernelProvider,
@@ -157,6 +159,35 @@ describe('the code cells page', () => {
     expect(m.code('s1', 5, 2)?.frame).toBeNull();
     expect(m.content('s1', 1, 3)?.formula).toBe('C2*2');
     expect(m.cellTypeIds()).toContain('code');
+  });
+
+  it('every code cell runs again by itself, once, when a cell it read changes after its run', async () => {
+    const runs: string[] = [];
+    const counting: KernelProvider = {
+      id: 'prod1',
+      label: 'prod1',
+      connect: async () => ({
+        execute: async (code: string) => {
+          const last = code.trimEnd().split('\n').pop()!;
+          runs.push(JSON.parse(last.slice(last.lastIndexOf(', "') + 2, -1)) as string);
+          return { outputs: [] };
+        },
+      }),
+    };
+    const m = codeCellsModel({ jupyter: counting, local: fake('local'), browser: fake('lite') });
+    for (const row of [1, 3, 5]) expect(m.code('s1', row, 2)?.run).toBe('auto');
+    // Nothing runs on open, nor on an edit before a cell's first run.
+    m.dispatch({ type: 'SET_CELLS', sheet: 's1', at: { row: 2, col: 1 }, cells: [[16]] });
+    await new Promise((r) => setTimeout(r, AUTO_DEBOUNCE_MS + 100));
+    expect(runs).toEqual([]);
+    await codeRunner(m).runAll('s1');
+    expect(runs.sort()).toEqual(['Sheet1!C2', 'Sheet1!C4', 'Sheet1!C6']);
+    runs.length = 0;
+    // B3 is read by all three (B2:B7, A1:B7): each runs again once.
+    m.dispatch({ type: 'SET_CELLS', sheet: 's1', at: { row: 2, col: 1 }, cells: [[17]] });
+    await new Promise((r) => setTimeout(r, AUTO_DEBOUNCE_MS * 4));
+    expect(runs.sort()).toEqual(['Sheet1!C2', 'Sheet1!C4', 'Sheet1!C6']);
+    codeRunner(m).dispose();
   });
 
   it('prod1 by default; the toggle switches the kernel provider of the point and keeps the choice; Browser is off', async () => {

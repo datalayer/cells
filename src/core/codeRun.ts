@@ -15,8 +15,13 @@
  * `SET_CODE` (one undo step); an exception is `#ERROR!` with the traceback
  * in the outputs. The ranges a run read are its precedents: when what they
  * hold changes after a run, a `manual` cell is marked stale and an `auto`
- * cell runs again, debounced, one at a time, in dependency order. Nothing
- * runs on open; the engine never runs code itself.
+ * cell runs again, debounced, one at a time, in dependency order. A cell's
+ * own writes (the ranges the live workbook says the run wrote) never make it
+ * run again, and in a cascade of runs that code started, each `auto` cell
+ * runs at most once: a second change from code marks it stale instead, so
+ * two cells writing what the other reads do not run each other forever. A
+ * person's change (an edit, not a kernel's write) or a run by hand starts a
+ * new cascade. Nothing runs on open; the engine never runs code itself.
  *
  * @module core/codeRun
  */
@@ -186,7 +191,9 @@ export const PREAMBLE = String.raw`def __cells_run(__data, __source, __origin):
         kind = type(value).__name__
         result = kind + (" (" + " × ".join(str(n) for n in shape) + ")" if isinstance(shape, tuple) else "")
     reads = _live.end_run() if _live is not None else list(_reads)
-    _emit({${JSON.stringify(RESULT_MIME)}: {"result": result, "reads": reads, "live": _live is not None}})
+    # A kernel's datalayer_cells older than end_writes reports no writes: the cascade rule still holds.
+    writes = _live.end_writes() if _live is not None and hasattr(_live, "end_writes") else []
+    _emit({${JSON.stringify(RESULT_MIME)}: {"result": result, "reads": reads, "writes": writes, "live": _live is not None}})
 `;
 
 /** A run's outputs, with the result's own output taken out: the result, what the frame shows, and the ranges the run read. */
@@ -195,18 +202,24 @@ export function readOutputs(outputs: readonly CodeOutput[]): {
   outputs: CodeOutput[];
   /** The ranges the run read, as the kernel reported them (`Sheet1!A1:B7`); `undefined` when it reported none. */
   reads?: string[];
+  /** The ranges the run wrote through the live workbook (`Sheet1!E1:F3`); `undefined` when it reported none. */
+  writes?: string[];
 } {
   let result: CodeResult = null;
   let reads: string[] | undefined;
+  let writes: string[] | undefined;
   let failed = false;
   const shown: CodeOutput[] = [];
   for (const o of outputs) {
     const data = (o as { data?: Record<string, unknown> }).data;
-    const carried = data?.[RESULT_MIME] as { result?: CodeResult; reads?: unknown } | undefined;
+    const carried = data?.[RESULT_MIME] as
+      { result?: CodeResult; reads?: unknown; writes?: unknown } | undefined;
     if (carried !== undefined) {
       result = carried.result ?? null;
       if (Array.isArray(carried.reads))
         reads = carried.reads.filter((r): r is string => typeof r === 'string');
+      if (Array.isArray(carried.writes))
+        writes = carried.writes.filter((w): w is string => typeof w === 'string');
       continue;
     }
     if (o.output_type === 'error') failed = true;
@@ -216,23 +229,47 @@ export function readOutputs(outputs: readonly CodeOutput[]): {
     result: failed ? { error: '#ERROR!' } : result,
     outputs: shown,
     ...(reads !== undefined ? { reads } : {}),
+    ...(writes !== undefined ? { writes } : {}),
   };
 }
 
-/** The values of the ranges a run read (as the kernel reported them, or as the source names them), to tell when they changed. */
-function readsValues(model: CellsModel, sheet: string, reads: readonly string[]) {
+/**
+ * The values of the ranges a run read (as the kernel reported them, or as the
+ * source names them), to tell when they changed; the cells the run wrote
+ * itself (`writes`) are left out, so its own writes never make it stale.
+ */
+function readsValues(
+  model: CellsModel,
+  sheet: string,
+  reads: readonly string[],
+  writes: readonly string[] = [],
+) {
+  const own = writes
+    .map((w) => resolveRead(model, sheet, w))
+    .filter((w): w is { sheet: string; zone: Zone } => w !== undefined);
   const out: Record<string, unknown> = {};
   for (const ref of reads) {
     const at = resolveRead(model, sheet, ref);
     if (at === undefined) continue;
-    out[ref] = model.toRows(at.zone, at.sheet).map((row) => row.map(json));
+    const mine = own.filter((w) => w.sheet === at.sheet).map((w) => w.zone);
+    out[ref] = model.toRows(at.zone, at.sheet).map((row, i) =>
+      row.map((v, j) => {
+        const cell = { row: at.zone.top + i, col: at.zone.left + j };
+        return mine.some((z) => zoneContains(z, cell)) ? null : json(v);
+      }),
+    );
   }
   return out;
 }
 
-/** A fingerprint of what a code cell reads, to tell when it changed since its run. */
-function fingerprint(model: CellsModel, sheet: string, reads: readonly string[]): string {
-  return JSON.stringify(readsValues(model, sheet, reads));
+/** A fingerprint of what a code cell reads, less what it wrote, to tell when it changed since its run. */
+function fingerprint(
+  model: CellsModel,
+  sheet: string,
+  reads: readonly string[],
+  writes?: readonly string[],
+): string {
+  return JSON.stringify(readsValues(model, sheet, reads, writes));
 }
 
 /** The code renderer a platform resolves (the first in `order`), or `undefined`. */
@@ -251,6 +288,12 @@ export interface CodePlace {
 export const AUTO_DEBOUNCE_MS = 300;
 
 /**
+ * How long after a run a projected remote change still counts as the kernel's
+ * (its writes over the collaboration document arrive without a name), ms.
+ */
+export const RUN_SETTLE_MS = 1000;
+
+/**
  * The runner of one model's code cells: it connects the kernel on the first
  * run (always a person's gesture), runs one cell at a time, writes results
  * back, and watches what the cells read.
@@ -265,6 +308,12 @@ export class CodeRunner {
   #seen = new Map<string, string>();
   /** The ranges each cell's last run read, as the kernel reported them (its precedents). */
   #reads = new Map<string, readonly string[]>();
+  /** The ranges each cell's last run wrote, as the kernel reported them: left out of what it reads. */
+  #writes = new Map<string, readonly string[]>();
+  /** The `auto` cells run since the last change a person made: each runs at most once in a cascade. */
+  #cascade = new Set<string>();
+  #running = 0;
+  #lastRunEnd = -Infinity;
   #count = 0;
   #timer: ReturnType<typeof setTimeout> | undefined;
   #stop: () => void;
@@ -275,6 +324,13 @@ export class CodeRunner {
     this.#kernelId = options.kernel;
     this.#stop = model.subscribe((tx) => {
       if (tx.origin === 'code' || tx.label === 'Run code') return;
+      // A kernel's write (`Code: Sheet1!C2`), or a projected document while a run is in flight or
+      // just ended, continues the cascade; anything else is a person's change and starts a new one.
+      const byCode =
+        tx.label.startsWith('Code:') ||
+        (tx.origin === 'remote' &&
+          (this.#running > 0 || performance.now() - this.#lastRunEnd < RUN_SETTLE_MS));
+      if (!byCode) this.#cascade.clear();
       this.#check();
     });
   }
@@ -319,8 +375,13 @@ export class CodeRunner {
     };
   }
 
-  /** Run one code cell; resolves once its result is written. Refused (thrown) with no kernel, or with code cells off. */
+  /** Run one code cell; resolves once its result is written. Refused (thrown) with no kernel, or with code cells off. A run by hand starts a new cascade. */
   run(place: CodePlace): Promise<void> {
+    this.#cascade.clear();
+    return this.#enqueue(place);
+  }
+
+  #enqueue(place: CodePlace): Promise<void> {
     if (!this.model.codeCells)
       return Promise.reject(new Error('Code cells are off here: they are shown, not run.'));
     const provider = this.provider();
@@ -369,6 +430,8 @@ export class CodeRunner {
     m.setCodeState(place.sheet, place.row, place.col, 'running');
     let after: CodeCell;
     let reads: readonly string[] = rangesRead(code.source);
+    let writes: readonly string[] = [];
+    this.#running += 1;
     try {
       const reply = await kernel.execute(
         codeProgram(
@@ -380,6 +443,7 @@ export class CodeRunner {
       const read = readOutputs(reply.outputs);
       const { result, outputs } = read;
       if (read.reads !== undefined) reads = read.reads;
+      if (read.writes !== undefined) writes = read.writes;
       this.#count += 1;
       after = {
         ...code,
@@ -403,6 +467,8 @@ export class CodeRunner {
         lastRun: new Date().toISOString(),
       };
     }
+    this.#running -= 1;
+    this.#lastRunEnd = performance.now();
     // The cell may have moved while it ran: write where its key is now.
     const at = codeCells(sheet).find((c) => codeKey(sheet, c.row, c.col) === key);
     m.setCodeState(place.sheet, place.row, place.col, undefined);
@@ -422,7 +488,8 @@ export class CodeRunner {
       throw new Error(`The run's result was refused: ${written.refusals[0].message}`);
     m.setCodeTrusted(place.sheet, at.row, at.col);
     this.#reads.set(`${place.sheet}:${key}`, reads);
-    this.#seen.set(`${place.sheet}:${key}`, fingerprint(m, place.sheet, reads));
+    this.#writes.set(`${place.sheet}:${key}`, writes);
+    this.#seen.set(`${place.sheet}:${key}`, fingerprint(m, place.sheet, reads, writes));
     this.#check();
   }
 
@@ -430,6 +497,12 @@ export class CodeRunner {
   #readsOf(sheet: string, row: number, col: number, code: CodeCell): readonly string[] {
     const s = this.model.workbook.sheet(sheet);
     return this.#reads.get(`${sheet}:${codeKey(s, row, col)}`) ?? rangesRead(code.source);
+  }
+
+  /** The ranges a cell's last run wrote, as reported: left out of what it reads. */
+  #writesOf(sheet: string, row: number, col: number): readonly string[] {
+    const s = this.model.workbook.sheet(sheet);
+    return this.#writes.get(`${sheet}:${codeKey(s, row, col)}`) ?? [];
   }
 
   /** The code cells of a sheet matching `which`, a cell read by another after it. */
@@ -467,9 +540,11 @@ export class CodeRunner {
         const seen = this.#seen.get(key);
         if (seen === undefined) continue; // never run here: nothing to compare with
         if (m.codeState(sheet.id, c.row, c.col) === 'running') continue;
-        if (fingerprint(m, sheet.id, this.#readsOf(sheet.id, c.row, c.col, c.code)) === seen)
+        const reads = this.#readsOf(sheet.id, c.row, c.col, c.code);
+        if (fingerprint(m, sheet.id, reads, this.#writesOf(sheet.id, c.row, c.col)) === seen)
           continue;
-        if (c.code.run === 'auto') auto.push(sheet.id);
+        // An auto cell already run in this cascade waits, stale, for a person.
+        if (c.code.run === 'auto' && !this.#cascade.has(key)) auto.push(sheet.id);
         else m.setCodeState(sheet.id, c.row, c.col, 'stale');
       }
     }
@@ -484,9 +559,15 @@ export class CodeRunner {
           const code = m.code(sheet, place.row, place.col);
           if (code === undefined) continue;
           const reads = this.#readsOf(sheet, place.row, place.col, code);
-          if (this.#seen.get(key) === fingerprint(m, sheet, reads)) continue;
-          this.#seen.set(key, fingerprint(m, sheet, reads));
-          void this.run(place).catch(() => undefined);
+          const now = fingerprint(m, sheet, reads, this.#writesOf(sheet, place.row, place.col));
+          if (this.#seen.get(key) === now) continue;
+          if (this.#cascade.has(key)) {
+            m.setCodeState(sheet, place.row, place.col, 'stale');
+            continue;
+          }
+          this.#cascade.add(key);
+          this.#seen.set(key, now);
+          void this.#enqueue(place).catch(() => undefined);
         }
     }, AUTO_DEBOUNCE_MS);
   }

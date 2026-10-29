@@ -211,4 +211,132 @@ describe('running code cells', () => {
       'No kernel',
     );
   });
+
+  /**
+   * A kernel as the live workbook is: each cell's program (by the name the
+   * runner gives it) reads and writes the model (a write is a `Code: <cell>`
+   * transaction, as the comm applies one) and reports what it read and wrote.
+   * `late`: the writes land after the result, as a comm's may.
+   */
+  function liveKernel(
+    m: ReturnType<typeof setup>,
+    programs: Record<string, () => { reads: string[]; writes: [string, number, number, number][] }>,
+    late = false,
+  ): CellsKernel & { runs: Record<string, number> } {
+    const runs: Record<string, number> = {};
+    return {
+      runs,
+      execute: async (code: string) => {
+        const last = code.trimEnd().split('\n').pop()!;
+        const origin = JSON.parse(last.slice(last.lastIndexOf(', "') + 2, -1)) as string;
+        runs[origin] = (runs[origin] ?? 0) + 1;
+        const { reads, writes } = programs[origin]();
+        const write = () =>
+          m.transact(`Code: ${origin}`, () => {
+            for (const [, row, col, value] of writes)
+              m.dispatch({ type: 'SET_CELLS', sheet: 's1', at: { row, col }, cells: [[value]] });
+          });
+        if (late) setTimeout(write, 50);
+        else write();
+        return {
+          outputs: [
+            {
+              output_type: 'display_data',
+              data: {
+                [RESULT_MIME]: { result: runs[origin], reads, writes: writes.map(([r]) => r) },
+              },
+              metadata: {},
+            },
+          ],
+        };
+      },
+    };
+  }
+
+  function kernelOf(kernel: CellsKernel) {
+    return definePlugin({
+      name: 'test-live',
+      contributes: [
+        contribution(
+          CellsKernels,
+          { id: 'live', label: 'Live', connect: async () => kernel },
+          { id: 'live' },
+        ),
+      ],
+    });
+  }
+
+  it("an auto cell's own writes, inside what it reads, never run it again; a person's edit does", async () => {
+    let kernel: ReturnType<typeof liveKernel> | undefined;
+    const m = createCellsModel({
+      limits: { rows: 20, cols: 10 },
+      plugins: [kernelOf({ execute: (code) => kernel!.execute(code) })],
+    });
+    m.dispatch({ type: 'SET_CELLS', sheet: 's1', at: { row: 0, col: 0 }, cells: [[1], [2], [3]] });
+    // E1 reads A1:A3 and writes A2 (a new value every run), the write landing after its result.
+    kernel = liveKernel(
+      m,
+      {
+        'Sheet1!E1': () => ({
+          reads: ['Sheet1!A1:A3'],
+          writes: [['Sheet1!A2', 1, 0, 100 + (kernel!.runs['Sheet1!E1'] ?? 0)]],
+        }),
+      },
+      true,
+    );
+    m.dispatch({
+      type: 'SET_CODE',
+      sheet: 's1',
+      row: 0,
+      col: 4,
+      code: codeCell('x', { run: 'auto' }),
+    });
+    await codeRunner(m).run({ sheet: 's1', row: 0, col: 4 });
+    await wait(AUTO_DEBOUNCE_MS * 3);
+    expect(kernel.runs['Sheet1!E1']).toBe(1);
+    // A person edits A1: it runs again, once.
+    m.dispatch({ type: 'SET_CELLS', sheet: 's1', at: { row: 0, col: 0 }, cells: [[7]] });
+    await wait(AUTO_DEBOUNCE_MS * 3);
+    expect(kernel.runs['Sheet1!E1']).toBe(2);
+    expect(m.codeState('s1', 0, 4)).toBeUndefined();
+  });
+
+  it('two auto cells writing what the other reads run once each per change, then wait stale', async () => {
+    let kernel: ReturnType<typeof liveKernel> | undefined;
+    const m = createCellsModel({
+      limits: { rows: 20, cols: 10 },
+      plugins: [kernelOf({ execute: (code) => kernel!.execute(code) })],
+    });
+    m.dispatch({ type: 'SET_CELLS', sheet: 's1', at: { row: 0, col: 0 }, cells: [[1, 1]] });
+    const v = (col: number) => m.value('s1', 0, col) as number;
+    // E1 reads A1 and writes B1 = A1 + 1; E2 reads B1 and writes A1 = B1 + 1.
+    kernel = liveKernel(m, {
+      'Sheet1!E1': () => ({ reads: ['Sheet1!A1'], writes: [['Sheet1!B1', 0, 1, v(0) + 1]] }),
+      'Sheet1!E2': () => ({ reads: ['Sheet1!B1'], writes: [['Sheet1!A1', 0, 0, v(1) + 1]] }),
+    });
+    for (const row of [0, 1])
+      m.dispatch({
+        type: 'SET_CODE',
+        sheet: 's1',
+        row,
+        col: 4,
+        code: codeCell('x', { run: 'auto' }),
+      });
+    await codeRunner(m).run({ sheet: 's1', row: 0, col: 4 });
+    await codeRunner(m).run({ sheet: 's1', row: 1, col: 4 });
+    await wait(AUTO_DEBOUNCE_MS * 6);
+    const after = { ...kernel.runs };
+    // Nothing runs on by itself any more.
+    await wait(AUTO_DEBOUNCE_MS * 4);
+    expect(kernel.runs).toEqual(after);
+    // A person's edit of A1: E1 runs, its write runs E2, whose write would run E1 again: it waits, stale.
+    const before = { ...kernel.runs };
+    m.dispatch({ type: 'SET_CELLS', sheet: 's1', at: { row: 0, col: 0 }, cells: [[50]] });
+    await wait(AUTO_DEBOUNCE_MS * 8);
+    expect(kernel.runs['Sheet1!E1'] - before['Sheet1!E1']).toBe(1);
+    expect(kernel.runs['Sheet1!E2'] - before['Sheet1!E2']).toBe(1);
+    expect(m.codeState('s1', 0, 4)).toBe('stale');
+    expect(v(1)).toBe(51);
+    expect(v(0)).toBe(52);
+  }, 20_000);
 });

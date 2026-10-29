@@ -104,6 +104,17 @@ class TestReading:
         assert w.end_run() == ["Sheet1!B3", "Sheet1!A1:B5", "Figures!A1:B1"]
         assert w.end_run() == []
 
+    def test_the_ranges_a_run_wrote_are_answered_qualified_and_once(self):
+        w = workbook()
+        w["F1"] = 1  # outside a run: not recorded
+        w.begin_run("Sheet1!C3")
+        w["E2"] = 42
+        w["E2"] = 43
+        w["G1:H2"] = [[1, 2], [3, 4]]
+        w.end_run()
+        assert w.end_writes() == ["Sheet1!E2", "Sheet1!G1:H2"]
+        assert w.end_writes() == []
+
 
 class TestWriting:
     def test_a_value_written_is_a_patch_a_peer_reads(self):
