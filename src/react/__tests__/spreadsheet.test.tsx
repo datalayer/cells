@@ -224,5 +224,18 @@ describe(`<Spreadsheet> (React ${reactVersion})`, () => {
     });
     expect(name('-r0-c0')).toBe('21');
     expect(name('-r4-c2')).toBe('42, formula: =A1*2');
+    // A document projected without patches, as a collaboration binding does: every row re-reads.
+    const data = model.toJSON();
+    act(() => {
+      const other = createCellsModel({ data });
+      other.dispatch({
+        type: 'SET_CELLS',
+        sheet: 's1',
+        at: { row: 3, col: 1 },
+        cells: [['remote']],
+      });
+      model.replaceData(other.toJSON(), 'remote');
+    });
+    expect(name('-r3-c1')).toBe('remote');
   });
 });

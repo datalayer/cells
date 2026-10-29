@@ -473,7 +473,11 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
       const a = model.subscribe((tx) => {
         setRevision((n) => n + 1);
         const m = mirrorRevisions.current;
-        const rows = rowsChanged(tx, model, rendererRef.current?.sheet ?? model.selection.sheet);
+        // A change without patches (a remote document projected, a load) says nothing of its rows.
+        const rows =
+          tx.patches.length === 0
+            ? 'all'
+            : rowsChanged(tx, model, rendererRef.current?.sheet ?? model.selection.sheet);
         if (rows !== 'none') {
           m.next += 1;
           if (rows === 'all' || m.rows.size > 10_000) {
