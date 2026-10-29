@@ -62,10 +62,11 @@ import {
 import { type CellValue, isCellError } from '../core/values.js';
 import { columnLetters, type Zone, zoneContains, zoneToA1 } from '../core/zone.js';
 import type { Slice } from '../core/clipboard.js';
+import type { Sheet } from '../core/workbook.js';
 import { sliceFromClipboard, sliceToClipboard } from './clipboard.js';
 import { display } from '../render/numberFormat.js';
 import { EN_US, type NumberLocale } from '../core/numfmt.js';
-import { CanvasRenderer, type RendererCounters } from '../render/renderer.js';
+import { CanvasRenderer, type RendererCounters, rowsChanged } from '../render/renderer.js';
 import { ScrollMapper, spacerSize } from '../render/scroll.js';
 import { type CellsTheme, checkTheme } from '../render/theme.js';
 import { cellAt, cellRect, headerAt, paneAt, type Viewport } from '../render/viewport.js';
@@ -83,7 +84,7 @@ import {
   referencesIn,
   toggleAnchors,
 } from '../formula/editing.js';
-import { CellsProvider } from './hooks.js';
+import { CellsProvider, useCellsEditor } from './hooks.js';
 import { announce, type Messages } from './messages.js';
 import { autoTheme, type ColorMode, variantTheme } from './theme.js';
 
@@ -305,8 +306,11 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
     const [gutter, setGutter] = useState({ right: 0, bottom: 0 });
     const [announcement, setAnnouncement] = useState('');
     const [, setRevision] = useState(0);
-    /** Grows on changes to the cells only (not the selection): what the mirror's rows re-read names on. */
-    const [contentRevision, setContentRevision] = useState(0);
+    /**
+     * What the mirror's rows re-read their names on: a change stamps the rows it touched (or all of
+     * them, `all`), so an edit re-renders its own row, not every row in view.
+     */
+    const mirrorRevisions = useRef({ next: 0, all: 0, rows: new Map<number, number>() });
     const props_ = useRef(props);
     props_.current = props;
 
@@ -464,14 +468,21 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
       };
     }, [syncView]);
 
-    const [edit, setEdit] = useState(model.edit);
-    useEffect(() => model.subscribeEdit(setEdit), [model]);
-
     // Model events: the host's callbacks, the live region, the mirror's revision.
     useEffect(() => {
       const a = model.subscribe((tx) => {
         setRevision((n) => n + 1);
-        setContentRevision((n) => n + 1);
+        const m = mirrorRevisions.current;
+        const rows = rowsChanged(tx, model, rendererRef.current?.sheet ?? model.selection.sheet);
+        if (rows !== 'none') {
+          m.next += 1;
+          if (rows === 'all' || m.rows.size > 10_000) {
+            m.all = m.next;
+            m.rows.clear();
+          } else {
+            for (let r = rows.top; r <= rows.bottom; r += 1) m.rows.set(r, m.next);
+          }
+        }
         setAnnouncement(announce(tx, props_.current.messages));
         props_.current.onChange?.(tx);
         syncView();
@@ -1424,6 +1435,24 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
       [model, scrollToCell],
     );
 
+    // ------------------------------------------------------------ the in-cell editor
+    const onEditDone = useCallback(
+      (move: Navigation | undefined) => {
+        rootRef.current?.focus({ preventScroll: true });
+        if (move) {
+          const s = model.selection;
+          const next = navigate(s, move, navigationGrid(model.sheet(s.sheet)));
+          model.select(next);
+          scrollToCell(next.active.row, next.active.col);
+        }
+      },
+      [model, scrollToCell],
+    );
+    const onEditRejected = useCallback(
+      (r: CommandResult & { ok: false }) => props_.current.onCommandRejected?.(r),
+      [],
+    );
+
     // ------------------------------------------------------------ the accessibility mirror
     const sheet = model.workbook.hasSheet(sheetId) ? model.sheet(sheetId) : model.sheets[0];
     const selection = model.selection;
@@ -1582,26 +1611,22 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
                   cols={mirrorCols}
                   uid={uid}
                   selected={selectedIn(r)}
-                  revision={contentRevision}
+                  revision={Math.max(
+                    mirrorRevisions.current.all,
+                    mirrorRevisions.current.rows.get(r) ?? 0,
+                  )}
                 />
               ))}
             </div>
-            {edit !== null && viewport !== null && edit.sheet === sheet.id && theme !== null && (
-              <CellEditor
+            {viewport !== null && theme !== null && (
+              <EditLayer
                 model={model}
-                edit={edit}
+                sheet={sheet}
                 viewport={viewport}
                 theme={theme}
-                onDone={(move) => {
-                  rootRef.current?.focus({ preventScroll: true });
-                  if (move) {
-                    const s = model.selection;
-                    const next = navigate(s, move, navigationGrid(model.sheet(s.sheet)));
-                    model.select(next);
-                    scrollToCell(next.active.row, next.active.col);
-                  }
-                }}
-                onRejected={(r) => props_.current.onCommandRejected?.(r)}
+                zoneBox={zoneBox}
+                onDone={onEditDone}
+                onRejected={onEditRejected}
                 point={point}
               />
             )}
@@ -1633,43 +1658,6 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
                 }
               />
             )}
-            {edit !== null &&
-              viewport !== null &&
-              theme !== null &&
-              edit.sheet === sheet.id &&
-              referencesIn(edit.text)
-                .filter(
-                  (r) =>
-                    r.sheet === undefined || r.sheet.toLowerCase() === sheet.name.toLowerCase(),
-                )
-                .map((r, i) => {
-                  // The references of the formula being edited, outlined in the colours the editor gives them.
-                  const box = zoneBox({
-                    top: r.top ?? 0,
-                    left: r.left ?? 0,
-                    bottom: Math.min(r.bottom ?? sheet.rows.count - 1, sheet.rows.count - 1),
-                    right: Math.min(r.right ?? sheet.cols.count - 1, sheet.cols.count - 1),
-                  });
-                  const color = theme.referenceColors[i % theme.referenceColors.length];
-                  return (
-                    <div
-                      key={`${r.start}-${r.end}`}
-                      data-cells-reference={edit.text.slice(r.start, r.end)}
-                      style={{
-                        position: 'absolute',
-                        left: box.x,
-                        top: box.y,
-                        width: box.width,
-                        height: box.height,
-                        boxSizing: 'border-box',
-                        border: `2px dashed ${color}`,
-                        background: `${color}14`,
-                        pointerEvents: 'none',
-                        zIndex: 1,
-                      }}
-                    />
-                  );
-                })}
             {fillPreview !== null && (
               <div
                 aria-hidden="true"
@@ -1772,6 +1760,68 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
     );
   },
 );
+
+/**
+ * The in-cell editor and the outlines of the references it holds. It reads the
+ * edit buffer itself, so a keystroke re-renders this layer and not the grid.
+ */
+const EditLayer = memo(function EditLayer(props: {
+  model: CellsModel;
+  sheet: Sheet;
+  viewport: Viewport;
+  theme: CellsTheme;
+  zoneBox: (zone: Zone) => { x: number; y: number; width: number; height: number };
+  onDone: (move: Navigation | undefined) => void;
+  onRejected: (result: CommandResult & { ok: false }) => void;
+  point: { current: PointState | null };
+}) {
+  const { model, sheet, viewport, theme, zoneBox } = props;
+  const { edit } = useCellsEditor();
+  if (edit === null || edit.sheet !== sheet.id) return null;
+  return (
+    <>
+      <CellEditor
+        model={model}
+        edit={edit}
+        viewport={viewport}
+        theme={theme}
+        onDone={props.onDone}
+        onRejected={props.onRejected}
+        point={props.point}
+      />
+      {referencesIn(edit.text)
+        .filter((r) => r.sheet === undefined || r.sheet.toLowerCase() === sheet.name.toLowerCase())
+        .map((r, i) => {
+          // The references of the formula being edited, outlined in the colours the editor gives them.
+          const box = zoneBox({
+            top: r.top ?? 0,
+            left: r.left ?? 0,
+            bottom: Math.min(r.bottom ?? sheet.rows.count - 1, sheet.rows.count - 1),
+            right: Math.min(r.right ?? sheet.cols.count - 1, sheet.cols.count - 1),
+          });
+          const color = theme.referenceColors[i % theme.referenceColors.length];
+          return (
+            <div
+              key={`${r.start}-${r.end}`}
+              data-cells-reference={edit.text.slice(r.start, r.end)}
+              style={{
+                position: 'absolute',
+                left: box.x,
+                top: box.y,
+                width: box.width,
+                height: box.height,
+                boxSizing: 'border-box',
+                border: `2px dashed ${color}`,
+                background: `${color}14`,
+                pointerEvents: 'none',
+                zIndex: 1,
+              }}
+            />
+          );
+        })}
+    </>
+  );
+});
 
 /** The reference pointed at while a formula is edited: its cells, and its place in the text. */
 interface PointState {

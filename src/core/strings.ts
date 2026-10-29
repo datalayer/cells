@@ -8,22 +8,46 @@
  * The workbook's string pool: every string a cell holds, interned once and
  * reference-counted, so a column of repeated labels costs one string.
  *
+ * The index from text to slot is split over several maps by a cheap hash of
+ * the text: a map rehashes all its entries in one call when it grows, which
+ * at a million distinct strings blocked the page for some 60 ms in the middle
+ * of a CSV import; each shard grows on its own, by a fraction of that.
+ *
  * @module core/strings
  */
+
+/** Index shards, a power of two. */
+const SHARDS = 64;
+
+/** The shard of a text: its length and a few of its characters, where texts of one column differ. */
+function shardOf(text: string): number {
+  const n = text.length;
+  if (n === 0) return 0;
+  const h =
+    n * 31 +
+    text.charCodeAt(n - 1) * 17 +
+    (n > 1 ? text.charCodeAt(n - 2) * 7 : 0) +
+    (n > 2 ? text.charCodeAt(n >> 1) * 3 : 0) +
+    text.charCodeAt(0);
+  return h & (SHARDS - 1);
+}
 
 export class StringPool {
   #strings: (string | undefined)[] = [];
   #counts = new Int32Array(64);
-  #index = new Map<string, number>();
+  readonly #index: Map<string, number>[] = Array.from({ length: SHARDS }, () => new Map());
+  #size = 0;
   #free: number[] = [];
 
   /** Take a reference to `text`; returns its index. */
   intern(text: string): number {
-    let i = this.#index.get(text);
+    const shard = this.#index[shardOf(text)];
+    let i = shard.get(text);
     if (i === undefined) {
       i = this.#free.pop() ?? this.#strings.length;
       this.#strings[i] = text;
-      this.#index.set(text, i);
+      shard.set(text, i);
+      this.#size += 1;
       if (i >= this.#counts.length) {
         const counts = new Int32Array(this.#counts.length * 2);
         counts.set(this.#counts);
@@ -43,7 +67,8 @@ export class StringPool {
     this.#counts[index] -= 1;
     if (this.#counts[index] === 0) {
       this.#strings[index] = undefined;
-      this.#index.delete(text);
+      this.#index[shardOf(text)].delete(text);
+      this.#size -= 1;
       this.#free.push(index);
     }
   }
@@ -56,7 +81,7 @@ export class StringPool {
 
   /** How many distinct strings are held. */
   get size(): number {
-    return this.#index.size;
+    return this.#size;
   }
 
   /** How many references the string at `index` has. */

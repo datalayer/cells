@@ -195,4 +195,34 @@ describe(`<Spreadsheet> (React ${reactVersion})`, () => {
       gb.getAttribute('aria-activedescendant'),
     );
   });
+
+  it("re-reads the mirror's names in the rows a change touches, and everywhere once a formula may follow it", () => {
+    const model = createCellsModel();
+    const div = mount(<Spreadsheet model={model} />);
+    const name = (ref: string) =>
+      [...div.querySelectorAll('[role="gridcell"]')].find((c) => c.id.endsWith(ref))?.textContent;
+    act(() => {
+      model.dispatch({ type: 'SET_CELLS', sheet: 's1', at: { row: 0, col: 0 }, cells: [[1]] });
+    });
+    expect(name('-r0-c0')).toBe('1');
+    act(() => {
+      model.dispatch({ type: 'SET_CELLS', sheet: 's1', at: { row: 3, col: 1 }, cells: [['x']] });
+    });
+    expect(name('-r3-c1')).toBe('x');
+    act(() => {
+      model.dispatch({
+        type: 'SET_CELLS',
+        sheet: 's1',
+        at: { row: 4, col: 2 },
+        cells: [[{ formula: 'A1*2' }]],
+      });
+    });
+    expect(name('-r4-c2')).toBe('2, formula: =A1*2');
+    // A1 changes in row 0; the formula in row 4 follows it, and its name with it.
+    act(() => {
+      model.dispatch({ type: 'SET_CELLS', sheet: 's1', at: { row: 0, col: 0 }, cells: [[21]] });
+    });
+    expect(name('-r0-c0')).toBe('21');
+    expect(name('-r4-c2')).toBe('42, formula: =A1*2');
+  });
 });

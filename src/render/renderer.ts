@@ -375,16 +375,7 @@ export class CanvasRenderer {
   #onChange(tx: Transaction): void {
     this.#viewport = null;
     if (!this.#model.workbook.hasSheet(this.#sheet)) this.#sheet = this.#model.selection.sheet;
-    let rows =
-      tx.origin === 'load' ||
-      tx.origin === 'plugins' ||
-      tx.origin === 'async' ||
-      tx.origin === 'source' ||
-      tx.origin === 'code'
-        ? 'all'
-        : rowsTouched(tx.patches, this.#sheet);
-    // A changed cell may change any formula: the whole view, until the dependency graph says which.
-    if (tx.patches.length > 0 && this.#model.workbook.formulas.size > 0) rows = 'all';
+    const rows = rowsChanged(tx, this.#model, this.#sheet);
     if (rows === 'all') {
       this.#invalidateAll();
       return;
@@ -452,6 +443,29 @@ export class CanvasRenderer {
       showHeaders: this.#showHeaders,
     });
   }
+}
+
+/**
+ * The rows of a sheet whose content a transaction may have changed: a band,
+ * nothing, or everything (a load, structure, sizes, merges, or any change
+ * while the workbook has formulas, until the dependency graph says which).
+ */
+export function rowsChanged(
+  tx: Transaction,
+  model: CellsModel,
+  sheet: string,
+): { top: number; bottom: number } | 'none' | 'all' {
+  if (
+    tx.origin === 'load' ||
+    tx.origin === 'plugins' ||
+    tx.origin === 'async' ||
+    tx.origin === 'source' ||
+    tx.origin === 'code'
+  )
+    return 'all';
+  // A changed cell may change any formula: the whole view, until the dependency graph says which.
+  if (tx.patches.length > 0 && model.workbook.formulas.size > 0) return 'all';
+  return rowsTouched(tx.patches, sheet);
 }
 
 /** The rows of a sheet a transaction's patches touched: a band, nothing, or everything (structure, sizes, merges). */

@@ -96,13 +96,14 @@ export async function readCsv(
 }
 
 /**
- * A pause for the page between chunks, so rendering and input go first:
- * `scheduler.yield` where there is one, else a `MessageChannel` message
- * (`setTimeout` would be clamped to 4 ms once nested).
+ * A pause for the page between slices, so rendering and input go first: a
+ * `MessageChannel` message (`setTimeout` would be clamped to 4 ms once
+ * nested). Not `scheduler.yield`: Chrome resumes its continuation in the
+ * microtask checkpoint after the task, outside it, where loading would run
+ * on unseen by a trace of the page's tasks; a message's handler resumes it
+ * within its own task.
  */
 function pause(): Promise<void> {
-  const s = (globalThis as { scheduler?: { yield?: () => Promise<void> } }).scheduler;
-  if (typeof s?.yield === 'function') return s.yield();
   if (typeof MessageChannel === 'undefined') return Promise.resolve();
   return new Promise((resolve) => {
     const channel = new MessageChannel();
@@ -114,11 +115,20 @@ function pause(): Promise<void> {
   });
 }
 
+/** Rows loaded into the model at a time. */
+const SLICE_ROWS = 1_024;
+/** Main-thread time loading may take before it pauses for the page, ms. */
+const SLICE_MS = 8;
+
 /**
  * Read a CSV file into a sheet of a model (the active one by default), from
  * its first cell; values only, typed as the options say. The previous
  * content of the cells written is replaced, and the undo history cleared, as
  * opening a file does.
+ *
+ * The model takes the rows in slices, and loading pauses for the page once it
+ * has held the thread for `SLICE_MS`, within a chunk or across chunks: a
+ * task stays short on a slow or busy machine, and a fast one pauses less.
  */
 export async function importCsv(
   model: CellsModel,
@@ -126,9 +136,16 @@ export async function importCsv(
   options: CsvOptions & { readonly sheet?: string } = {},
 ): Promise<CsvSummary> {
   const sheet = options.sheet ?? model.selection.sheet;
+  let since = performance.now();
   return readCsv(input, options, async (chunk) => {
-    const { columns, formats } = decodeChunk(chunk);
-    model.loadColumns(sheet, { row: chunk.row, col: 0 }, columns, formats);
-    await pause();
+    for (let from = 0; from < chunk.rows; from += SLICE_ROWS) {
+      const to = Math.min(chunk.rows, from + SLICE_ROWS);
+      const { columns, formats } = decodeChunk(chunk, from, to);
+      model.loadColumns(sheet, { row: chunk.row + from, col: 0 }, columns, formats);
+      if (performance.now() - since >= SLICE_MS) {
+        await pause();
+        since = performance.now();
+      }
+    }
   });
 }

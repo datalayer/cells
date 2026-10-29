@@ -47,7 +47,7 @@ export interface CsvChunk {
 /** How a CSV file is read: its delimiter, encoding, header and type inference. */
 export interface CsvReadOptions extends InferOptions {
   readonly delimiter?: Delimiter;
-  /** Rows per chunk: 4,096 by default (a chunk loads into the model in one main-thread task). */
+  /** Rows per chunk the parser hands on: 4,096 by default (the model takes it in slices, see `importCsv`). */
   readonly chunkRows?: number;
 }
 
@@ -135,35 +135,45 @@ export class ChunkBuilder {
   }
 }
 
-/** A chunk as the columns and formats `loadColumns` takes. */
-export function decodeChunk(chunk: CsvChunk): {
+/**
+ * A chunk as the columns and formats `loadColumns` takes: its rows `from`
+ * (included) to `to` (excluded), all of them by default.
+ */
+export function decodeChunk(
+  chunk: CsvChunk,
+  from = 0,
+  to = chunk.rows,
+): {
   columns: CellValue[][];
   formats: (string | undefined)[][];
 } {
+  if (!(from >= 0 && from <= to && to <= chunk.rows))
+    throw new Error(`Rows ${from} to ${to} are not within the chunk's ${chunk.rows}.`);
   const columns: CellValue[][] = [];
   const formats: (string | undefined)[][] = [];
   for (const c of chunk.columns) {
-    const values: CellValue[] = new Array(chunk.rows);
-    const fmts: (string | undefined)[] = new Array(chunk.rows);
-    for (let r = 0; r < chunk.rows; r += 1) {
+    const values: CellValue[] = new Array(to - from);
+    const fmts: (string | undefined)[] = new Array(to - from);
+    for (let r = from; r < to; r += 1) {
+      const i = r - from;
       switch (c.kinds[r] as Kind) {
         case Kind.Number:
-          values[r] = c.numbers[r];
+          values[i] = c.numbers[r];
           break;
         case Kind.Text:
-          values[r] = c.texts[r]!;
+          values[i] = c.texts[r]!;
           break;
         case Kind.True:
-          values[r] = true;
+          values[i] = true;
           break;
         case Kind.False:
-          values[r] = false;
+          values[i] = false;
           break;
         default:
-          values[r] = null;
+          values[i] = null;
       }
       const f = c.formats[r];
-      fmts[r] = f === 0 ? undefined : chunk.formats[f - 1];
+      fmts[i] = f === 0 ? undefined : chunk.formats[f - 1];
     }
     columns.push(values);
     formats.push(fmts);
