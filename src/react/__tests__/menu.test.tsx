@@ -113,8 +113,8 @@ describe('the context menu', () => {
     await openByRightClick(grid);
     const m = menu();
     expect(m).not.toBeNull();
-    expect(div.contains(m)).toBe(true); // portalled into the grid root, not document.body
-    expect(grid.contains(m)).toBe(true);
+    expect(div.contains(m)).toBe(true); // portalled into the spreadsheet, not document.body
+    expect(grid.contains(m)).toBe(false); // beside the grid: a grid owns rows only
     const list = m!.querySelector('ul');
     expect(list?.className).toMatch(/ActionList/);
     expect(items().length).toBeGreaterThan(3);

@@ -84,6 +84,16 @@ jobs:
         run: npm run e2e
         env:
           CELLS_DOCUSAURUS_SITE: '1'
+          # The screenshot suite's first run on CI writes its screenshots (kept as the artifact
+          # below, then committed); the next commit turns this off, and they are compared.
+          CELLS_SCREENSHOTS_WRITE: '1'
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-screenshots
+          path: e2e/__screenshots__/
+          if-no-files-found: ignore
 
       # What Playwright kept of a failed flow: its ARIA snapshot of the page and screenshots.
       - uses: actions/upload-artifact@v4

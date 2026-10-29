@@ -263,11 +263,13 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
 
     // ------------------------------------------------------------ elements and renderer
     const uid = useId().replace(/:/g, '');
-    // The context menu (a Primer Overlay) portals into the grid's own root, so it sits under the
-    // host's theme and at root-relative coordinates, as the overlay canvas does.
+    // The context menu (a Primer Overlay) portals into the spreadsheet's own element, so it sits
+    // under the host's theme and at the grid's coordinates, as the overlay canvas does; beside the
+    // grid, not in it: a grid owns rows only (axe's aria-required-children).
     const portalName = `cells-${uid}`;
     useLayoutEffect(() => {
-      if (rootRef.current) registerPortalRoot(rootRef.current, portalName);
+      const holder = rootRef.current?.parentElement;
+      if (holder) registerPortalRoot(holder, portalName);
     }, [portalName]);
     const rootRef = useRef<HTMLDivElement>(null);
     const scrollerRef = useRef<HTMLDivElement>(null);
@@ -2226,7 +2228,9 @@ function ContextMenu(props: {
                     {command.name}
                     {binding && (
                       <ActionList.TrailingVisual>
-                        {formatKeybinding(binding)}
+                        {/* The leading space keeps the visible text "Undo Ctrl+Z", as the item's
+                            name reads (axe's label-content-name-mismatch). */}
+                        {` ${formatKeybinding(binding)}`}
                       </ActionList.TrailingVisual>
                     )}
                   </ActionList.Item>
