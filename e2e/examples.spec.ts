@@ -50,6 +50,23 @@ test.describe('the examples', () => {
     );
   });
 
+  test('the formulas page has a formula bar: it shows the active cell’s formula, and an edit there recalculates', async ({
+    page,
+  }) => {
+    await page.goto('/#/formulas');
+    const bar = page.getByRole('group', { name: 'Formula bar' });
+    await bar.getByRole('textbox', { name: 'Name box' }).fill('C2');
+    await bar.getByRole('textbox', { name: 'Name box' }).press('Enter');
+    const formula = bar.getByRole('textbox', { name: 'Formula' });
+    await expect(formula).toHaveValue('=A2*B2');
+    await formula.fill('=A2+B2');
+    await formula.press('Enter');
+    const grid = page.getByRole('grid', { name: 'Formulas' });
+    await expect(grid.getByRole('gridcell', { name: '13, formula: =A2+B2' })).toHaveCount(1);
+    // The total follows: 13 + 10 + -9.
+    await expect(grid.getByRole('gridcell', { name: '14, formula: =SUM(C2:C4)' })).toHaveCount(1);
+  });
+
   test('the plugin command works, and is refused once the plugin is disabled', async ({ page }) => {
     await page.goto('/#/plugin');
     await page.getByRole('button', { name: 'UPPERCASE the selection', exact: true }).last().click();

@@ -4,10 +4,15 @@
  * MIT License
  */
 
-import { createCellsModel, Spreadsheet, useCellsModel } from '@datalayer/cells';
+import { CellsProvider, createCellsModel, Spreadsheet, useCellsModel } from '@datalayer/cells';
+import { FormulaBar } from '@datalayer/cells/chrome';
 import { Frame } from '../shared';
 
-/** Formulas evaluate on read and recalculate on every change; change a or b and the rest follows. */
+/**
+ * Formulas evaluate on read and recalculate on every change; change a or b and
+ * the rest follows. The formula bar above the grid (from `@datalayer/cells/chrome`)
+ * shows the active cell's formula and edits it: it shares the in-cell editor's buffer.
+ */
 export default function Formulas() {
   const model = useCellsModel(() =>
     createCellsModel({
@@ -36,10 +41,11 @@ export default function Formulas() {
     }),
   );
   return (
-    <>
+    <CellsProvider model={model}>
+      <FormulaBar />
       <Frame height={200}>
         <Spreadsheet model={model} aria-label="Formulas" />
       </Frame>
-    </>
+    </CellsProvider>
   );
 }
