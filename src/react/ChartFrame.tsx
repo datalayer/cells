@@ -126,7 +126,10 @@ export function ChartFrame(props: ChartFrameProps) {
       tabIndex={-1}
       aria-label={label}
       aria-describedby={descriptionId}
-      aria-selected={props.selected || undefined}
+      // aria-selected is not allowed on a figure (axe's aria-allowed-attr): the selected chart
+      // is the current one, a global state.
+      aria-current={props.selected || undefined}
+      data-cells-chart-selected={props.selected ? '' : undefined}
       data-cells-chart={spec.id}
       data-cells-chart-type={spec.type}
       className={props.className}

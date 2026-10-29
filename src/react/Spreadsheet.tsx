@@ -573,6 +573,20 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
         openMenu: () => {
           const r = rendererRef.current;
           if (r === null) return;
+          // With a chart selected, the menu opens on its frame (its items act on that chart).
+          const chartId = model.selectedChart;
+          const frame =
+            chartId === null
+              ? undefined
+              : [
+                  ...(rootRef.current?.parentElement?.querySelectorAll('[data-cells-chart]') ?? []),
+                ].find((el) => el.getAttribute('data-cells-chart') === chartId);
+          if (frame !== undefined) {
+            const f = frame.getBoundingClientRect();
+            const root = rootRef.current!.getBoundingClientRect();
+            setMenu({ x: f.left - root.left + 16, y: f.top - root.top + 16 });
+            return;
+          }
           const sheetNow = model.sheet(r.sheet);
           const pane = r.viewport.panes.find((p) => p.name === 'main')!;
           const rect = cellRect(
@@ -586,7 +600,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
           setMenu({ x: rect.x + rect.width / 2, y: rect.y + rect.height });
         },
         focusOutput: (row: number, col: number) => {
-          const frame = rootRef.current?.querySelector<HTMLElement>(
+          const frame = rootRef.current?.parentElement?.querySelector<HTMLElement>(
             `[data-cells-code-output="${codeRef(row, col)}"]`,
           );
           if (frame === null || frame === undefined) return false;
@@ -698,6 +712,8 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
           e.preventDefault();
           return true;
         } else if (e.key === 'Enter' && e.shiftKey) id = 'cells.chart.showData';
+        else if (e.key === 'ContextMenu' || (e.key === 'F10' && e.shiftKey))
+          id = 'cells.openContextMenu';
         if (id === undefined) return false;
         e.preventDefault();
         runCommand(id);
@@ -1326,7 +1342,9 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
         if (e.defaultPrevented) return; // The host replaces the built-in menu.
         e.preventDefault();
         const s = model.selection;
-        if (s.sheet !== r.sheet || !s.zones.some((z) => zoneContains(z, cell)))
+        // A right-click on a chart keeps it selected: the menu's chart items act on it.
+        const onChart = (e.target as Element).closest?.('[data-cells-chart-holder]') != null;
+        if (!onChart && (s.sheet !== r.sheet || !s.zones.some((z) => zoneContains(z, cell))))
           model.select(initialSelection(r.sheet, cell));
         const rect = rootRef.current!.getBoundingClientRect();
         setMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top });
@@ -1509,42 +1527,6 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
                 />
               ))}
             </div>
-            {viewport !== null && theme !== null && (
-              <ChartsLayer
-                model={model}
-                sheet={sheet.id}
-                viewport={viewport}
-                theme={theme}
-                selectedChart={model.selectedChart}
-                onPointerDownChart={(id) => model.selectChart(id)}
-                onChartKeyDown={chartKey}
-              />
-            )}
-            {viewport !== null && theme !== null && (
-              <CodeLayer
-                model={model}
-                sheet={sheet.id}
-                viewport={viewport}
-                theme={theme}
-                editing={codeEditing}
-                preview={codePreview}
-                onClosePreview={() => {
-                  overPreview.current = false;
-                  setCodePreview(null);
-                }}
-                onPreviewPointer={(over) => {
-                  overPreview.current = over;
-                  if (!over) setCodePreview(null);
-                }}
-                portalName={portalName}
-                returnFocusRef={rootRef}
-                onCloseEditor={() => {
-                  setCodeEditing(null);
-                  rootRef.current?.focus({ preventScroll: true });
-                }}
-                onEscape={() => rootRef.current?.focus({ preventScroll: true })}
-              />
-            )}
             {edit !== null && viewport !== null && edit.sheet === sheet.id && theme !== null && (
               <CellEditor
                 model={model}
@@ -1669,6 +1651,51 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
               <DebugOverlay renderer={rendererRef.current} model={model} />
             )}
             {props.children}
+          </div>
+          {/* Charts and code outputs sit beside the grid, not in it: a grid owns rows only
+              (axe's aria-required-children), and a figure or a region is not a row. The layer
+              covers the grid, lets the pointer through, and hands a right-click to the grid's menu. */}
+          <div
+            data-cells-layers=""
+            style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}
+            onContextMenu={onContextMenu}
+          >
+            {viewport !== null && theme !== null && (
+              <ChartsLayer
+                model={model}
+                sheet={sheet.id}
+                viewport={viewport}
+                theme={theme}
+                selectedChart={model.selectedChart}
+                onPointerDownChart={(id) => model.selectChart(id)}
+                onChartKeyDown={chartKey}
+              />
+            )}
+            {viewport !== null && theme !== null && (
+              <CodeLayer
+                model={model}
+                sheet={sheet.id}
+                viewport={viewport}
+                theme={theme}
+                editing={codeEditing}
+                preview={codePreview}
+                onClosePreview={() => {
+                  overPreview.current = false;
+                  setCodePreview(null);
+                }}
+                onPreviewPointer={(over) => {
+                  overPreview.current = over;
+                  if (!over) setCodePreview(null);
+                }}
+                portalName={portalName}
+                returnFocusRef={rootRef}
+                onCloseEditor={() => {
+                  setCodeEditing(null);
+                  rootRef.current?.focus({ preventScroll: true });
+                }}
+                onEscape={() => rootRef.current?.focus({ preventScroll: true })}
+              />
+            )}
           </div>
           <div style={visuallyHidden} aria-live="polite" data-cells-live="">
             {announcement}

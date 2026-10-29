@@ -87,7 +87,8 @@ button {
   margin: 2px 4px 2px 0;
 }
 code {
-  background: #f6f8fa;
+  /* Primer's muted background where a theme provider sets it (dark mode too), else light. */
+  background: var(--bgColor-muted, #f6f8fa);
   padding: 0 4px;
 }
 .frame {

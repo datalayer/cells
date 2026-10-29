@@ -234,7 +234,7 @@ describe('a selected chart in the grid', () => {
     });
     expect(model.selectedChart).toBe('column');
     expect(document.activeElement).toBe(f);
-    expect(f.getAttribute('aria-selected')).toBe('true');
+    expect(f.getAttribute('aria-current')).toBe('true');
     await key(f, 'ArrowDown');
     await key(f, 'ArrowRight');
     await key(f, 'ArrowRight', { shiftKey: true });
@@ -263,5 +263,56 @@ describe('a selected chart in the grid', () => {
     await key(figure('column'), 'Delete');
     expect(model.sheet('s1').charts.size).toBe(0);
     expect(model.selectedChart).toBeNull();
+  });
+
+  it('sits beside the grid, not in it; Shift+F10 on the frame and a right-click open the menu with the chart kept selected', async () => {
+    const { model, div, grid, figure } = await mount([spec('column')]);
+    // A grid owns rows only (axe's aria-required-children): the figure is outside it.
+    expect(grid.contains(figure('column'))).toBe(false);
+    expect(div.querySelector('[data-cells-layers]')!.contains(figure('column'))).toBe(true);
+    await act(async () => {
+      figure('column').dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    });
+    await key(figure('column'), 'F10', { shiftKey: true });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    const items = () =>
+      [...document.querySelectorAll('[data-cells-menu] [role="menuitem"]')].map((e) =>
+        e.textContent?.trim(),
+      );
+    expect(items()).toEqual(expect.arrayContaining([expect.stringMatching(/^Show chart data/)]));
+    expect(model.selectedChart).toBe('column');
+    const show = [...document.querySelectorAll('[data-cells-menu] [role="menuitem"]')].find((e) =>
+      e.textContent?.startsWith('Show chart data'),
+    ) as HTMLElement;
+    await act(async () => {
+      show.click();
+    });
+    expect(model.selection.zones).toContainEqual({ top: 0, left: 1, bottom: 0, right: 1 });
+    expect(model.selectedChart).toBeNull();
+    // A right-click on the frame keeps the chart selected: the menu's Delete chart acts on it.
+    await act(async () => {
+      figure('column').dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+      figure('column').dispatchEvent(
+        new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          clientX: 500,
+          clientY: 100,
+        }),
+      );
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(model.selectedChart).toBe('column');
+    const del = [...document.querySelectorAll('[data-cells-menu] [role="menuitem"]')].find((e) =>
+      e.textContent?.startsWith('Delete chart'),
+    ) as HTMLElement;
+    await act(async () => {
+      del.click();
+    });
+    expect(model.sheet('s1').charts.size).toBe(0);
   });
 });

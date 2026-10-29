@@ -134,6 +134,27 @@ export const WORKBOOK: CellsWorkbook = {
   ],
 };
 
+/** Next year's figures, under the same sheet name: a chart pasted here reads them. */
+const NEXT_YEAR: CellsWorkbook = {
+  version: 1,
+  styles: [{}],
+  sheets: [
+    {
+      id: 'next',
+      name: 'Figures',
+      rows: Object.fromEntries(
+        [['Month', 'North', 'South', 'Online'] as (string | number)[]]
+          .concat(MONTHS.map((m, i) => [m, NORTH[i] + 3, SOUTH[i] + 2, ONLINE[i] * 2]))
+          .map((r, i) => [
+            String(i),
+            { cells: Object.fromEntries(r.map((v, c) => [String(c), cell(v)])) },
+          ]),
+      ) as CellsWorkbook['sheets'][number]['rows'],
+      sizes: { rows: {}, cols: { '0': 72, '1': 64, '2': 64, '3': 64, '4': 24 } },
+    },
+  ],
+};
+
 /**
  * Charts (§3.12): four charts anchored beside twelve months of figures, drawn
  * with Apache ECharts from `@datalayer/cells/charts`, a lazy Reactor plugin.
@@ -146,6 +167,13 @@ export default function Charts() {
   const model = useCellsModel(() =>
     createCellsModel({
       data: WORKBOOK,
+      plugins: [CellsChartsPlugin],
+      limits: { rows: 200, cols: 40 },
+    }),
+  );
+  const second = useCellsModel(() =>
+    createCellsModel({
+      data: NEXT_YEAR,
       plugins: [CellsChartsPlugin],
       limits: { rows: 200, cols: 40 },
     }),
@@ -191,6 +219,20 @@ export default function Charts() {
           </div>
         </div>
       </CellsProvider>
+      <p>
+        A second grid, with next year&apos;s figures on a sheet of the same name. Select cells
+        holding a chart&apos;s top-left corner, copy them, and paste them here: the chart comes
+        along and reads this grid&apos;s figures.
+      </p>
+      <Frame height={360}>
+        <Spreadsheet
+          key={variant}
+          model={second}
+          theme={variant}
+          colorMode={colorMode}
+          aria-label="Next year"
+        />
+      </Frame>
     </DatalayerThemeProvider>
   );
 }

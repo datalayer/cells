@@ -107,6 +107,8 @@ With a chart selected (a click on its frame, or *Go to chart* from the
 context menu): the arrows move it by a cell (`cells.chart.moveUp`, …),
 Shift+arrows resize it (`cells.chart.growDown`, `…shrinkUp`, …), Delete or
 Backspace removes it (`cells.chart.delete`), Shift+Enter selects its data in
-the grid (`cells.chart.showData`), and Escape returns to the cells. These keys
+the grid (`cells.chart.showData`), Shift+F10 or the ContextMenu key opens the
+context menu on the chart (its chart items act on it, as they do after a
+right-click on the chart), and Escape returns to the cells. These keys
 run the chart commands only while a chart is selected, and fall to the cells'
 own commands otherwise, so they are not rebound by the keymap.
