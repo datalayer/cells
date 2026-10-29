@@ -150,8 +150,9 @@ test('a plot and a table render beside their cells from stored outputs, scroll u
   // Scrolled further, C4's frame passes under the frozen row: its pane clips it there.
   await scroller.evaluate((el) => el.scrollTo({ top: 70 }));
   const pane = (await page.locator('[data-cells-code-pane="main"]').boundingBox())!;
+  // The frame follows the scroll on the next render: wait for it, not the first box read.
+  await expect.poll(async () => (await plot.boundingBox())!.y).toBeLessThan(pane.y);
   const clipped = (await plot.boundingBox())!;
-  expect(clipped.y).toBeLessThan(pane.y);
   const atTop = await page.evaluate(
     ([x, y]) => document.elementFromPoint(x, y)?.closest('[data-cells-code-output]') !== null,
     [clipped.x + 20, (clipped.y + pane.y) / 2],
