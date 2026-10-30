@@ -20,8 +20,10 @@ import {
   type DataSource,
   Spreadsheet,
 } from '@datalayer/cells';
+import { CellsChartsPlugin } from '@datalayer/cells/charts';
 import { importCsv } from '@datalayer/cells/csv';
 import { readXlsxFile, writeXlsx } from '@datalayer/cells/xlsx';
+import * as echarts from 'echarts/core';
 import { createRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { FIXTURES, type FixtureName } from '../../bench/fixtures/fixtures';
@@ -187,12 +189,178 @@ const api = {
     const model = createCellsModel({ data: workbook });
     return { ms: performance.now() - t0, cells: model.stats().cells };
   },
+  /**
+   * C10-10, `charts.editToPaint.ms`: a 1,000-point line chart beside its
+   * values (A1:B1001), the grid mounted full window; resolves once the chart
+   * is drawn.
+   */
+  async lineChart(points: number): Promise<void> {
+    const model = createCellsModel({
+      plugins: [CellsChartsPlugin],
+      limits: { rows: points + 10, cols: 26 },
+    });
+    const rows: (string | number)[][] = [['Day', 'Value']];
+    for (let i = 0; i < points; i += 1)
+      rows.push([`D${i + 1}`, Math.round(Math.sin(i / 50) * 1000) / 10]);
+    model.dispatch({ type: 'SET_CELLS', sheet: 's1', at: { row: 0, col: 0 }, cells: rows });
+    const inserted = model.dispatch({
+      type: 'INSERT_CHART',
+      sheet: 's1',
+      chart: {
+        id: 'line',
+        type: 'line',
+        anchor: {
+          kind: 'cells',
+          from: { row: 1, col: 3, dx: 0, dy: 0 },
+          to: { row: 21, col: 12, dx: 0, dy: 0 },
+        },
+        data: {
+          series: [
+            {
+              name: 'Sheet1!$B$1',
+              values: `Sheet1!$B$2:$B$${points + 1}`,
+              categories: `Sheet1!$A$2:$A$${points + 1}`,
+            },
+          ],
+          by: 'columns',
+          headers: { row: true, column: true },
+          blanks: 'gap',
+        },
+        legend: 'bottom',
+      },
+    });
+    if (!inserted.ok) throw new Error(JSON.stringify(inserted));
+    charted = model;
+    createRoot(document.getElementById('root')!).render(
+      <Spreadsheet ref={handle} model={model} aria-label="Bench" />,
+    );
+    await drawn(['line']);
+  },
+  /**
+   * An edit inside the chart's range: `value` into B`row`, and the time from
+   * the commit to the frame after ECharts has drawn an option holding it.
+   */
+  async chartEdit(row: number, value: number): Promise<number> {
+    const model = charted!;
+    const chart = instanceOf('line');
+    const painted = new Promise<number>((resolve) => {
+      const onRendered = () => {
+        const at = performance.now();
+        if (!JSON.stringify(chart.getOption()).includes(String(value))) return;
+        chart.off('rendered', onRendered);
+        requestAnimationFrame(() => resolve(at));
+      };
+      chart.on('rendered', onRendered);
+    });
+    const t0 = performance.now();
+    model.dispatch({
+      type: 'SET_CELLS',
+      sheet: 's1',
+      at: { row: row - 1, col: 1 },
+      cells: [[value]],
+    });
+    return (await painted) - t0;
+  },
+  /**
+   * `charts.scroll20.jsMs`: 400 rows of figures in A:D, twenty charts beside
+   * them, two abreast (line and column, 50 points each), the grid mounted
+   * full window; resolves once the charts in view are drawn.
+   */
+  async chartsSheet(count: number): Promise<number> {
+    const rows = 400;
+    const model = createCellsModel({
+      plugins: [CellsChartsPlugin],
+      limits: { rows: rows + 10, cols: 26 },
+    });
+    const cells: (string | number)[][] = [['Day', 'North', 'South', 'Online']];
+    for (let r = 0; r < rows; r += 1)
+      cells.push([
+        `D${r + 1}`,
+        (r * 7) % 31,
+        (r * 11) % 23,
+        Math.round(Math.sin(r / 9) * 100) / 10,
+      ]);
+    model.dispatch({ type: 'SET_CELLS', sheet: 's1', at: { row: 0, col: 0 }, cells });
+    const ids: string[] = [];
+    for (let i = 0; i < count; i += 1) {
+      const top = 1 + Math.floor(i / 2) * 14;
+      const left = 5 + (i % 2) * 8;
+      const first = 2 + ((i * 17) % (rows - 50));
+      const col = 'BCD'[i % 3];
+      const inserted = model.dispatch({
+        type: 'INSERT_CHART',
+        sheet: 's1',
+        chart: {
+          id: `c${i}`,
+          type: i % 2 === 0 ? 'line' : 'column',
+          anchor: {
+            kind: 'cells',
+            from: { row: top, col: left, dx: 0, dy: 0 },
+            to: { row: top + 12, col: left + 7, dx: 0, dy: 0 },
+          },
+          data: {
+            series: [
+              {
+                name: `Sheet1!$${col}$1`,
+                values: `Sheet1!$${col}$${first}:$${col}$${first + 49}`,
+                categories: `Sheet1!$A$${first}:$A$${first + 49}`,
+              },
+            ],
+            by: 'columns',
+            headers: { row: false, column: false },
+            blanks: 'gap',
+          },
+          title: `Chart ${i + 1}`,
+          legend: 'none',
+        },
+      });
+      if (!inserted.ok) throw new Error(JSON.stringify(inserted));
+      ids.push(`c${i}`);
+    }
+    charted = model;
+    createRoot(document.getElementById('root')!).render(
+      <Spreadsheet ref={handle} model={model} aria-label="Bench" />,
+    );
+    await drawn(ids.slice(0, 2));
+    return ids.length;
+  },
+  /** The ids of the charts drawn by ECharts right now. */
+  chartsDrawn: (): string[] =>
+    Array.from(document.querySelectorAll('[data-cells-chart]'))
+      .filter((el) => el.querySelector('[_echarts_instance_]') !== null)
+      .map((el) => el.getAttribute('data-cells-chart') ?? ''),
   /** The data source model's page counters. */
   dataSourceStats: () => sourced!.dataSourceStats(),
   handle: () => handle.current!,
 };
 
 let sourced: CellsModel | undefined;
+let charted: CellsModel | undefined;
+
+/** The ECharts instance of a chart on the page. */
+function instanceOf(id: string): echarts.ECharts {
+  const el = document.querySelector(`[data-cells-chart="${id}"] [_echarts_instance_]`);
+  const chart = el instanceof HTMLElement ? echarts.getInstanceByDom(el) : undefined;
+  if (chart === undefined) throw new Error(`The chart ${id} is not drawn by ECharts.`);
+  return chart;
+}
+
+/** Resolves once each of these charts has an ECharts instance, a frame after. */
+function drawn(ids: readonly string[]): Promise<void> {
+  const end = performance.now() + 20_000;
+  return new Promise((resolve, reject) => {
+    const wait = () => {
+      const missing = ids.filter(
+        (id) => document.querySelector(`[data-cells-chart="${id}"] [_echarts_instance_]`) === null,
+      );
+      if (missing.length === 0) requestAnimationFrame(() => resolve());
+      else if (performance.now() > end)
+        reject(new Error(`The charts ${missing.join(', ')} were not drawn within 20 s.`));
+      else setTimeout(wait, 20);
+    };
+    wait();
+  });
+}
 
 let chained: CellsModel | undefined;
 let csvFile: Blob | undefined;

@@ -152,6 +152,16 @@
       "unit": "ms",
       "where": "node"
     },
+    "charts.editToPaint.ms": {
+      "max": 50,
+      "unit": "ms",
+      "where": "browser"
+    },
+    "charts.scroll20.jsMs": {
+      "max": 8,
+      "unit": "ms",
+      "where": "browser"
+    },
     "bundle.charts.kB": {
       "max": 25,
       "unit": "kB",
