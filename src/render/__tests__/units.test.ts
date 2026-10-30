@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { Axis } from '../../core/axis.js';
-import { Lru } from '../lru.js';
+import { TextMeasure } from '../lru.js';
 import { display, general } from '../numberFormat.js';
 import { ScrollMapper, SPACER_CAP, spacerSize } from '../scroll.js';
 import { cellAt, computeViewport } from '../viewport.js';
@@ -91,17 +91,35 @@ describe('the scroll mapping', () => {
   });
 });
 
-describe('the LRU', () => {
-  it('evicts the least recently used past its capacity, and counts hits', () => {
-    const l = new Lru<string, number>(2);
-    l.set('a', 1);
-    l.set('b', 2);
-    l.get('a');
-    l.set('c', 3);
-    expect(l.get('b')).toBeUndefined();
-    expect(l.get('a')).toBe(1);
-    expect(l.size).toBe(2);
-    expect(l.hits).toBe(2);
+describe('the text cache', () => {
+  it('measures a font and text once, keeps what was read lately, and stays within its capacity', () => {
+    let measured = 0;
+    const ctx = {
+      font: '',
+      measureText: (text: string) => {
+        measured += 1;
+        return { width: text.length * 7 };
+      },
+    };
+    const m = new TextMeasure(4);
+    expect(m.width(ctx, '13px a', 'ab')).toBe(14);
+    expect(m.width(ctx, '13px a', 'ab')).toBe(14);
+    expect(m.width(ctx, '13px b', 'ab')).toBe(14);
+    expect(measured).toBe(2);
+    expect(m.cache.hits).toBe(1);
+    // Read again lately: kept while other texts arrive.
+    for (const t of ['c', 'd', 'e']) {
+      m.width(ctx, '13px a', t);
+      m.width(ctx, '13px a', 'ab');
+    }
+    const before = measured;
+    m.width(ctx, '13px a', 'ab');
+    expect(measured).toBe(before);
+    // Not read for a while: measured again.
+    m.width(ctx, '13px a', 'c');
+    expect(measured).toBe(before + 1);
+    expect(m.cache.size).toBeLessThanOrEqual(4);
+    expect(() => new TextMeasure(1)).toThrow(/at least two/);
   });
 });
 

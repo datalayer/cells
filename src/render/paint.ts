@@ -72,9 +72,17 @@ const PADDING = 3;
 const OVERFLOW_LOOKBACK = 20;
 
 export function fontOf(style: Style, theme: CellsTheme, zoom: number): string {
+  // One string per style, theme and zoom: the text cache and the canvas look a font up by it
+  // for every cell painted, and the same string is hashed and parsed once.
+  const known = fonts.get(style);
+  if (known !== undefined && known.theme === theme && known.zoom === zoom) return known.font;
   const size = (style.size ?? theme.fontSize) * zoom;
-  return `${style.italic ? 'italic ' : ''}${style.bold ? 'bold ' : ''}${size}px ${style.font ?? theme.fontFamily}`;
+  const font = `${style.italic ? 'italic ' : ''}${style.bold ? 'bold ' : ''}${size}px ${style.font ?? theme.fontFamily}`;
+  fonts.set(style, { theme, zoom, font });
+  return font;
 }
+
+const fonts = new WeakMap<Style, { theme: CellsTheme; zoom: number; font: string }>();
 
 /** A horizontal hairline on device pixels. */
 function hline(ctx: Ctx, dpr: number, x0: number, x1: number, y: number): void {
@@ -452,6 +460,14 @@ function drawText(
     text = '#'.repeat(Math.max(1, Math.floor((cell.width - 2 * pad) / Math.max(hash, 1))));
   }
   const align: Align = style.align ?? shown.align;
+  const size = (style.size ?? theme.fontSize) * z;
+  const lineHeight = size * 1.25;
+  // One line that fits its cell (or the span it runs over) inside the padding needs no clip:
+  // saving and clipping the context for each cell was a good part of a scroll frame.
+  const fits =
+    !style.wrap &&
+    measure.width(ctx, font, text) + 2 * pad <= span.width &&
+    lineHeight + pad <= cell.height;
   if (span !== cell && span.width > cell.width) {
     // The text runs over empty neighbours: hide the grid lines between them, as Excel does,
     // keeping the bottom line and the span's outer edges.
@@ -459,15 +475,15 @@ function drawText(
     ctx.fillStyle = style.fill ?? theme.background;
     ctx.fillRect(span.x, span.y, span.width - 1 / dpr, span.height - 1 / dpr);
   }
-  ctx.save();
-  clipTo(ctx, span);
+  if (!fits) {
+    ctx.save();
+    clipTo(ctx, span);
+  }
   ctx.font = font;
   ctx.fillStyle =
     shown.kind === 'error' ? theme.errorText : (shown.color ?? style.color ?? theme.text);
   ctx.textBaseline = 'alphabetic';
-  const size = (style.size ?? theme.fontSize) * z;
   const lines = style.wrap ? measure.wrap(ctx, font, text, cell.width - 2 * pad) : [text];
-  const lineHeight = size * 1.25;
   const valign = style.valign ?? 'bottom';
   const block = lines.length * lineHeight;
   const top =
@@ -491,7 +507,7 @@ function drawText(
       ctx.fillRect(x, style.underline ? base + 1.5 * z : base - size * 0.32, w, Math.max(1, z));
     }
   });
-  ctx.restore();
+  if (!fits) ctx.restore();
   stats.texts += 1;
 }
 

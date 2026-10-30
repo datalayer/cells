@@ -5,51 +5,12 @@
  */
 
 /**
- * A bounded least-recently-used map: the text-measurement cache. Unbounded
- * caches grow with every string ever drawn; this one evicts the oldest entry
- * past its capacity, and counts hits for the debug overlay.
+ * The text-measurement cache, bounded. Unbounded caches grow with every string
+ * ever drawn; this one forgets the strings not read for a while, and counts
+ * hits for the debug overlay.
  *
  * @module render/lru
  */
-
-export class Lru<K, V> {
-  readonly capacity: number;
-  #map = new Map<K, V>();
-  hits = 0;
-  misses = 0;
-
-  constructor(capacity: number) {
-    if (!Number.isInteger(capacity) || capacity < 1)
-      throw new Error(`An LRU holds at least one entry; ${capacity} was asked for.`);
-    this.capacity = capacity;
-  }
-
-  get(key: K): V | undefined {
-    const v = this.#map.get(key);
-    if (v === undefined) {
-      this.misses += 1;
-      return undefined;
-    }
-    this.hits += 1;
-    this.#map.delete(key);
-    this.#map.set(key, v);
-    return v;
-  }
-
-  set(key: K, value: V): void {
-    this.#map.delete(key);
-    this.#map.set(key, value);
-    if (this.#map.size > this.capacity) this.#map.delete(this.#map.keys().next().value as K);
-  }
-
-  get size(): number {
-    return this.#map.size;
-  }
-
-  clear(): void {
-    this.#map.clear();
-  }
-}
 
 /** The 2D context methods the renderer measures text with. */
 export interface Measurer {
@@ -60,21 +21,61 @@ export interface Measurer {
 /**
  * Text widths by font and string, bounded. 20,000 entries by default: under
  * 8 MB at the strings a sheet shows (§ budgets, text cache).
+ *
+ * Two generations of maps, by font then by text, stand in for a strict LRU: a
+ * width read lands in the current generation; when that holds half the
+ * capacity it becomes the previous one, and the previous one is dropped. A
+ * width read within the last half-capacity reads is kept. No key is built per
+ * read and no entry is moved on a hit, which a scroll does a few hundred
+ * times a frame.
  */
 export class TextMeasure {
-  readonly cache: Lru<string, number>;
+  readonly capacity: number;
+  #current = new Map<string, Map<string, number>>();
+  #previous = new Map<string, Map<string, number>>();
+  #currentSize = 0;
+  #previousSize = 0;
+  /** Hits, misses and size, for the debug overlay. */
+  readonly cache = {
+    hits: 0,
+    misses: 0,
+    size: 0,
+  };
 
   constructor(capacity = 20_000) {
-    this.cache = new Lru(capacity);
+    if (!Number.isInteger(capacity) || capacity < 2)
+      throw new Error(`A text cache holds at least two entries; ${capacity} was asked for.`);
+    this.capacity = capacity;
   }
 
   width(ctx: Measurer, font: string, text: string): number {
-    const key = `${font}\u0000${text}`;
-    const cached = this.cache.get(key);
-    if (cached !== undefined) return cached;
-    if (ctx.font !== font) ctx.font = font;
-    const w = ctx.measureText(text).width;
-    this.cache.set(key, w);
+    let inFont = this.#current.get(font);
+    const cached = inFont?.get(text);
+    if (cached !== undefined) {
+      this.cache.hits += 1;
+      return cached;
+    }
+    let w = this.#previous.get(font)?.get(text);
+    if (w !== undefined) {
+      this.cache.hits += 1;
+    } else {
+      this.cache.misses += 1;
+      if (ctx.font !== font) ctx.font = font;
+      w = ctx.measureText(text).width;
+    }
+    if (inFont === undefined) {
+      inFont = new Map();
+      this.#current.set(font, inFont);
+    }
+    inFont.set(text, w);
+    this.#currentSize += 1;
+    if (this.#currentSize >= this.capacity / 2) {
+      this.#previous = this.#current;
+      this.#previousSize = this.#currentSize;
+      this.#current = new Map();
+      this.#currentSize = 0;
+    }
+    this.cache.size = this.#currentSize + this.#previousSize;
     return w;
   }
 
