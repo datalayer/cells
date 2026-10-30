@@ -95,10 +95,13 @@ try {
   // A fresh repository with no commit yet.
 }
 const date = new Date().toISOString().slice(0, 10);
+// A production build's figures are their own file: they do not stand for the budgets' dev run.
+const production = browser && process.env.CELLS_BENCH_BUILD === 'production';
 const result = {
   version: 1,
   sha,
   date,
+  ...(production ? { build: 'production' } : {}),
   machine: {
     platform: platform(),
     release: release(),
@@ -109,6 +112,6 @@ const result = {
   figures,
 };
 mkdirSync(join(ROOT, 'bench/results'), { recursive: true });
-const path = join(ROOT, 'bench/results', `${date}-${sha}.json`);
+const path = join(ROOT, 'bench/results', `${date}-${sha}${production ? '-production' : ''}.json`);
 writeFileSync(path, JSON.stringify(result, null, 2) + '\n');
 console.log(`wrote ${path} (${Object.keys(figures).length} figures)`);

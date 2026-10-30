@@ -12,20 +12,13 @@
  * own dev server, at 1920×1080 and DPR 2.
  */
 
-import { fileURLToPath } from 'node:url';
-import { createServer } from 'vite';
-import { percentile, traceTasks } from './trace.mjs';
+import { benchPage, percentile, traceTasks } from './trace.mjs';
 
 const PORT = 3078;
 
 /** @param {import('@playwright/test').Browser} browser */
 export async function run(browser) {
-  const server = await createServer({
-    configFile: fileURLToPath(new URL('../../examples/vite.config.ts', import.meta.url)),
-    server: { port: PORT, strictPort: true },
-    logLevel: 'error',
-  });
-  await server.listen();
+  const server = await benchPage(PORT);
   const figures = {};
   try {
     const open = async (fixture) => {
@@ -34,7 +27,7 @@ export async function run(browser) {
         deviceScaleFactor: 2,
       });
       const page = await context.newPage();
-      await page.goto(`http://127.0.0.1:${PORT}/bench.html`);
+      await page.goto(server.url);
       await page.waitForFunction(() => 'cellsBench' in window);
       const timings = await page.evaluate((f) => window.cellsBench.mount(f), fixture);
       await page.getByRole('grid').focus();

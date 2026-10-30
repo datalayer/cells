@@ -12,27 +12,20 @@
  * with `CELLS_BENCH_VERBOSE`. `CELLS_XLSX_ROWS` makes it smaller for a smoke run.
  */
 
-import { fileURLToPath } from 'node:url';
-import { createServer } from 'vite';
-import { percentile, traceTasks } from './trace.mjs';
+import { benchPage, percentile, traceTasks } from './trace.mjs';
 
 const PORT = 3082;
 
 /** @param {import('@playwright/test').Browser} browser */
 export async function run(browser) {
   const rows = Number(process.env.CELLS_XLSX_ROWS ?? 100_000);
-  const server = await createServer({
-    configFile: fileURLToPath(new URL('../../examples/vite.config.ts', import.meta.url)),
-    server: { port: PORT, strictPort: true },
-    logLevel: 'error',
-  });
-  await server.listen();
+  const server = await benchPage(PORT);
   try {
     const context = await browser.newContext();
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    await page.goto(`http://127.0.0.1:${PORT}/bench.html`);
+    await page.goto(server.url);
     await page.waitForFunction(() => 'cellsBench' in window);
     const bytes = await page.evaluate((n) => window.cellsBench.xlsxFile(n), rows);
     const times = [];

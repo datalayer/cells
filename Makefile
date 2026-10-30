@@ -32,6 +32,9 @@ bench-browser: ## run the Node and the browser benches (system Chrome, headless)
 bench-reference: ## the reference figures: the browser benches in a headed Chrome with its GPU (close other work first)
 	CELLS_BENCH_HEADED=1 node scripts/bench.mjs --browser
 
+bench-reference-production: ## the same on a production build of the bench page (React's production build), written beside the reference figures
+	CELLS_BENCH_HEADED=1 CELLS_BENCH_BUILD=production node scripts/bench.mjs --browser
+
 .PHONY: start examples jupyter-server
 start: examples ## start the examples (the same as make examples)
 

@@ -17,9 +17,7 @@
  *   runs' p95, each run from the top.
  */
 
-import { fileURLToPath } from 'node:url';
-import { createServer } from 'vite';
-import { percentile, traceTasks } from './trace.mjs';
+import { benchPage, percentile, traceTasks } from './trace.mjs';
 
 const PORT = 3083;
 const POINTS = 1_000;
@@ -27,12 +25,7 @@ const CHARTS = 20;
 
 /** @param {import('@playwright/test').Browser} browser */
 export async function run(browser) {
-  const server = await createServer({
-    configFile: fileURLToPath(new URL('../../examples/vite.config.ts', import.meta.url)),
-    server: { port: PORT, strictPort: true },
-    logLevel: 'error',
-  });
-  await server.listen();
+  const server = await benchPage(PORT);
   const figures = {};
   try {
     const open = async () => {
@@ -43,7 +36,7 @@ export async function run(browser) {
       const page = await context.newPage();
       const errors = [];
       page.on('pageerror', (e) => errors.push(e.message));
-      await page.goto(`http://127.0.0.1:${PORT}/bench.html`);
+      await page.goto(server.url);
       await page.waitForFunction(() => 'cellsBench' in window);
       return { context, page, errors };
     };

@@ -10,7 +10,71 @@
  * closes it.
  */
 
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
+import { build, createServer, preview } from 'vite';
+
+const VITE_CONFIG = fileURLToPath(new URL('../../examples/vite.config.ts', import.meta.url));
+const BENCH_HTML = fileURLToPath(new URL('../../examples/bench.html', import.meta.url));
+
+/** The production build of the bench page, once a run: every bench of the run reads the same one. */
+let production;
+
+function buildBenchPage() {
+  production ??= (async () => {
+    const outDir = mkdtempSync(join(tmpdir(), 'cells-bench-build-'));
+    process.on('exit', () => rmSync(outDir, { recursive: true, force: true }));
+    await build({
+      configFile: VITE_CONFIG,
+      logLevel: 'error',
+      build: { outDir, emptyOutDir: true },
+      // The bench page alone: the examples' other pages bring JupyterLab into the build.
+      plugins: [
+        {
+          name: 'cells-bench-page-only',
+          config: (config) => {
+            config.build.rollupOptions.input = { bench: BENCH_HTML };
+          },
+        },
+      ],
+    });
+    return outDir;
+  })();
+  return production;
+}
+
+/**
+ * The examples' bench page for one bench, on `port`: Vite's dev server (React's
+ * development build), the way the budgets of §4 are read; with
+ * `CELLS_BENCH_BUILD=production`, a production build of the page on Vite's
+ * preview server.
+ *
+ * @param {number} port
+ * @returns {Promise<{ url: string, close: () => Promise<void> }>}
+ */
+export async function benchPage(port) {
+  const url = `http://127.0.0.1:${port}/bench.html`;
+  if (process.env.CELLS_BENCH_BUILD === 'production') {
+    const outDir = await buildBenchPage();
+    const server = await preview({
+      configFile: VITE_CONFIG,
+      logLevel: 'error',
+      build: { outDir },
+      preview: { port, strictPort: true, host: '127.0.0.1' },
+    });
+    return { url, close: () => server.close() };
+  }
+  const server = await createServer({
+    configFile: VITE_CONFIG,
+    server: { port, strictPort: true },
+    logLevel: 'error',
+  });
+  await server.listen();
+  return { url, close: () => server.close() };
+}
 
 /** The system Chrome; the machine downloads no Playwright browser. */
 export const CHROME = process.env.CELLS_CHROME ?? '/usr/bin/google-chrome';
