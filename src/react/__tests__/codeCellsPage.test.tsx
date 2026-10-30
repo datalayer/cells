@@ -17,7 +17,7 @@
 
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   AUTO_DEBOUNCE_MS,
   CellsKernels,
@@ -36,6 +36,14 @@ import CodeCells, {
   readKernelTarget,
   targetAvailable,
 } from '../../../examples/src/examples/13-code-cells.js';
+
+// The page loads ./jupyter lazily; the real one needs a browser (DragEvent, matchMedia, and an
+// import Node refuses), and its load landing during a test failed that test on CI.
+vi.mock('@datalayer/cells/jupyter', () => ({
+  CodeOutput: () => null,
+  CodeCellEditor: () => null,
+  KernelStatus: () => null,
+}));
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -77,9 +85,6 @@ beforeAll(() => {
   };
   globalThis.requestAnimationFrame = (f: FrameRequestCallback) =>
     setTimeout(() => f(0), 0) as unknown as number;
-  // The page's kernel badge loads ./jupyter lazily, and with it jupyter-react and
-  // @lumino/dragdrop, which subclasses DragEvent as it loads; jsdom has none.
-  (globalThis as { DragEvent?: unknown }).DragEvent ??= class extends MouseEvent {};
   // Primer's SegmentedControl asks the media queries; jsdom has none.
   window.matchMedia = ((query: string) => ({
     matches: false,

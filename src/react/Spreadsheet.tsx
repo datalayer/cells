@@ -32,6 +32,7 @@ import {
   Fragment,
   forwardRef,
   memo,
+  type ReactElement,
   type ReactNode,
   useCallback,
   useEffect,
@@ -2345,6 +2346,7 @@ const AccessibilityMirror = memo(function AccessibilityMirror(props: {
   const selection = useSyncExternalStore(
     useCallback((notify: () => void) => model.subscribeSelection(notify), [model]),
     () => model.selection,
+    () => model.selection,
   );
   /**
    * What the rows re-read their names on: a change stamps the rows it touched (or all of them,
@@ -2408,9 +2410,10 @@ const AccessibilityMirror = memo(function AccessibilityMirror(props: {
   /** The selected columns of a mirror row, as a string: a row re-renders only when it changes. */
   const selectedIn = (row: number): string => {
     if (selection.sheet !== sheet.id) return '';
+    const zones = selection.zones.filter((z) => row >= z.top && row <= z.bottom);
+    if (zones.length === 0) return '';
     const out: number[] = [];
-    for (const c of cols)
-      if (selection.zones.some((z) => zoneContains(z, { row, col: c }))) out.push(c);
+    for (const c of cols) if (zones.some((z) => zoneContains(z, { row, col: c }))) out.push(c);
     return out.join(',');
   };
   const activeId =
@@ -2426,9 +2429,8 @@ const AccessibilityMirror = memo(function AccessibilityMirror(props: {
     else grid.setAttribute('aria-activedescendant', activeId);
   }, [activeId]);
 
-  const m = revisions.current;
-  return (
-    <div ref={own} style={visuallyHidden} data-cells-mirror="">
+  const header = useMemo(
+    () => (
       <div role="row" aria-rowindex={1}>
         {cols.map((c, i) => (
           <div key={i} role="columnheader" aria-colindex={c + 2}>
@@ -2436,24 +2438,50 @@ const AccessibilityMirror = memo(function AccessibilityMirror(props: {
           </div>
         ))}
       </div>
-      {mirror.rows.map((r, i) => (
-        <MirrorRow
-          key={i}
-          model={model}
-          sheet={sheet.id}
-          row={r}
-          cols={cols}
-          uid={uid}
-          selected={selectedIn(r)}
-          revision={Math.max(m.all, m.rows.get(r) ?? 0)}
-        />
-      ))}
+    ),
+    [cols],
+  );
+  // A row that did not change keeps its element, so a selection move builds two rows, not all.
+  const shown = useRef<ReactElement<MirrorRowProps>[]>([]);
+  const m = revisions.current;
+  const rows = mirror.rows.map((row, i) => {
+    const selected = selectedIn(row);
+    const revision = Math.max(m.all, m.rows.get(row) ?? 0);
+    const last = shown.current[i]?.props;
+    if (
+      last !== undefined &&
+      last.model === model &&
+      last.sheet === sheet.id &&
+      last.row === row &&
+      last.cols === cols &&
+      last.uid === uid &&
+      last.selected === selected &&
+      last.revision === revision
+    )
+      return shown.current[i];
+    return (
+      <MirrorRow
+        key={i}
+        model={model}
+        sheet={sheet.id}
+        row={row}
+        cols={cols}
+        uid={uid}
+        selected={selected}
+        revision={revision}
+      />
+    );
+  });
+  shown.current = rows;
+  return (
+    <div ref={own} style={visuallyHidden} data-cells-mirror="">
+      {header}
+      {rows}
     </div>
   );
 });
 
-/** One row of the accessibility mirror; re-renders when its cells, columns or selection change. */
-const MirrorRow = memo(function MirrorRow(props: {
+interface MirrorRowProps {
   model: CellsModel;
   sheet: string;
   row: number;
@@ -2462,7 +2490,10 @@ const MirrorRow = memo(function MirrorRow(props: {
   /** The selected columns, comma-separated. */
   selected: string;
   revision: number;
-}) {
+}
+
+/** One row of the accessibility mirror; re-renders when its cells, columns or selection change. */
+const MirrorRow = memo(function MirrorRow(props: MirrorRowProps) {
   const { model, sheet, row, cols, uid } = props;
   const selected = new Set(props.selected === '' ? [] : props.selected.split(',').map(Number));
   return (
