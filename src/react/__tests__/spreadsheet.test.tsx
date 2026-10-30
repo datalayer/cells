@@ -196,6 +196,71 @@ describe(`<Spreadsheet> (React ${reactVersion})`, () => {
     );
   });
 
+  it("moves the selection without re-rendering the grid: the mirror's active cell follows", () => {
+    const model = createCellsModel();
+    const div = mount(<Spreadsheet model={model} />);
+    const grid = div.querySelector<HTMLElement>('[role="grid"]')!;
+    // The grid's render reads readOnly (aria-readonly); a selection move reads nothing of it.
+    let renders = 0;
+    Object.defineProperty(model, 'readOnly', {
+      configurable: true,
+      get: () => {
+        renders += 1;
+        return false;
+      },
+    });
+    const before = document.getElementById(grid.getAttribute('aria-activedescendant')!)!;
+    act(() => {
+      model.select({
+        ...model.selection,
+        anchor: { row: 2, col: 1 },
+        active: { row: 2, col: 1 },
+        zones: [{ top: 2, left: 1, bottom: 2, right: 1 }],
+      });
+    });
+    expect(renders).toBe(0);
+    const active = document.getElementById(grid.getAttribute('aria-activedescendant')!)!;
+    expect(active.id).toMatch(/-r2-c1$/);
+    expect(active.getAttribute('aria-selected')).toBe('true');
+    expect(before.getAttribute('aria-selected')).toBe('false');
+  });
+
+  it('keeps the mirror as it is while a scroll runs, then re-reads its rows in place', async () => {
+    const model = createCellsModel();
+    const div = mount(<Spreadsheet model={model} />);
+    const scroller = div.querySelector<HTMLElement>('[data-cells-scroller]')!;
+    let top = 0;
+    Object.defineProperty(scroller, 'scrollTop', {
+      configurable: true,
+      get: () => top,
+      set: (v: number) => {
+        top = v;
+      },
+    });
+    const rows = () =>
+      [...div.querySelectorAll('[data-cells-mirror] [role="row"]')].filter(
+        (r) => Number(r.getAttribute('aria-rowindex')) > 1,
+      );
+    const last = () => Math.max(...rows().map((r) => Number(r.getAttribute('aria-rowindex'))));
+    const before = rows();
+    const lastBefore = last();
+    act(() => {
+      top = 2000;
+      scroller.dispatchEvent(new Event('scroll'));
+    });
+    // Mid-scroll the mirror is left alone: re-mounting rows each frame was what a fling cost.
+    expect(last()).toBe(lastBefore);
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 300));
+    });
+    expect(last()).toBeGreaterThan(lastBefore + 50);
+    // The same row elements, re-read: none re-mounted.
+    expect(before.every((r) => r.isConnected)).toBe(true);
+    // The active cell (A1, scrolled out of view) stays in the mirror for aria-activedescendant.
+    const grid = div.querySelector<HTMLElement>('[role="grid"]')!;
+    expect(document.getElementById(grid.getAttribute('aria-activedescendant')!)).not.toBeNull();
+  });
+
   it("re-reads the mirror's names in the rows a change touches, and everywhere once a formula may follow it", () => {
     const model = createCellsModel();
     const div = mount(<Spreadsheet model={model} />);

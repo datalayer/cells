@@ -41,6 +41,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 import type { Command, CommandResult } from '../core/commands.js';
 import type { DataSourceError } from '../core/dataSources.js';
@@ -165,6 +166,13 @@ export interface SpreadsheetProps {
 
 /** The mirror holds at most this many cells (§ accessibility). */
 export const MIRROR_CAP = 1000;
+
+/**
+ * How long a scroll rests before the mirror re-reads the rows in view, ms. A
+ * fling paints each frame; the mirror follows once it stops (the active cell is
+ * in the mirror throughout, so `aria-activedescendant` always names a cell).
+ */
+const MIRROR_SETTLE_MS = 100;
 
 /** How long the pointer rests on a code cell with outputs before its preview opens, ms. */
 export const CODE_HOVER_MS = 300;
@@ -306,11 +314,15 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
     const [gutter, setGutter] = useState({ right: 0, bottom: 0 });
     const [announcement, setAnnouncement] = useState('');
     const [, setRevision] = useState(0);
-    /**
-     * What the mirror's rows re-read their names on: a change stamps the rows it touched (or all of
-     * them, `all`), so an edit re-renders its own row, not every row in view.
-     */
-    const mirrorRevisions = useRef({ next: 0, all: 0, rows: new Map<number, number>() });
+    /** The viewport the accessibility mirror reads: the renderer's, once a scroll settles. */
+    const [mirrorViewport, setMirrorViewport] = useState<Viewport | null>(null);
+    const mirrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(
+      () => () => {
+        if (mirrorTimer.current !== null) clearTimeout(mirrorTimer.current);
+      },
+      [],
+    );
     const props_ = useRef(props);
     props_.current = props;
 
@@ -377,6 +389,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
       renderer.setZoom(props_.current.zoom ?? 1);
       if (size.width > 0) renderer.setSize(size.width, size.height, devicePixelRatio || 1);
       setViewport(renderer.viewport);
+      setMirrorViewport(renderer.viewport);
       return () => {
         renderer.dispose();
         rendererRef.current = null;
@@ -388,11 +401,26 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
       if (theme) rendererRef.current?.setTheme(theme);
     }, [theme]);
 
-    const syncView = useCallback(() => {
+    /**
+     * Hand the renderer's viewport to React. A scroll (`scrolling`) moves the layers each frame and
+     * leaves the accessibility mirror to the moment it settles; anything else moves both at once.
+     */
+    const syncView = useCallback((scrolling?: boolean) => {
       const r = rendererRef.current;
       if (r === null) return;
       const vp = r.viewport;
       setViewport(vp);
+      if (mirrorTimer.current !== null) clearTimeout(mirrorTimer.current);
+      mirrorTimer.current = null;
+      if (scrolling === true) {
+        mirrorTimer.current = setTimeout(() => {
+          mirrorTimer.current = null;
+          const now = rendererRef.current;
+          if (now !== null) setMirrorViewport(now.viewport);
+        }, MIRROR_SETTLE_MS);
+      } else {
+        setMirrorViewport(vp);
+      }
       const main = vp.panes.find((p) => p.name === 'main')!;
       const width = spacerSize(vp.maxScrollX * vp.zoom, main.width);
       const height = spacerSize(vp.maxScrollY * vp.zoom, main.height);
@@ -472,21 +500,6 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
     useEffect(() => {
       const a = model.subscribe((tx) => {
         setRevision((n) => n + 1);
-        const m = mirrorRevisions.current;
-        // A change without patches (a remote document projected, a load) says nothing of its rows.
-        const rows =
-          tx.patches.length === 0
-            ? 'all'
-            : rowsChanged(tx, model, rendererRef.current?.sheet ?? model.selection.sheet);
-        if (rows !== 'none') {
-          m.next += 1;
-          if (rows === 'all' || m.rows.size > 10_000) {
-            m.all = m.next;
-            m.rows.clear();
-          } else {
-            for (let r = rows.top; r <= rows.bottom; r += 1) m.rows.set(r, m.next);
-          }
-        }
         setAnnouncement(announce(tx, props_.current.messages));
         props_.current.onChange?.(tx);
         syncView();
@@ -494,13 +507,19 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
       const c = model.subscribeDataSourceErrors((error) => {
         props_.current.onDataSourceError?.(error);
       });
+      // A selection move is the overlay's (the renderer) and the mirror's (its own subscription):
+      // the grid re-renders only when the sheet shown or the selected chart changes.
       const b = model.subscribeSelection((s) => {
-        setRevision((n) => n + 1);
         props_.current.onSelectionChange?.(s);
         if (s.sheet !== rendererRef.current?.sheet && props_.current.sheet === undefined) {
           rendererRef.current?.setSheet(s.sheet);
           syncView();
         }
+        if (
+          (props_.current.sheet === undefined && s.sheet !== rendered.current.sheet) ||
+          model.selectedChart !== rendered.current.chart
+        )
+          setRevision((n) => n + 1);
       });
       return () => {
         a();
@@ -525,7 +544,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
         viewport: main.height,
       });
       r.setScroll(x / vp.zoom, y / vp.zoom);
-      syncView();
+      syncView(true);
     }, [syncView]);
 
     /** Scroll so a cell shows in the main pane. */
@@ -1459,51 +1478,10 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
 
     // ------------------------------------------------------------ the accessibility mirror
     const sheet = model.workbook.hasSheet(sheetId) ? model.sheet(sheetId) : model.sheets[0];
-    const selection = model.selection;
-    const cellId = (row: number, col: number) => `${uid}-r${row}-c${col}`;
-    const mirror = useMemo(() => {
-      if (viewport === null) return { rows: [] as number[], cols: [] as number[] };
-      const rowSet = new Set<number>();
-      const colSet = new Set<number>();
-      for (const p of viewport.panes) {
-        for (let r = p.firstRow; r <= p.lastRow; r += 1)
-          if (sheet.rows.effectiveSizeOf(r) > 0) rowSet.add(r);
-        for (let c = p.firstCol; c <= p.lastCol; c += 1)
-          if (sheet.cols.effectiveSizeOf(c) > 0) colSet.add(c);
-      }
-      if (selection.sheet === sheet.id) {
-        rowSet.add(selection.active.row);
-        colSet.add(selection.active.col);
-      }
-      let rows = [...rowSet].sort((a, b) => a - b);
-      let cols = [...colSet].sort((a, b) => a - b);
-      // Capped: the rows nearest the active cell first, every visible column while it fits.
-      if (rows.length * cols.length > MIRROR_CAP) {
-        const maxCols = Math.min(
-          cols.length,
-          Math.floor(MIRROR_CAP / Math.max(1, Math.min(rows.length, 20))),
-        );
-        cols = nearest(cols, selection.active.col, maxCols);
-        rows = nearest(rows, selection.active.row, Math.floor(MIRROR_CAP / cols.length));
-      }
-      return { rows, cols };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [viewport, sheet, selection.active.row, selection.active.col, selection.sheet]);
-    // The same columns keep the same array, so unchanged rows skip rendering.
-    const colsKey = mirror.cols.join(',');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    const mirrorCols = useMemo(() => mirror.cols, [colsKey]);
-
-    /** The selected columns of a mirror row, as a string: a row re-renders only when it changes. */
-    const selectedIn = (row: number): string => {
-      if (selection.sheet !== sheet.id) return '';
-      const out: number[] = [];
-      for (const c of mirrorCols)
-        if (selection.zones.some((z) => zoneContains(z, { row, col: c }))) out.push(c);
-      return out.join(',');
-    };
-    const activeId =
-      selection.sheet === sheet.id ? cellId(selection.active.row, selection.active.col) : undefined;
+    const selectedChart = model.selectedChart;
+    /** What this render showed, for the selection's subscription to tell whether it must render again. */
+    const rendered = useRef({ sheet: sheet.id, chart: selectedChart });
+    rendered.current = { sheet: sheet.id, chart: selectedChart };
     const main = viewport?.panes.find((p) => p.name === 'main');
 
     return (
@@ -1531,7 +1509,6 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
             aria-multiselectable="true"
             aria-description="Arrow keys move between cells, Tab and Enter too. Press Escape, then Tab, to leave the grid."
             aria-readonly={model.readOnly || undefined}
-            aria-activedescendant={activeId}
             data-cells-sheet={sheet.id}
             onKeyDown={onKeyDown}
             onFocus={() => setCellsCommandTarget(commandArgument)}
@@ -1598,30 +1575,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
             >
               <div style={{ width: spacer.width, height: spacer.height }} />
             </div>
-            <div style={visuallyHidden} data-cells-mirror="">
-              <div role="row" aria-rowindex={1}>
-                {mirror.cols.map((c) => (
-                  <div key={c} role="columnheader" aria-colindex={c + 2}>
-                    {columnLetters(c)}
-                  </div>
-                ))}
-              </div>
-              {mirror.rows.map((r) => (
-                <MirrorRow
-                  key={r}
-                  model={model}
-                  sheet={sheet.id}
-                  row={r}
-                  cols={mirrorCols}
-                  uid={uid}
-                  selected={selectedIn(r)}
-                  revision={Math.max(
-                    mirrorRevisions.current.all,
-                    mirrorRevisions.current.rows.get(r) ?? 0,
-                  )}
-                />
-              ))}
-            </div>
+            <AccessibilityMirror model={model} sheet={sheet} viewport={mirrorViewport} uid={uid} />
             {viewport !== null && theme !== null && (
               <EditLayer
                 model={model}
@@ -1725,7 +1679,7 @@ export const Spreadsheet = forwardRef<CellsHandle, SpreadsheetProps>(
                 sheet={sheet.id}
                 viewport={viewport}
                 theme={theme}
-                selectedChart={model.selectedChart}
+                selectedChart={selectedChart}
                 onPointerDownChart={(id) => model.selectChart(id)}
                 onChartKeyDown={chartKey}
               />
@@ -2372,6 +2326,132 @@ function measureText(font: string, text: string): number {
   return measuring.measureText(text).width;
 }
 
+/**
+ * The accessibility mirror: hidden rows and cells for the rows in view (as the
+ * viewport it is given says) and the active cell, at most `MIRROR_CAP` cells.
+ * It follows the selection and the model's changes itself, so neither re-renders
+ * the grid, and it points the grid's `aria-activedescendant` at the active cell.
+ * Rows and cells are keyed by their place, so new rows in view re-read the same
+ * elements instead of mounting new ones.
+ */
+const AccessibilityMirror = memo(function AccessibilityMirror(props: {
+  model: CellsModel;
+  sheet: Sheet;
+  viewport: Viewport | null;
+  uid: string;
+}) {
+  const { model, sheet, viewport, uid } = props;
+  const own = useRef<HTMLDivElement>(null);
+  const selection = useSyncExternalStore(
+    useCallback((notify: () => void) => model.subscribeSelection(notify), [model]),
+    () => model.selection,
+  );
+  /**
+   * What the rows re-read their names on: a change stamps the rows it touched (or all of them,
+   * `all`), so an edit re-renders its own row, not every row in view.
+   */
+  const revisions = useRef({ next: 0, all: 0, rows: new Map<number, number>() });
+  const [, setRevision] = useState(0);
+  useEffect(
+    () =>
+      model.subscribe((tx) => {
+        const m = revisions.current;
+        // A change without patches (a remote document projected, a load) says nothing of its rows.
+        const rows = tx.patches.length === 0 ? 'all' : rowsChanged(tx, model, sheet.id);
+        if (rows === 'none') return;
+        m.next += 1;
+        if (rows === 'all' || m.rows.size > 10_000) {
+          m.all = m.next;
+          m.rows.clear();
+        } else {
+          for (let r = rows.top; r <= rows.bottom; r += 1) m.rows.set(r, m.next);
+        }
+        setRevision(m.next);
+      }),
+    [model, sheet.id],
+  );
+
+  const mirror = useMemo(() => {
+    if (viewport === null) return { rows: [] as number[], cols: [] as number[] };
+    const rowSet = new Set<number>();
+    const colSet = new Set<number>();
+    for (const p of viewport.panes) {
+      for (let r = p.firstRow; r <= p.lastRow; r += 1)
+        if (sheet.rows.effectiveSizeOf(r) > 0) rowSet.add(r);
+      for (let c = p.firstCol; c <= p.lastCol; c += 1)
+        if (sheet.cols.effectiveSizeOf(c) > 0) colSet.add(c);
+    }
+    if (selection.sheet === sheet.id) {
+      rowSet.add(selection.active.row);
+      colSet.add(selection.active.col);
+    }
+    let rows = [...rowSet].sort((a, b) => a - b);
+    let cols = [...colSet].sort((a, b) => a - b);
+    // Capped: the rows nearest the active cell first, every visible column while it fits.
+    if (rows.length * cols.length > MIRROR_CAP) {
+      const maxCols = Math.min(
+        cols.length,
+        Math.floor(MIRROR_CAP / Math.max(1, Math.min(rows.length, 20))),
+      );
+      cols = nearest(cols, selection.active.col, maxCols);
+      rows = nearest(rows, selection.active.row, Math.floor(MIRROR_CAP / cols.length));
+    }
+    return { rows, cols };
+    // A model change hands the grid a new viewport (hidden rows, the sheet's size), so it re-reads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewport, sheet, selection.active.row, selection.active.col, selection.sheet]);
+  // The same columns keep the same array, so unchanged rows skip rendering.
+  const colsKey = mirror.cols.join(',');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const cols = useMemo(() => mirror.cols, [colsKey]);
+
+  /** The selected columns of a mirror row, as a string: a row re-renders only when it changes. */
+  const selectedIn = (row: number): string => {
+    if (selection.sheet !== sheet.id) return '';
+    const out: number[] = [];
+    for (const c of cols)
+      if (selection.zones.some((z) => zoneContains(z, { row, col: c }))) out.push(c);
+    return out.join(',');
+  };
+  const activeId =
+    selection.sheet === sheet.id
+      ? `${uid}-r${selection.active.row}-c${selection.active.col}`
+      : undefined;
+  // After the rows are in the document, so the grid never names a cell that is not there. The
+  // grid is the mirror's parent (its ref is not attached yet when a first mount gets here).
+  useLayoutEffect(() => {
+    const grid = own.current?.parentElement;
+    if (grid == null) return;
+    if (activeId === undefined) grid.removeAttribute('aria-activedescendant');
+    else grid.setAttribute('aria-activedescendant', activeId);
+  }, [activeId]);
+
+  const m = revisions.current;
+  return (
+    <div ref={own} style={visuallyHidden} data-cells-mirror="">
+      <div role="row" aria-rowindex={1}>
+        {cols.map((c, i) => (
+          <div key={i} role="columnheader" aria-colindex={c + 2}>
+            {columnLetters(c)}
+          </div>
+        ))}
+      </div>
+      {mirror.rows.map((r, i) => (
+        <MirrorRow
+          key={i}
+          model={model}
+          sheet={sheet.id}
+          row={r}
+          cols={cols}
+          uid={uid}
+          selected={selectedIn(r)}
+          revision={Math.max(m.all, m.rows.get(r) ?? 0)}
+        />
+      ))}
+    </div>
+  );
+});
+
 /** One row of the accessibility mirror; re-renders when its cells, columns or selection change. */
 const MirrorRow = memo(function MirrorRow(props: {
   model: CellsModel;
@@ -2390,9 +2470,9 @@ const MirrorRow = memo(function MirrorRow(props: {
       <div role="rowheader" aria-colindex={1}>
         {row + 1}
       </div>
-      {cols.map((c) => (
+      {cols.map((c, i) => (
         <div
-          key={c}
+          key={i}
           id={`${uid}-r${row}-c${c}`}
           role="gridcell"
           aria-colindex={c + 2}
