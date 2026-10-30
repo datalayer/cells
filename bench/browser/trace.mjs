@@ -16,6 +16,9 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 import { build, createServer, preview } from 'vite';
+import { percentile } from '../percentile.mjs';
+
+export { percentile };
 
 const VITE_CONFIG = fileURLToPath(new URL('../../examples/vite.config.ts', import.meta.url));
 const BENCH_HTML = fileURLToPath(new URL('../../examples/bench.html', import.meta.url));
@@ -136,12 +139,4 @@ function mainThread(events) {
   const named = events.find((e) => e.name === 'thread_name' && e.args?.name === 'CrRendererMain');
   if (!named) throw new Error('The trace has no renderer main thread (CrRendererMain).');
   return { pid: named.pid, tid: named.tid };
-}
-
-/** The p-th percentile (0–100) of `values`, nearest-rank. */
-export function percentile(values, p) {
-  if (values.length === 0) throw new Error('No value to take a percentile of.');
-  const sorted = [...values].sort((a, b) => a - b);
-  const rank = Math.max(0, Math.ceil((p / 100) * sorted.length) - 1);
-  return sorted[rank];
 }

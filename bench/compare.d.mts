@@ -16,6 +16,7 @@ export interface BenchResult {
 
 export interface Budgets {
   budgets: Record<string, { max: number; unit: string }>;
+  reported?: Record<string, { unit: string }>;
 }
 
 export const SIZE_FLOOR_KB: number;

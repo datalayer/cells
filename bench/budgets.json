@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "note": "Every budget of the performance table, lower is better. A figure is checked only once a bench measures it. Browser figures are the reference machine's, in a headed Chrome with its GPU (make bench-reference); headless runs composite in software and only smoke-test.",
+  "note": "Every budget of the performance table, lower is better. A figure is checked only once a bench measures it. Browser figures read a production build of the bench page, in a headed Chrome with its GPU (make bench-reference-production; decided by the user, 30 October 2026); the dev-server run (make bench-reference) is for spotting regressions, and headless runs only smoke-test. The fling's budget is its p99 frame; `reported` figures are listed and gate nothing.",
   "budgets": {
     "harness.noop.ms": {
       "max": 1,
@@ -27,7 +27,7 @@
       "unit": "ms",
       "where": "browser"
     },
-    "scrollFling.maxFrameMs": {
+    "scrollFling.p99FrameMs": {
       "max": 16.7,
       "unit": "ms",
       "where": "browser"
@@ -37,7 +37,7 @@
       "unit": "ms",
       "where": "browser"
     },
-    "dataSource.scrollFling.maxFrameMs": {
+    "dataSource.scrollFling.p99FrameMs": {
       "max": 16.7,
       "unit": "ms",
       "where": "browser"
@@ -182,6 +182,20 @@
         "value": 8.37,
         "why": "Accepted by the user on 28 October 2026 (\"Accept the growth\"): the code-cell work (the datalayer.cells comm, the kernel status, the editor overlay, SourceCell) grew the entry from 4.7 kB (main run 40684239014) to 8.37 kB (afc92c0, run 40719685153); the base moves up to it until a green run makes the size the base."
       }
+    }
+  },
+  "reported": {
+    "scrollFling.maxFrameMs": {
+      "unit": "ms"
+    },
+    "scrollFling.framesOver": {
+      "unit": "frames"
+    },
+    "dataSource.scrollFling.maxFrameMs": {
+      "unit": "ms"
+    },
+    "dataSource.scrollFling.framesOver": {
+      "unit": "frames"
     }
   }
 }

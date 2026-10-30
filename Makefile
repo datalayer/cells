@@ -29,10 +29,10 @@ bench: ## run the Node benches and write bench/results/
 bench-browser: ## run the Node and the browser benches (system Chrome, headless)
 	env -u WAYLAND_DISPLAY -u DISPLAY node scripts/bench.mjs --browser
 
-bench-reference: ## the reference figures: the browser benches in a headed Chrome with its GPU (close other work first)
+bench-reference: ## the dev-server figures, for spotting regressions: the browser benches in a headed Chrome with its GPU (close other work first)
 	CELLS_BENCH_HEADED=1 node scripts/bench.mjs --browser
 
-bench-reference-production: ## the same on a production build of the bench page (React's production build), written beside the reference figures
+bench-reference-production: ## the reference figures of the budgets, charts among them: the browser benches on a production build, in a headed Chrome with its GPU (close other work first)
 	CELLS_BENCH_HEADED=1 CELLS_BENCH_BUILD=production node scripts/bench.mjs --browser
 
 .PHONY: start examples jupyter-server

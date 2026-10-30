@@ -70,6 +70,28 @@ describe('the bench comparison', () => {
     expect(failures[0]).toMatch(/no budget declares/);
   });
 
+  it('lists a figure only reported, without a budget, a gate or a regression', () => {
+    const figures = (value: number) => ({
+      figures: { 'scrollFling.maxFrameMs': { value, unit: 'ms' } },
+    });
+    const { ok, lines, failures } = compare(figures(33), figures(366), budgets);
+    expect(failures).toEqual([]);
+    expect(ok).toBe(true);
+    expect(lines).toEqual(['scrollFling.maxFrameMs: 366 ms (reported)']);
+    const wrongUnit = { figures: { 'scrollFling.maxFrameMs': { value: 33, unit: 's' } } };
+    expect(compare(null, wrongUnit, budgets).failures[0]).toMatch(/measured in s, reported in ms/);
+    const notANumber = { figures: { 'scrollFling.framesOver': { value: NaN, unit: 'frames' } } };
+    expect(compare(null, notANumber, budgets).failures[0]).toMatch(/not a number/);
+  });
+
+  it('gates the fling on its p99, and lists no figure as both budgeted and reported', () => {
+    const over = { figures: { 'scrollFling.p99FrameMs': { value: 33.3, unit: 'ms' } } };
+    expect(compare(null, over, budgets).failures[0]).toMatch(/over its budget of 16\.7/);
+    expect(budgets.budgets['dataSource.scrollFling.p99FrameMs'].max).toBe(16.7);
+    const both = Object.keys(budgets.reported).filter((n) => n in budgets.budgets);
+    expect(both).toEqual([]);
+  });
+
   it('refuses a figure measured in another unit than its budget', () => {
     const current = { figures: { 'harness.noop.ms': { value: 0.1, unit: 's' } } };
     expect(compare(null, current, budgets).failures[0]).toMatch(/measured in s, budgeted in ms/);

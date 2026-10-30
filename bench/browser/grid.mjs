@@ -7,11 +7,12 @@
 /**
  * The grid's browser figures (C2-02): first paint with a million cells in the
  * model, the script time per frame while scrolling a screen of text, the
- * longest frame of a 10-second fling, Ctrl+End on a million rows, and a
+ * frames of a 10-second fling (bench/fling.mjs), Ctrl+End on a million rows, and a
  * selection move. Runs the examples' bench page (examples/bench.html) on its
  * own dev server, at 1920×1080 and DPR 2.
  */
 
+import { flingFigures } from '../fling.mjs';
 import { benchPage, percentile, traceTasks } from './trace.mjs';
 
 const PORT = 3078;
@@ -89,11 +90,7 @@ export async function run(browser) {
             requestAnimationFrame(step);
           }),
       );
-      figures['scrollFling.maxFrameMs'] = {
-        value: round(Math.max(...fling)),
-        unit: 'ms',
-        runs: fling.length,
-      };
+      Object.assign(figures, flingFigures('scrollFling', fling));
 
       // A selection move repaints the overlay only.
       const moves = [];

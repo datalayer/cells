@@ -9,10 +9,11 @@
  * 12 columns bound at A1, its pages answered after a server's delay, scrolled
  * at 1920×1080 and DPR 2 with the scroll budget of §4: the script time per
  * frame while wheeling down through pages that arrive on demand, and the
- * longest frame of a 10-second fling. Then a jump to the far end, whose last
+ * frames of a 10-second fling (bench/fling.mjs). Then a jump to the far end, whose last
  * row must arrive. `CELLS_SOURCE_ROWS` makes it smaller for a smoke run.
  */
 
+import { flingFigures } from '../fling.mjs';
 import { benchPage, percentile, traceTasks } from './trace.mjs';
 
 const PORT = 3081;
@@ -77,20 +78,7 @@ export async function run(browser) {
           requestAnimationFrame(step);
         }),
     );
-    figures['dataSource.scrollFling.maxFrameMs'] = {
-      value: round(Math.max(...fling)),
-      unit: 'ms',
-      runs: fling.length,
-    };
-    if (process.env.CELLS_BENCH_VERBOSE)
-      console.error(
-        'fling frames over 16.7 ms',
-        fling.filter((d) => d > 16.7).length,
-        'of',
-        fling.length,
-        'p95',
-        percentile(fling, 95),
-      );
+    Object.assign(figures, flingFigures('dataSource.scrollFling', fling));
 
     // The far end: its page is asked for on demand and its last row arrives.
     await page

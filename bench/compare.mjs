@@ -11,8 +11,10 @@
  * has to grow by {@link SIZE_FLOOR_KB} or more, so a small entry gaining a
  * feature (a 5 kB entry growing by 1 kB) is not a regression, while its
  * budget still caps it. Lower is better for every figure. A figure absent
- * from the base is checked against its budget only; a figure with no budget
- * is refused, so none goes unchecked.
+ * from the base is checked against its budget only. A figure in `reported`
+ * (a longest frame, a count of frames) is listed, with no budget and no
+ * regression gate; any other figure with no budget is refused, so none goes
+ * unchecked.
  *
  * Result file shape:
  *   { version: 1, sha, date, machine, figures: { "<name>": { value, unit, runs? } } }
@@ -21,7 +23,7 @@
 /**
  * @param {{ figures: Record<string, { value: number, unit: string }> } | null} base
  * @param {{ figures: Record<string, { value: number, unit: string }> }} current
- * @param {{ budgets: Record<string, { max: number, unit: string, accepted?: { value: number, why: string } }> }} budgets
+ * @param {{ budgets: Record<string, { max: number, unit: string, accepted?: { value: number, why: string } }>, reported?: Record<string, { unit: string }> }} budgets
  * @param {{ threshold?: number }} [options]
  * @returns {{ ok: boolean, lines: string[], failures: string[] }}
  */
@@ -39,6 +41,17 @@ export function compare(base, current, budgets, options = {}) {
   for (const name of names) {
     const figure = current.figures[name];
     const budget = budgets.budgets[name];
+    const reported = budgets.reported?.[name];
+    if (budget === undefined && reported !== undefined) {
+      if (figure.unit !== reported.unit) {
+        failures.push(`${name}: measured in ${figure.unit}, reported in ${reported.unit}`);
+      } else if (!Number.isFinite(figure.value)) {
+        failures.push(`${name}: the value ${figure.value} is not a number`);
+      } else {
+        lines.push(`${name}: ${round(figure.value)} ${figure.unit} (reported)`);
+      }
+      continue;
+    }
     if (budget === undefined) {
       failures.push(`${name}: no budget declares this figure (bench/budgets.json)`);
       continue;
