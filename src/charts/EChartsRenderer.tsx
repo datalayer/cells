@@ -16,7 +16,19 @@
  */
 
 import * as echarts from 'echarts/core';
-import ReactEChartsCore from 'echarts-for-react/lib/core';
+import * as reactEChartsCoreModule from 'echarts-for-react/lib/core';
+
+/**
+ * `echarts-for-react/lib/core` is CommonJS with an `exports.default`. A
+ * bundler reading this package's lib as strict ESM (webpack, for a
+ * `type: module` package) hands a default import the whole `exports`
+ * object rather than its `default`, and React refused the object as an
+ * element type (6 November 2026). Read it whichever way it came.
+ */
+type CoreModule = { default?: unknown };
+const ReactEChartsCore = (((reactEChartsCoreModule as CoreModule).default as CoreModule | undefined)?.default ??
+  (reactEChartsCoreModule as CoreModule).default ??
+  reactEChartsCoreModule) as typeof import('echarts-for-react/lib/core').default;
 import type { ChartRendererProps } from '../points/index.js';
 
 const registered = new WeakSet<object>();
