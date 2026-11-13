@@ -56,6 +56,7 @@ export default function Theming() {
     >
       <div style={{ maxWidth: 420 }}>
         <AppearanceControls
+          withStore={false}
           colorMode={colorMode}
           themeVariant={variant}
           onColorModeChange={setColorMode}

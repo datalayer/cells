@@ -186,6 +186,7 @@ export default function Charts() {
     >
       <div style={{ maxWidth: 420 }}>
         <AppearanceControls
+          withStore={false}
           colorMode={colorMode}
           themeVariant={variant}
           onColorModeChange={setColorMode}
