@@ -129,7 +129,7 @@ test.describe('the grid', () => {
     await page.getByRole('main').getByRole('button', { name: 'Dark' }).click();
     await expect.poll(() => pixel(page, 'Page grid', 300, 150)).toEqual([0x0d, 0x11, 0x17]);
     const before = (await pixel(page, 'Themed grid', 300, 150)).join(',');
-    await page.getByRole('main').getByRole('button', { name: 'Loop', exact: true }).click();
+    await page.getByRole('main').getByRole('button', { name: 'Agent', exact: true }).click();
     await expect
       .poll(async () => (await pixel(page, 'Themed grid', 300, 150)).join(','))
       .not.toBe(before);

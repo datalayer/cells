@@ -71,7 +71,7 @@ export default function Cells(props: CellsProps): JSX.Element {
             data={data}
             src={src === undefined ? undefined : url}
             height={height}
-            theme={site?.theme ?? 'loop'}
+            theme={site?.theme ?? 'agent'}
             editable={editable ?? site?.editable ?? false}
             label={label}
           />

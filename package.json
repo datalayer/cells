@@ -126,7 +126,7 @@
   "peerDependencies": {
     "@datalayer/jupyter-react": "^2.0.21",
     "@datalayer/lexical-loro": "^1.0.8",
-    "@datalayer/primer-addons": "^1.0.44",
+    "@datalayer/primer-addons": "^1.0.54",
     "@datalayer/reactor": "^1.3.2",
     "@jupyter/ydoc": "^4.1.1",
     "@jupyterlab/cells": "^4.0.0",
@@ -144,7 +144,7 @@
     "@axe-core/playwright": "^4.11.0",
     "@datalayer/jupyter-react": "^2.0.21",
     "@datalayer/lexical-loro": "^1.0.8",
-    "@datalayer/primer-addons": "^1.0.44",
+    "@datalayer/primer-addons": "^1.0.54",
     "@datalayer/reactor": "^1.3.2",
     "@datalayer/reactor-commands": "^1.3.2",
     "@datalayer/reactor-shell": "^1.3.4",

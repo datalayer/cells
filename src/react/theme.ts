@@ -7,7 +7,7 @@
 /**
  * Resolving the `CellsTheme` the canvas needs from what a host has: its
  * Primer CSS variables (`theme="auto"`), a primer-addons variant
- * (`theme="loop"`, through `exportPortableTheme`, loaded only when asked
+ * (`theme="agent"`, through `exportPortableTheme`, loaded only when asked
  * for), or a `CellsTheme` object. Under `forced-colors: active` the system
  * colours win.
  *

@@ -125,7 +125,7 @@ describe('the plugin', () => {
     );
     const none = cellsPlugin({ siteDir: path.join(site, 'nowhere') }, { modules });
     expect(await none.loadContent()).toEqual({ files: 0, cells: 0 });
-    expect(DEFAULT_THEME).toBe('loop');
+    expect(DEFAULT_THEME).toBe('agent');
     expect(() => cellsPlugin({ siteDir: site }, { maxCells: 0 })).toThrow(
       'maxCells must be at least 1',
     );

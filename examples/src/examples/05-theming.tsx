@@ -12,7 +12,7 @@ import { Frame } from '../shared';
 const DATA = fromRows([
   ['Theme', 'Mode', 'Score'],
   ['auto', 'from the page', 0.92],
-  ['loop', 'primer-addons', 0.88],
+  ['agent', 'primer-addons', 0.88],
   ['datalayer', 'primer-addons', 0.95],
 ]);
 
@@ -40,7 +40,7 @@ const systemMode = (): 'light' | 'dark' =>
 
 /**
  * primer-addons' appearance chooser (colour mode and theme) drives two grids:
- * one in the chosen primer-addons theme (`theme="loop"`, …), loaded on demand,
+ * one in the chosen primer-addons theme (`theme="agent"`, …), loaded on demand,
  * and one with `theme="auto"`, reading the Primer variables its host sets for
  * the mode. Under forced colours (Windows High Contrast) the system colours win.
  */

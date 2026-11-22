@@ -420,7 +420,7 @@ describe('the paint rules', async () => {
     );
   });
 
-  for (const variant of ['loop', 'datalayer'] as const) {
+  for (const variant of ['agent', 'datalayer'] as const) {
     for (const mode of ['light', 'dark'] as const) {
       it(`draws in primer-addons' ${variant} theme, ${mode}`, async () => {
         const map = exportPortableTheme(variant).modes[mode] as Record<string, string>;

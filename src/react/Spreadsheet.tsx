@@ -138,7 +138,7 @@ export interface SpreadsheetProps {
   readonly zoom?: number;
   /** Decimal and group separators, month and day names, for number formats; en-US by default. */
   readonly locale?: NumberLocale;
-  /** `auto` (the host's Primer variables), a primer-addons variant (`loop`, `datalayer`, …), or a CellsTheme. */
+  /** `auto` (the host's Primer variables), a primer-addons variant (`agent`, `datalayer`, …), or a CellsTheme. */
   readonly theme?: 'auto' | string | CellsTheme;
   readonly colorMode?: ColorMode;
   /** The live region's sentences, by command type. */

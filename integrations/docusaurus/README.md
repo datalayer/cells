@@ -16,7 +16,7 @@ a live sheet in any MDX page with `<Cells>`.
   out of the server bundle; the page holds the sheet's place with a box of
   its height until it arrives.
 - **In the site's colour mode.** The sheet wears a primer-addons theme
-  (`loop` unless the site names another) in the colour mode the site's own
+  (`agent` unless the site names another) in the colour mode the site's own
   switch chose, following it when the reader switches.
 - **One React.** React is pinned to the site's own copy.
 
@@ -39,7 +39,7 @@ export default {
 | ---------- | ------- | ------------------------------------------------------------------------------------ |
 | `cellsDir` | `cells` | Where the site's `.cells.json` and `.csv` files are, from the site's directory.       |
 | `maxCells` | none    | The most cells a file may hold: a larger one fails the build.                        |
-| `theme`    | `loop`  | The primer-addons theme variant the sheets wear: `loop`, `datalayer`, and the rest.   |
+| `theme`    | `agent` | The primer-addons theme variant the sheets wear: `agent`, `datalayer`, and the rest.  |
 | `editable` | `false` | Whether readers may edit the sheets (edits stay in the page).                        |
 
 ## Show a sheet in a page

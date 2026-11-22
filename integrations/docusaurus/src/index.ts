@@ -55,7 +55,7 @@ export type CellsPluginOptions = {
   /** The most cells a file may hold; no limit when absent. */
   maxCells?: number;
   /**
-   * The primer-addons theme variant the sheets wear: `loop` (what datalayer.ai
+   * The primer-addons theme variant the sheets wear: `agent` (what datalayer.ai
    * wears) when absent, or `datalayer`, `spatial` and the others. The colour
    * mode follows the site's own switch.
    */
@@ -100,7 +100,7 @@ export type CellsGlobalData = {
   editable: boolean;
 };
 
-export const DEFAULT_THEME = 'loop';
+export const DEFAULT_THEME = 'agent';
 
 type LoadContext = { siteDir: string };
 
